@@ -226,7 +226,6 @@ export type Database = {
           created_at: string
           default_instrument: string
           default_session: string
-          locale: string
           pnl_convention: string
           r_precision: number
           updated_at: string
@@ -236,7 +235,6 @@ export type Database = {
           created_at?: string
           default_instrument?: string
           default_session?: string
-          locale?: string
           pnl_convention?: string
           r_precision?: number
           updated_at?: string
@@ -246,7 +244,6 @@ export type Database = {
           created_at?: string
           default_instrument?: string
           default_session?: string
-          locale?: string
           pnl_convention?: string
           r_precision?: number
           updated_at?: string
