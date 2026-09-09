@@ -282,7 +282,7 @@ export function NewTradeForm({
                     name="session"
                     value={field.value}
                     onChange={field.onChange}
-                    options={(["asia", "london", "ny_am", "ny_pm"] as const).map((value) => ({
+                    options={(["asia", "london", "ny_am"] as const).map((value) => ({
                       value,
                       label: t(SESSION_LABELS[value]),
                     }))}

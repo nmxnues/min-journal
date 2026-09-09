@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { BarChart3, CalendarDays, LineChart, NotebookPen, Wallet } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { INSTRUMENT_PRESETS } from "@/lib/instruments";
 import { LOCALE_BREAKPOINT_PX } from "@/lib/i18n/locale";
 import { useLocale, useT } from "@/lib/i18n/locale-context";
 import { BalanceAndRValueChart } from "@/components/charts/balance-r-value-chart";
@@ -48,7 +49,7 @@ const NAV_ROUTES = [
   { href: "/capital", strings: { en: "Capital", ko: "자산" }, icon: Wallet },
 ] as const;
 
-const INSTRUMENTS = ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "EURJPY", "GBPJPY", "XAUUSD"];
+
 
 /** Mock 1a's equity curve, as cumulative R. */
 const EQUITY = [0, 1.2, 0.7, 3.4, 2.7, 5.2, 4.5, 7.0, 5.8, 7.9, 7.3, 9.7, 8.4, 10.3, 9.6, 11.7, 10.8, 12.6, 13.4];
@@ -170,7 +171,7 @@ export function ComponentGallery() {
                 id="instrument"
                 value={instrument}
                 onChange={setInstrument}
-                options={INSTRUMENTS}
+                options={INSTRUMENT_PRESETS}
                 placeholder="EURUSD"
               />
             </Field>

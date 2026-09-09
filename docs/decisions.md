@@ -23,7 +23,7 @@ One line per decision made where the spec was silent, ambiguous, or (rarely) con
   3. `D → H1`
   4. `H1 → M5`
   Stored as short codes (`m_w_2d` / `w_2d` / `d_h1` / `h1_m5`) on `trades.htf_pairing`, display strings resolved in the UI layer (same pattern as `session`) — keeps a `CHECK` constraint cheap to extend later and keeps the arrow glyph out of the database.
-- **Instrument.** A combobox: free text + a preset list, 28 FX pairs (7 majors + 21 crosses) + `XAUUSD`. No DB constraint (free text stays allowed) — the preset list is UI-only data. `settings.default_instrument` defaults to `EURUSD`. Full preset list:
+- **Instrument.** A combobox: free text + a preset list. No DB constraint (free text stays allowed) — the preset list is UI-only data. `settings.default_instrument` defaults to `EURUSD`. **The list below was superseded in Phase 4a** — see the entry at the end of this file for the final 28 and the dropped `XAUUSD`. Originally:
   - Majors (7): `EURUSD`, `GBPUSD`, `USDJPY`, `USDCHF`, `USDCAD`, `AUDUSD`, `NZDUSD`
   - Crosses (21): `EURGBP`, `EURAUD`, `EURNZD`, `EURCAD`, `EURCHF`, `EURJPY`, `GBPAUD`, `GBPNZD`, `GBPCAD`, `GBPCHF`, `GBPJPY`, `AUDNZD`, `AUDCAD`, `AUDCHF`, `AUDJPY`, `NZDCAD`, `NZDCHF`, `NZDJPY`, `CADCHF`, `CADJPY`, `CHFJPY`
   - Plus `XAUUSD`
@@ -161,3 +161,9 @@ Verified end to end against the mock's own trade in a real browser: range size 8
 
 - **Focus theft ate keystrokes.** `Modal`'s setup effect listed `onClose` in its dependencies, and every caller passes an inline arrow, so the effect re-ran on every parent render and called `panelRef.current.focus()` — pulling focus out of whatever field was being typed into. Only the first character of any input inside a modal survived. Fixed by holding `onClose` in a ref so the effect depends on `open` alone.
 - **The portal broke hydration.** `Modal` guarded its portal with `typeof document === "undefined"`, so the server rendered nothing while the client rendered the portal on its very first pass — a mismatch that made React discard and rebuild the subtree, wiping typed-in state with it. Fixed with a `mounted` flag so both first renders agree on null. The gallery never caught this because its modal only opens after hydration; the account gate renders open on first paint, which exposed it immediately.
+
+
+## Phase 4a follow-up — session set and instrument list trimmed
+
+- **`ny_pm` removed from the session set.** The user doesn't trade the New York PM session, so it's gone from the allowed values rather than left as an option nobody picks: `20260909180000_drop_ny_pm_session.sql` rebuilds both CHECK constraints that carried it (`trades.session` and `settings.default_session`). Done while both tables were still empty, so nothing needed remapping. This is exactly the case Phase 1's "CHECK constraints, not Postgres enums" decision was made for — a two-line `DROP`/`ADD CONSTRAINT` instead of `ALTER TYPE` gymnastics, and dropping a value is something an enum can't do at all. Verified against the live database that `ny_pm` is now rejected on insert. Sessions are `asia` / `london` / `ny_am`.
+- **Instrument presets fixed at 28 pairs, `XAUUSD` dropped.** The list and its order were given by the user directly: the 7 USD majors, then the crosses grouped by leading currency (EUR, then the JPY crosses, then GBP, AUD, CAD, NZD). Plain symbols, no broker prefixes. Metals are off the list while the focus is the majors — free text still accepts anything, so typing `XAUUSD` by hand keeps working, and `settings.default_instrument` stays `EURUSD`. The `/dev/components` combobox demo now pulls the real list instead of its own hand-rolled subset, so the two can't drift.

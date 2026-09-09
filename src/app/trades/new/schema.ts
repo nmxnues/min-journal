@@ -43,7 +43,7 @@ export function createNewTradeSchema(locale: Locale = "en") {
       instrument: z.string().trim().min(1, m("instrument")),
       date: z.string().trim().min(1, m("date")),
       direction: z.enum(["long", "short"]),
-      session: z.enum(["asia", "london", "ny_am", "ny_pm"]),
+      session: z.enum(["asia", "london", "ny_am"]),
       htfPairing: z.enum(["m_w_2d", "w_2d", "d_h1", "h1_m5"]),
 
       rangeHigh: requiredNumber(m("number")),

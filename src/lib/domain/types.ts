@@ -12,7 +12,7 @@
  */
 
 export type Direction = "long" | "short";
-export type Session = "asia" | "london" | "ny_am" | "ny_pm";
+export type Session = "asia" | "london" | "ny_am";
 export type SweepSide = "low" | "high" | "both" | "none";
 export type TradeResult = "win" | "loss" | "be";
 export type HtfPairing = "m_w_2d" | "w_2d" | "d_h1" | "h1_m5";

@@ -192,7 +192,7 @@ describe("byModel", () => {
 describe("bySession / bySweepSide", () => {
   it("returns every bucket, including empty ones", () => {
     const rows = bySession([tradeWithR(2, { session: "london" })]);
-    expect(rows.map((r) => r.session)).toEqual(["asia", "london", "ny_am", "ny_pm"]);
+    expect(rows.map((r) => r.session)).toEqual(["asia", "london", "ny_am"]);
     expect(rows.find((r) => r.session === "london")!.netR).toBeCloseTo(2, 10);
     expect(rows.find((r) => r.session === "asia")!.tradeCount).toBe(0);
   });

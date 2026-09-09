@@ -165,7 +165,7 @@ export const byModel = memoize(
   },
 );
 
-const SESSIONS: readonly Session[] = ["asia", "london", "ny_am", "ny_pm"];
+const SESSIONS: readonly Session[] = ["asia", "london", "ny_am"];
 const SWEEP_SIDES: readonly SweepSide[] = ["low", "high", "both", "none"];
 
 export interface SessionStats extends GroupStats {

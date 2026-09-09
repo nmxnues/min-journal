@@ -10,7 +10,6 @@ export const SESSION_LABELS: Record<Session, LocaleStrings> = {
   asia: { en: "Asia", ko: "아시아" },
   london: { en: "London", ko: "런던" },
   ny_am: { en: "New York AM", ko: "뉴욕 오전" },
-  ny_pm: { en: "New York PM", ko: "뉴욕 오후" },
 };
 
 /** The four options and their order are fixed; default is W → 2D. */
