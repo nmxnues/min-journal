@@ -1,0 +1,88 @@
+/**
+ * Domain types.
+ *
+ * These are the app-facing shapes. `src/lib/database.types.ts` is the raw,
+ * generated schema layer where the CHECK-constrained columns come back as
+ * plain `string` (Postgres CHECK constraints can't be narrowed by
+ * `supabase gen types` — see docs/decisions.md); this file is where those
+ * become real literal unions.
+ *
+ * Naming is camelCase here and snake_case in the database; the row -> domain
+ * mapper lands with the queries in Phase 4.
+ */
+
+export type Direction = "long" | "short";
+export type Session = "asia" | "london" | "ny_am" | "ny_pm";
+export type SweepSide = "low" | "high" | "both" | "none";
+export type TradeResult = "win" | "loss" | "be";
+export type HtfPairing = "m_w_2d" | "w_2d" | "d_h1" | "h1_m5";
+export type RiskMode = "percent" | "fixed";
+export type CashMovementType = "deposit" | "withdrawal";
+export type ModelStatus = "active" | "retired";
+
+/** ISO date, `YYYY-MM-DD` (Postgres `date`). Sorts correctly as a string. */
+export type IsoDate = string;
+
+export interface Trade {
+  id: string;
+  accountId: string;
+  date: IsoDate;
+  instrument: string;
+  direction: Direction;
+  session: Session;
+  htfPairing: HtfPairing;
+  rangeHigh: number;
+  rangeLow: number;
+  sweepSide: SweepSide;
+  entry: number;
+  stop: number;
+  target: number | null;
+  exit: number | null;
+  size: number;
+  modelId: string | null;
+  confirmation: string | null;
+  result: TradeResult | null;
+  exitReason: string | null;
+  holdMinutes: number | null;
+  /** Currency value of 1R frozen at log time. Never recomputed. */
+  rValueAtEntry: number;
+  tags: string[];
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TradeModel {
+  id: string;
+  name: string;
+  description: string | null;
+  rules: string[];
+  status: ModelStatus;
+  sortOrder: number;
+  referenceImagePath: string | null;
+}
+
+export interface Account {
+  id: string;
+  name: string;
+  currency: string;
+  startingCapital: number;
+  startedAt: IsoDate;
+  riskMode: RiskMode;
+  /** Percent of balance risked per trade, e.g. 1 for 1%. Null when riskMode is 'fixed'. */
+  riskPercent: number | null;
+  /** Currency amount risked per trade. Null when riskMode is 'percent'. */
+  fixedRiskAmount: number | null;
+  drawdownLimitPercent: number;
+}
+
+export interface CashMovement {
+  id: string;
+  accountId: string;
+  date: IsoDate;
+  type: CashMovementType;
+  amount: number;
+  currency: string;
+  note: string | null;
+  createdAt: string;
+}
