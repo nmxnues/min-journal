@@ -24,6 +24,8 @@
 
   /* Lines / panels */
   --color-divider: #f2f4f6;
+  /* Hover step for neutral fills (docs/README.md § States). */
+  --color-divider-hover: #e8ebee;
   --color-border: #dde1e6;
   --color-panel: #eef1f4;
 
@@ -112,6 +114,7 @@
   --color-faint: var(--color-faint);
   --color-disabled: var(--color-disabled);
   --color-divider: var(--color-divider);
+  --color-divider-hover: var(--color-divider-hover);
   --color-border: var(--color-border);
   --color-panel: var(--color-panel);
   --color-accent: var(--color-accent);
