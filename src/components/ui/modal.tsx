@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -36,11 +36,35 @@ export function Modal({
 }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
+  /**
+   * Held in a ref so the effect below can depend on `open` alone. Depending on
+   * `onClose` directly re-runs the effect on every parent render — and callers
+   * almost always pass an inline arrow — which re-focuses the panel and eats
+   * keystrokes out of any field inside the dialog.
+   */
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  const close = useCallback(() => onCloseRef.current(), []);
+
+  /**
+   * Portals can't be rendered during SSR: the server has no `document` and
+   * emits nothing, so a client that renders the portal on its very first pass
+   * disagrees with the server's HTML and React tears the whole subtree down
+   * and rebuilds it — taking any typed-in form state with it. Waiting for
+   * mount keeps both first renders identical (null) and puts the portal up on
+   * the pass after hydration.
+   */
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   useEffect(() => {
     if (!open) return;
 
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") onCloseRef.current();
     }
 
     document.addEventListener("keydown", onKeyDown);
@@ -52,9 +76,9 @@ export function Modal({
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = previousOverflow;
     };
-  }, [open, onClose]);
+  }, [open]);
 
-  if (!open || typeof document === "undefined") return null;
+  if (!open || !mounted) return null;
 
   const isSheet = variant === "sheet";
 
@@ -65,7 +89,7 @@ export function Modal({
         isSheet ? "items-stretch" : "items-center justify-center p-16",
       )}
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (event.target === event.currentTarget) close();
       }}
     >
       <div
@@ -91,7 +115,7 @@ export function Modal({
           <h2 className="text-17 font-bold tracking-[-.02em] text-ink">{title}</h2>
           <button
             type="button"
-            onClick={onClose}
+            onClick={close}
             aria-label={closeLabel}
             className={cn(
               "-mr-8 flex h-44 w-44 items-center justify-center rounded-12 text-muted",

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { makeTrade } from "./fixtures";
 import {
   captureRate,
+  deriveSweepSide,
   entryIsMidRange,
   offPlan,
   plannedR,
@@ -153,6 +154,37 @@ describe("entryIsMidRange", () => {
 
   it("is false when the range is unusable", () => {
     expect(entryIsMidRange(makeTrade({ rangeHigh: 0, rangeLow: 0, entry: 0 }))).toBe(false);
+  });
+});
+
+describe("deriveSweepSide", () => {
+  it("reads the mock's own trade as a low sweep", () => {
+    // stop 23,396.50 sits below the 23,402.75 low — the mock prints "Low purged".
+    expect(deriveSweepSide(mock2b)).toBe("low");
+  });
+
+  it("calls a stop above the range high a high sweep", () => {
+    expect(deriveSweepSide(makeTrade({ rangeLow: 0, rangeHigh: 100, stop: 110 }))).toBe("high");
+  });
+
+  it("calls a stop inside the range no sweep", () => {
+    expect(deriveSweepSide(makeTrade({ rangeLow: 0, rangeHigh: 100, stop: 40 }))).toBe("none");
+  });
+
+  it("treats the range edges themselves as no sweep", () => {
+    expect(deriveSweepSide(makeTrade({ rangeLow: 0, rangeHigh: 100, stop: 0 }))).toBe("none");
+    expect(deriveSweepSide(makeTrade({ rangeLow: 0, rangeHigh: 100, stop: 100 }))).toBe("none");
+  });
+
+  it("is null while the range is unusable", () => {
+    expect(deriveSweepSide(makeTrade({ rangeHigh: 0, rangeLow: 0, stop: 5 }))).toBeNull();
+  });
+
+  it("never infers 'both' — that needs the explicit override", () => {
+    const sides = [10, 40, 110, -5].map((stop) =>
+      deriveSweepSide(makeTrade({ rangeLow: 0, rangeHigh: 100, stop })),
+    );
+    expect(sides).not.toContain("both");
   });
 });
 

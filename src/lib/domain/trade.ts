@@ -12,7 +12,7 @@
  */
 
 import { MID_RANGE_HALF_BAND } from "./constants";
-import type { Trade } from "./types";
+import type { SweepSide, Trade } from "./types";
 
 function isUsable(n: number | null | undefined): n is number {
   return typeof n === "number" && Number.isFinite(n);
@@ -97,6 +97,30 @@ export function entryIsMidRange(
   const position = rangePosition(t.entry, t);
   if (position === null) return false;
   return Math.abs(position - 0.5) <= MID_RANGE_HALF_BAND;
+}
+
+/**
+ * Which extreme was purged, inferred from where the stop sits.
+ *
+ * docs/README.md § Interactions has sweep side "inferred from which extreme
+ * was purged (or explicitly chosen in the mobile wizard)" but never says from
+ * what. The Playbook's own C2 rule 4 does: "Stop beyond the sweep wick" — so a
+ * stop below the range low means the low was swept, above the high means the
+ * high was, and a stop inside the range means neither.
+ *
+ * Verified against mock 1b: stop 23,396.50 against a 23,402.75 low derives
+ * "low", which is exactly the "Low purged" the mock prints in that panel.
+ *
+ * `both` is unreachable by inference and needs the explicit override the form
+ * offers (and the mobile wizard asks for outright).
+ */
+export function deriveSweepSide(
+  t: Pick<Trade, "stop" | "rangeHigh" | "rangeLow">,
+): SweepSide | null {
+  if (rangeSize(t) === null || !isUsable(t.stop)) return null;
+  if (t.stop < t.rangeLow) return "low";
+  if (t.stop > t.rangeHigh) return "high";
+  return "none";
 }
 
 /**
