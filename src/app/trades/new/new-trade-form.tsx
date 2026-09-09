@@ -21,7 +21,8 @@ import {
 } from "@/components/ui";
 import { RangeDiagram } from "@/components/range-diagram";
 import { cn } from "@/lib/cn";
-import { formatCurrency, formatPrice, formatR, parseNumberInput } from "@/lib/format";
+import { formatCurrency, formatPrice, formatR, formatTime, parseNumberInput } from "@/lib/format";
+import { MAX_ATTACHMENTS_PER_TRADE } from "@/lib/attachments";
 import { INSTRUMENT_PRESETS } from "@/lib/instruments";
 import {
   HTF_PAIRING_LABELS,
@@ -35,7 +36,10 @@ import { deriveSweepSide, plannedR, rangeSize, realizedR } from "@/lib/domain/tr
 import type { SweepSide, TradeModel, TradeResult } from "@/lib/domain/types";
 import { useLocale, useT } from "@/lib/i18n/locale-context";
 import { createTrade } from "./actions";
+import type { DraftRecord } from "./draft-actions";
 import { createNewTradeSchema, NEW_TRADE_DEFAULTS, type NewTradeInput } from "./schema";
+import { useDraftAttachments } from "./use-draft-attachments";
+import { useDraftAutosave } from "./use-draft-autosave";
 import { collectWarnings, type WarningCode } from "./warnings";
 
 export interface NewTradeFormProps {
@@ -49,6 +53,7 @@ export interface NewTradeFormProps {
   defaultInstrument: string;
   defaultSession: NewTradeInput["session"];
   today: string;
+  draft: DraftRecord | null;
 }
 
 function SectionCard({
@@ -83,6 +88,7 @@ export function NewTradeForm({
   defaultInstrument,
   defaultSession,
   today,
+  draft,
 }: NewTradeFormProps) {
   const t = useT();
   const locale = useLocale();
@@ -91,7 +97,7 @@ export function NewTradeForm({
   const [serverError, setServerError] = useState<string | null>(null);
   const [showSweepOverride, setShowSweepOverride] = useState(false);
   /** Once the trader sets Result by hand, the exit never overwrites it again. */
-  const [resultTouched, setResultTouched] = useState(false);
+  const [resultTouched, setResultTouched] = useState(draft !== null);
 
   const {
     control,
@@ -102,15 +108,30 @@ export function NewTradeForm({
   } = useForm<NewTradeInput>({
     resolver: zodResolver(createNewTradeSchema(locale)),
     mode: "onTouched",
-    defaultValues: {
-      ...NEW_TRADE_DEFAULTS,
-      instrument: defaultInstrument,
-      session: defaultSession,
-      date: today,
-    },
+    defaultValues:
+      draft?.payload.values ?? {
+        ...NEW_TRADE_DEFAULTS,
+        instrument: defaultInstrument,
+        session: defaultSession,
+        date: today,
+      },
   });
 
   const values = useWatch({ control }) as NewTradeInput;
+
+  const initialAttachments = useMemo(
+    () => (draft?.payload.attachmentPaths ?? []).map((path) => ({ path })),
+    // Only meant to seed the hook once, on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+  const attachments = useDraftAttachments(initialAttachments);
+
+  const draftPayload = useMemo(
+    () => ({ values, attachmentPaths: attachments.attachments.map((a) => a.path) }),
+    [values, attachments.attachments],
+  );
+  const autosave = useDraftAutosave(draftPayload, draft?.updatedAt ?? null);
 
   // Every derived number recomputes on each keystroke
   // (docs/README.md § Interactions).
@@ -209,7 +230,11 @@ export function NewTradeForm({
   function onSubmit(input: NewTradeInput) {
     setServerError(null);
     startTransition(async () => {
-      const result = await createTrade(input, locale);
+      const result = await createTrade(
+        input,
+        locale,
+        attachments.attachments.map((a) => a.path),
+      );
       if (result.ok) {
         // Trade detail is Phase 4c; until it exists, land back on the dashboard.
         router.push("/");
@@ -217,6 +242,10 @@ export function NewTradeForm({
         setServerError(result.error);
       }
     });
+  }
+
+  function onSaveDraft() {
+    void autosave.flush().then(() => router.push("/"));
   }
 
   const priceCaptions =
@@ -242,6 +271,21 @@ export function NewTradeForm({
         <h1 className="text-17 font-bold tracking-[-.02em] text-ink">
           {t({ en: "New trade", ko: "새 기록" })}
         </h1>
+        {autosave.savedAt !== null && (
+          <span className="text-13 font-medium text-faint">
+            {autosave.status === "saving"
+              ? t({ en: "Saving…", ko: "저장하는 중…" })
+              : autosave.status === "restored"
+                ? t({
+                    en: `Draft restored · ${formatTime(autosave.savedAt)}`,
+                    ko: `임시 저장 복원됨 · ${formatTime(autosave.savedAt)}`,
+                  })
+                : t({
+                    en: `Draft saved · ${formatTime(autosave.savedAt)}`,
+                    ko: `임시 저장됨 · ${formatTime(autosave.savedAt)}`,
+                  })}
+          </span>
+        )}
       </header>
 
       <div className="mx-auto flex max-w-[1000px] flex-col gap-16 p-32">
@@ -529,18 +573,51 @@ export function NewTradeForm({
           <div className="grid grid-cols-2 gap-16">
             <div>
               <Dropzone
-                disabled
+                disabled={attachments.attachments.length >= MAX_ATTACHMENTS_PER_TRADE}
                 title={t({ en: "Drag chart screenshots here", ko: "차트 스크린샷을 여기로" })}
                 hint={t({
                   en: "Two shots recommended: HTF range + entry timeframe",
                   ko: "HTF 레인지 + 진입 타임프레임 2장 권장",
                 })}
                 buttonLabel={t({ en: "Choose file", ko: "파일 선택" })}
-                onFiles={() => {}}
+                onFiles={(files) => void attachments.addFiles(files)}
               />
-              <p className="mt-8 text-11_5 font-medium text-faint">
-                {t({ en: "Attachments land in the next step.", ko: "첨부는 다음 단계에서 붙습니다." })}
-              </p>
+              {attachments.error !== null && (
+                <p className="mt-8 text-11_5 font-medium text-loss">{attachments.error}</p>
+              )}
+              {attachments.uploading > 0 && (
+                <p className="mt-8 text-11_5 font-medium text-faint">
+                  {t({ en: "Uploading…", ko: "업로드 중…" })}
+                </p>
+              )}
+              {attachments.attachments.length > 0 && (
+                <div className="mt-12 grid grid-cols-3 gap-8">
+                  {attachments.attachments.map((attachment) => (
+                    <div key={attachment.path} className="group relative">
+                      <div className="aspect-square overflow-hidden rounded-14 bg-divider">
+                        {attachment.previewUrl !== null && (
+                          // Screenshots the trader just uploaded — no next/image
+                          // benefit for private, ephemeral-URL thumbnails.
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={attachment.previewUrl}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void attachments.removeAttachment(attachment.path)}
+                        aria-label={t({ en: "Remove", ko: "삭제" })}
+                        className="absolute top-6 right-6 flex h-24 w-24 items-center justify-center rounded-pill bg-ink/60 text-white opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                      >
+                        <X aria-hidden size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <Textarea
@@ -607,7 +684,14 @@ export function NewTradeForm({
         )}
 
         <div className="flex gap-12">
-          <Button tone="neutral" size="lg" className="flex-1" disabled>
+          <Button
+            type="button"
+            tone="neutral"
+            size="lg"
+            className="flex-1"
+            disabled={isPending}
+            onClick={onSaveDraft}
+          >
             {t({ en: "Save draft", ko: "임시 저장" })}
           </Button>
           <Button type="submit" size="lg" className="flex-2" disabled={isPending}>
@@ -616,12 +700,6 @@ export function NewTradeForm({
               : t({ en: "Log trade", ko: "기록하기" })}
           </Button>
         </div>
-        <p className="text-11_5 font-medium text-faint">
-          {t({
-            en: "Draft autosave arrives in the next step.",
-            ko: "임시 저장은 다음 단계에서 붙습니다.",
-          })}
-        </p>
       </div>
     </form>
   );

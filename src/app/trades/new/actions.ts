@@ -7,6 +7,8 @@ import { deriveSweepSide } from "@/lib/domain/trade";
 import type { SweepSide } from "@/lib/domain/types";
 import { createClient } from "@/lib/supabase/server";
 import { getAccountLedgerInputs, getPrimaryAccount, toAccount } from "@/lib/supabase/queries";
+import { attachDraftFilesToTrade } from "./attachments-actions";
+import { deleteDraft } from "./draft-actions";
 import { createNewTradeSchema, type NewTradeInput } from "./schema";
 import type { Locale } from "@/lib/i18n/locale";
 
@@ -74,6 +76,7 @@ export async function createAccount(input: AccountSetupInput): Promise<ActionRes
 export async function createTrade(
   values: NewTradeInput,
   locale: Locale = "en",
+  draftAttachmentPaths: readonly string[] = [],
 ): Promise<ActionResult> {
   const parsed = createNewTradeSchema(locale).safeParse(values);
   if (!parsed.success) {
@@ -142,6 +145,10 @@ export async function createTrade(
     .single();
 
   if (error) return { ok: false, error: error.message };
+
+  // Best-effort: the trade is already saved regardless of how this goes.
+  await attachDraftFilesToTrade(user.id, data.id, draftAttachmentPaths);
+  await deleteDraft();
 
   revalidatePath("/");
   revalidatePath("/trades");

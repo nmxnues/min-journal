@@ -54,3 +54,10 @@ export function formatCurrency(value: number, currency = "USD"): string {
     maximumFractionDigits: 0,
   }).format(value);
 }
+
+/** "HH:mm", 24-hour, matching the mock's "Draft saved · 12:41" exactly. */
+export function formatTime(date: Date): string {
+  return new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(
+    date,
+  );
+}

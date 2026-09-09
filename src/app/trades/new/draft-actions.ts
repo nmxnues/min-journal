@@ -1,0 +1,69 @@
+"use server";
+
+import { createClient } from "@/lib/supabase/server";
+import type { NewTradeInput } from "./schema";
+
+/**
+ * `drafts` is one row per user (user_id is the PK) — a single in-progress
+ * trade, per docs/README.md's `Draft` entity. That single-row shape is what
+ * makes the attachment orphan story tractable (see attachments.ts): there is
+ * exactly one place temp uploads can belong to.
+ */
+export interface DraftPayload {
+  values: NewTradeInput;
+  /** Storage paths under {user_id}/drafts/ — not yet attached to a trade. */
+  attachmentPaths: string[];
+}
+
+export interface DraftRecord {
+  payload: DraftPayload;
+  updatedAt: string;
+}
+
+export async function getDraft(): Promise<DraftRecord | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user === null) return null;
+
+  const { data, error } = await supabase
+    .from("drafts")
+    .select("payload, updated_at")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (data === null) return null;
+
+  return { payload: data.payload as unknown as DraftPayload, updatedAt: data.updated_at };
+}
+
+export async function saveDraft(
+  payload: DraftPayload,
+): Promise<{ ok: true; updatedAt: string } | { ok: false; error: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user === null) return { ok: false, error: "Not signed in." };
+
+  const { data, error } = await supabase
+    .from("drafts")
+    .upsert({ user_id: user.id, payload: payload as unknown as never }, { onConflict: "user_id" })
+    .select("updated_at")
+    .single();
+
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, updatedAt: data.updated_at };
+}
+
+export async function deleteDraft(): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user === null) return;
+
+  await supabase.from("drafts").delete().eq("user_id", user.id);
+}

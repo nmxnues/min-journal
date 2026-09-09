@@ -8,6 +8,8 @@ import {
   getPrimaryAccount,
   getSettings,
 } from "@/lib/supabase/queries";
+import { reconcileDraftAttachments } from "./attachments-actions";
+import { getDraft } from "./draft-actions";
 import { NewTradeGate } from "./new-trade-gate";
 
 export const metadata: Metadata = {
@@ -23,11 +25,18 @@ export default async function NewTradePage() {
     return <NewTradeGate />;
   }
 
-  const [models, settings, ledger] = await Promise.all([
+  const [models, settings, ledger, draft] = await Promise.all([
     getModels(),
     getSettings(),
     getAccountLedgerInputs(account.id),
+    getDraft(),
   ]);
+
+  // Best-effort, once per visit: anything in the draft folder the current
+  // draft doesn't reference is left over from an overwritten/abandoned one
+  // (docs/decisions.md § Phase 4b) — there's only ever one draft per user, so
+  // this is always a safe moment to reconcile.
+  void reconcileDraftAttachments(draft?.payload.attachmentPaths ?? []);
 
   const rValueToday = currentRValue(account, ledger.cashMovements, ledger.trades);
   const drawdown = drawdownState(account, ledger.cashMovements, ledger.trades);
@@ -44,6 +53,7 @@ export default async function NewTradePage() {
         defaultInstrument: settings?.default_instrument ?? DEFAULT_INSTRUMENT,
         defaultSession: (settings?.default_session ?? "asia") as Session,
         today: new Date().toISOString().slice(0, 10),
+        draft,
       }}
     />
   );

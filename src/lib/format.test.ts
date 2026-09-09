@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatCurrency, formatPrice, formatR, hasValue, parseNumberInput } from "./format";
+import { formatCurrency, formatPrice, formatR, formatTime, hasValue, parseNumberInput } from "./format";
 
 describe("parseNumberInput", () => {
   it("accepts thousands separators and broker paste noise", () => {
@@ -48,5 +48,13 @@ describe("formatPrice / formatCurrency", () => {
   it("groups thousands", () => {
     expect(formatPrice(23_411)).toBe("23,411.00");
     expect(formatCurrency(32_180)).toBe("$32,180");
+  });
+});
+
+describe("formatTime", () => {
+  it("is HH:mm, 24-hour, matching the mock's \"Draft saved · 12:41\"", () => {
+    expect(formatTime(new Date("2026-09-09T12:41:00"))).toBe("12:41");
+    expect(formatTime(new Date("2026-09-09T09:05:00"))).toBe("09:05");
+    expect(formatTime(new Date("2026-09-09T00:00:00"))).toBe("00:00");
   });
 });
