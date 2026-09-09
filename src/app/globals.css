@@ -87,6 +87,19 @@
 }
 
 @theme inline {
+  /* Tailwind's default --spacing is 0.25rem (4px), so bare numeric spacing
+     utilities (p-32, gap-16, w-32, ...) compute to N*4px, not N px. Every
+     spacing value in docs/README.md's Design Tokens is already a literal
+     px number (spacing scale: 4/6/8/.../40px), and every component in this
+     codebase writes classes like `p-32` meaning "32px" directly — so redefine
+     the base unit to 1px, turning the whole numeric scale into literal
+     pixels instead of rewriting every call site to the N/4 form. Found by
+     inspecting computed styles in a real browser (see docs/decisions.md) —
+     `pnpm build` never catches this since Tailwind still generates *a*
+     valid CSS rule for p-32, just the wrong one.
+     https://tailwindcss.com/docs/theme#overriding-the-default-theme */
+  --spacing: 1px;
+
   /* Map tokens into Tailwind's color namespace -> bg-page, text-ink, etc. */
   --color-page: var(--color-page);
   --color-surface: var(--color-surface);

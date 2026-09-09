@@ -194,7 +194,7 @@ export default function TokensPage() {
           </div>
         </Section>
 
-        <Section title="Spacing (Tailwind default scale — 4px base already matches)">
+        <Section title="Spacing (--spacing redefined to 1px — bare numbers are literal px)">
           <div className="flex flex-col gap-8">
             {spacing.map((s) => (
               <div key={s} className="flex items-center gap-12">
