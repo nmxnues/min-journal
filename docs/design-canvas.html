@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics=""><meta name="design_doc_mode" content="canvas"><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css"><style>body{margin:0;background:#eceef1;font-family:Pretendard,-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased}a{color:#3182f6;text-decoration:none}a:hover{color:#1b64da}.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:700 10px Pretendard,monospace;padding:4px 8px;background:#191f28;color:#fff;border-radius:6px}.dv-tname{font:700 13px/1.2 Pretendard,sans-serif;color:#191f28}.dv-opts{display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px}.dv-oid{font:700 10.5px Pretendard,monospace;padding:4px 8px;background:rgba(0,0,0,.07);color:#191f28;border-radius:6px}.dv-olabel{display:flex;align-items:baseline;gap:8px;font:500 11.5px/1.3 Pretendard,sans-serif;color:#8b95a1}.dv-card{max-width:100%;background:#f4f5f7;border-radius:24px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)}.dv-opt:target .dv-oid{background:#3182f6;color:#fff}.dv-next{margin:22px 0 0;font:12px/1.6 Pretendard,sans-serif;color:#8b95a1}</style></helmet>
+
+<section class="dv-turn" id="t3">
+<div class="dv-thd"><a class="dv-tid" href="#t3">3</a><span class="dv-tname">Capital 탭 — 초기자금 · 입출금 · R 값 성장</span></div>
+<div style="max-width:860px;margin:0 0 24px;font:400 13px/1.7 Pretendard,sans-serif;color:#4e5968">
+<p style="margin:0">핵심은 <strong style="color:#191f28">1R의 금액이 잔고를 따라 움직인다</strong>는 점입니다. 리스크를 잔고의 %로 잡아두면 입금·수익이 쌓일 때마다 1R 값이 자동으로 올라가고, 출금하면 내려갑니다. 그래서 이 탭은 잔고 곡선과 1R 곡선을 같은 화면에서 보여주고, 원장(ledger)에는 입출금과 트레이드 손익이 한 줄기로 섞여 흐릅니다. R 기준 성과는 이 변화의 영향을 받지 않으므로 항상 R과 금액을 나란히 표기합니다.</p>
+</div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="3a"><div class="dv-olabel"><a class="dv-oid" href="#3a">3a</a>Capital · overview + ledger</div>
+<div class="dv-card" style="width:1200px">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:20px 32px;background:#fff">
+<div style="display:flex;align-items:center;gap:32px">
+<span style="font:800 17px Pretendard;color:#191f28;letter-spacing:-.03em">Min Journal</span>
+<div style="display:flex;gap:6px">
+<span style="font:600 14px Pretendard;color:#8b95a1;padding:8px 14px">Dashboard</span>
+<span style="font:600 14px Pretendard;color:#8b95a1;padding:8px 14px">Trades</span>
+<span style="font:600 14px Pretendard;color:#8b95a1;padding:8px 14px">Calendar</span>
+<span style="font:600 14px Pretendard;color:#191f28;background:#f2f4f6;padding:8px 14px;border-radius:10px">Capital</span>
+<span style="font:600 14px Pretendard;color:#8b95a1;padding:8px 14px">Playbook</span>
+</div>
+</div>
+<span style="background:#3182f6;color:#fff;font:700 14px Pretendard;padding:11px 18px;border-radius:12px">Deposit / Withdraw</span>
+</div>
+<div style="padding:28px 32px 32px;display:flex;flex-direction:column;gap:16px">
+
+<div style="background:#fff;border-radius:24px;padding:32px 36px;display:grid;grid-template-columns:300px 1fr;gap:40px;align-items:center">
+<div>
+<div style="font:600 14px Pretendard;color:#8b95a1">Account balance</div>
+<div style="font:800 52px/1.1 Pretendard;color:#191f28;letter-spacing:-.04em;margin-top:6px">$32,180</div>
+<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+<span style="font:600 12px Pretendard;color:#4e5968;background:#f2f4f6;padding:6px 10px;border-radius:8px">Deposited $25,000</span>
+<span style="font:600 12px Pretendard;color:#f04452;background:#fdeced;padding:6px 10px;border-radius:8px">+$9,680 trading</span>
+<span style="font:600 12px Pretendard;color:#4e5968;background:#f2f4f6;padding:6px 10px;border-radius:8px">Withdrawn $2,500</span>
+</div>
+</div>
+<div>
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px">
+<span style="font:700 15px Pretendard;color:#191f28;letter-spacing:-.02em">Balance &amp; 1R value</span>
+<div style="display:flex;gap:14px;font:600 11.5px Pretendard">
+<span style="display:flex;align-items:center;gap:6px;color:#4e5968"><span style="width:14px;height:3px;border-radius:99px;background:#191f28"></span>Balance</span>
+<span style="display:flex;align-items:center;gap:6px;color:#4e5968"><span style="width:14px;height:3px;border-radius:99px;background:#3182f6"></span>1R value</span>
+</div>
+</div>
+<svg viewBox="0 0 720 170" style="width:100%;height:170px;display:block" preserveAspectRatio="none">
+<defs><linearGradient id="capfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#191f28" stop-opacity=".10"></stop><stop offset="100%" stop-color="#191f28" stop-opacity="0"></stop></linearGradient></defs>
+<path d="M0,140 L60,138 L120,128 L180,118 L240,96 L300,100 L300,74 L360,66 L420,72 L480,52 L540,60 L540,84 L600,70 L660,44 L720,26 L720,170 L0,170 Z" fill="url(#capfill)"></path>
+<polyline points="0,140 60,138 120,128 180,118 240,96 300,100 300,74 360,66 420,72 480,52 540,60 540,84 600,70 660,44 720,26" fill="none" stroke="#191f28" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"></polyline>
+<polyline points="0,152 60,151 120,147 180,143 240,134 300,136 300,125 360,122 420,124 480,116 540,120 540,130 600,124 660,113 720,106" fill="none" stroke="#3182f6" stroke-width="2.5" stroke-dasharray="1 0" stroke-linejoin="round" stroke-linecap="round"></polyline>
+<circle cx="300" cy="74" r="4" fill="#191f28"></circle>
+<circle cx="540" cy="84" r="4" fill="#191f28"></circle>
+</svg>
+<div style="display:flex;justify-content:space-between;font:500 11px Pretendard;color:#b0b8c1;margin-top:8px"><span>Mar</span><span>May · deposit</span><span>Jul · withdrawal</span><span>Sep</span></div>
+</div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+<div style="background:#fff;border-radius:20px;padding:22px 24px"><div style="font:600 13px Pretendard;color:#8b95a1">Starting capital</div><div style="font:800 28px Pretendard;color:#191f28;letter-spacing:-.03em;margin-top:6px">$15,000</div><div style="font:500 11.5px Pretendard;color:#b0b8c1">Mar 3, 2026</div></div>
+<div style="background:#fff;border-radius:20px;padding:22px 24px"><div style="font:600 13px Pretendard;color:#8b95a1">Net deposits</div><div style="font:800 28px Pretendard;color:#191f28;letter-spacing:-.03em;margin-top:6px">$22,500</div><div style="font:500 11.5px Pretendard;color:#b0b8c1">3 in · 1 out</div></div>
+<div style="background:#fff;border-radius:20px;padding:22px 24px"><div style="font:600 13px Pretendard;color:#8b95a1">Trading P&amp;L</div><div style="font:800 28px Pretendard;color:#f04452;letter-spacing:-.03em;margin-top:6px">+$9,680</div><div style="font:500 11.5px Pretendard;color:#b0b8c1">+43.0R lifetime</div></div>
+<div style="background:#fff;border-radius:20px;padding:22px 24px"><div style="font:600 13px Pretendard;color:#8b95a1">Return on capital</div><div style="font:800 28px Pretendard;color:#f04452;letter-spacing:-.03em;margin-top:6px">+43.0%</div><div style="font:500 11.5px Pretendard;color:#b0b8c1">time-weighted</div></div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 380px;gap:16px">
+<div style="background:#fff;border-radius:24px;padding:26px 28px">
+<div style="display:flex;align-items:baseline;justify-content:space-between">
+<span style="font:700 16px Pretendard;color:#191f28;letter-spacing:-.02em">Ledger</span>
+<div style="display:flex;gap:6px"><span style="font:600 12.5px Pretendard;color:#191f28;background:#f2f4f6;border-radius:8px;padding:7px 11px">All</span><span style="font:600 12.5px Pretendard;color:#8b95a1;padding:7px 11px">Cash only</span><span style="font:600 12.5px Pretendard;color:#8b95a1;padding:7px 11px">Trades only</span></div>
+</div>
+<div style="display:grid;grid-template-columns:74px 1fr 116px 104px 108px;align-items:center;gap:14px;padding:16px 0 12px;margin-top:6px;border-bottom:1px solid #f2f4f6;font:700 11.5px Pretendard;color:#8b95a1;letter-spacing:.02em">
+<span>DATE</span><span>ENTRY</span><span style="text-align:right">AMOUNT</span><span style="text-align:right">R</span><span style="text-align:right">BALANCE</span>
+</div>
+<div style="display:grid;grid-template-columns:74px 1fr 116px 104px 108px;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid #f2f4f6">
+<span style="font:700 13px Pretendard;color:#8b95a1">09.09</span>
+<div style="display:flex;align-items:center;gap:9px"><span style="font:600 11.5px Pretendard;color:#4e5968;background:#f2f4f6;border-radius:7px;padding:5px 8px">Trade</span><span style="font:600 14px Pretendard;color:#191f28">NQ · Long · C2 expansion</span></div>
+<span style="font:800 14.5px Pretendard;color:#f04452;text-align:right">+$901</span>
+<span style="font:600 13px Pretendard;color:#8b95a1;text-align:right">+2.8R</span>
+<span style="font:600 13px Pretendard;color:#4e5968;text-align:right">$32,180</span>
+</div>
+<div style="display:grid;grid-template-columns:74px 1fr 116px 104px 108px;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid #f2f4f6">
+<span style="font:700 13px Pretendard;color:#8b95a1">09.08</span>
+<div style="display:flex;align-items:center;gap:9px"><span style="font:600 11.5px Pretendard;color:#4e5968;background:#f2f4f6;border-radius:7px;padding:5px 8px">Trade</span><span style="font:600 14px Pretendard;color:#191f28">ES · Short · C3 continuation</span></div>
+<span style="font:800 14.5px Pretendard;color:#3182f6;text-align:right">−$322</span>
+<span style="font:600 13px Pretendard;color:#8b95a1;text-align:right">−1.0R</span>
+<span style="font:600 13px Pretendard;color:#4e5968;text-align:right">$31,279</span>
+</div>
+<div style="display:grid;grid-template-columns:74px 1fr 116px 104px 108px;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid #f2f4f6;background:#fbfcfd">
+<span style="font:700 13px Pretendard;color:#8b95a1">09.01</span>
+<div style="display:flex;align-items:center;gap:9px"><span style="font:700 11.5px Pretendard;color:#1b64da;background:#e8f3ff;border-radius:7px;padding:5px 8px">Deposit</span><span style="font:600 14px Pretendard;color:#191f28">Monthly top-up · bank transfer</span></div>
+<span style="font:800 14.5px Pretendard;color:#191f28;text-align:right">+$5,000</span>
+<span style="font:600 13px Pretendard;color:#d1d6db;text-align:right">—</span>
+<span style="font:600 13px Pretendard;color:#4e5968;text-align:right">$31,601</span>
+</div>
+<div style="display:grid;grid-template-columns:74px 1fr 116px 104px 108px;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid #f2f4f6">
+<span style="font:700 13px Pretendard;color:#8b95a1">08.28</span>
+<div style="display:flex;align-items:center;gap:9px"><span style="font:600 11.5px Pretendard;color:#4e5968;background:#f2f4f6;border-radius:7px;padding:5px 8px">Trade</span><span style="font:600 14px Pretendard;color:#191f28">EURUSD · Long · C2 expansion</span></div>
+<span style="font:800 14.5px Pretendard;color:#f04452;text-align:right">+$1,062</span>
+<span style="font:600 13px Pretendard;color:#8b95a1;text-align:right">+3.6R</span>
+<span style="font:600 13px Pretendard;color:#4e5968;text-align:right">$26,601</span>
+</div>
+<div style="display:grid;grid-template-columns:74px 1fr 116px 104px 108px;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid #f2f4f6;background:#fbfcfd">
+<span style="font:700 13px Pretendard;color:#8b95a1">07.15</span>
+<div style="display:flex;align-items:center;gap:9px"><span style="font:700 11.5px Pretendard;color:#4e5968;background:#f2f4f6;border-radius:7px;padding:5px 8px">Withdrawal</span><span style="font:600 14px Pretendard;color:#191f28">Profit taken out · quarterly</span></div>
+<span style="font:800 14.5px Pretendard;color:#191f28;text-align:right">−$2,500</span>
+<span style="font:600 13px Pretendard;color:#d1d6db;text-align:right">—</span>
+<span style="font:600 13px Pretendard;color:#4e5968;text-align:right">$23,940</span>
+</div>
+<div style="display:grid;grid-template-columns:74px 1fr 116px 104px 108px;align-items:center;gap:14px;padding:14px 0;background:#fbfcfd">
+<span style="font:700 13px Pretendard;color:#8b95a1">03.03</span>
+<div style="display:flex;align-items:center;gap:9px"><span style="font:700 11.5px Pretendard;color:#1b64da;background:#e8f3ff;border-radius:7px;padding:5px 8px">Deposit</span><span style="font:600 14px Pretendard;color:#191f28">Starting capital</span></div>
+<span style="font:800 14.5px Pretendard;color:#191f28;text-align:right">+$15,000</span>
+<span style="font:600 13px Pretendard;color:#d1d6db;text-align:right">—</span>
+<span style="font:600 13px Pretendard;color:#4e5968;text-align:right">$15,000</span>
+</div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:18px 0 4px">
+<span style="font:500 12.5px Pretendard;color:#b0b8c1">Showing 6 of 64</span>
+<span style="font:600 12.5px Pretendard;color:#3182f6">Export CSV</span>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:16px">
+<div style="background:#fff;border-radius:24px;padding:26px 28px">
+<span style="font:700 16px Pretendard;color:#191f28;letter-spacing:-.02em">Risk per trade</span>
+<div style="display:flex;align-items:baseline;gap:10px;margin-top:14px">
+<span style="font:800 34px Pretendard;color:#191f28;letter-spacing:-.03em">$322</span>
+<span style="font:600 14px Pretendard;color:#8b95a1">= 1R today</span>
+</div>
+<div style="display:flex;gap:8px;margin-top:14px">
+<span style="flex:1;text-align:center;background:#f2f4f6;border-radius:12px;padding:11px 0;font:600 13.5px Pretendard;color:#8b95a1">0.5%</span>
+<span style="flex:1;text-align:center;background:#e8f3ff;border-radius:12px;padding:11px 0;font:700 13.5px Pretendard;color:#3182f6">1%</span>
+<span style="flex:1;text-align:center;background:#f2f4f6;border-radius:12px;padding:11px 0;font:600 13.5px Pretendard;color:#8b95a1">2%</span>
+<span style="flex:1;text-align:center;background:#f2f4f6;border-radius:12px;padding:11px 0;font:600 13.5px Pretendard;color:#8b95a1">Fixed</span>
+</div>
+<div style="font:500 12.5px/1.6 Pretendard;color:#b0b8c1;margin-top:12px">1R follows the balance. New trades use today's value; past trades keep the 1R that applied when they were logged.</div>
+<div style="height:1px;background:#f2f4f6;margin:20px 0 16px"></div>
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;justify-content:space-between;font:600 13px Pretendard;color:#4e5968"><span>Mar · $15,000</span><span style="color:#191f28">$150 / R</span></div>
+<div style="display:flex;justify-content:space-between;font:600 13px Pretendard;color:#4e5968"><span>May · $21,400</span><span style="color:#191f28">$214 / R</span></div>
+<div style="display:flex;justify-content:space-between;font:600 13px Pretendard;color:#4e5968"><span>Jul · $23,940</span><span style="color:#191f28">$239 / R</span></div>
+<div style="display:flex;justify-content:space-between;font:600 13px Pretendard;color:#4e5968"><span>Sep · $32,180</span><span style="color:#191f28">$322 / R</span></div>
+</div>
+</div>
+<div style="background:#fff;border-radius:24px;padding:26px 28px">
+<span style="font:700 16px Pretendard;color:#191f28;letter-spacing:-.02em">Drawdown guard</span>
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:14px"><span style="font:600 13px Pretendard;color:#8b95a1">From peak $32,180</span><span style="font:800 20px Pretendard;color:#191f28">−1.9%</span></div>
+<div style="height:8px;background:#f2f4f6;border-radius:99px;margin-top:10px"><div style="width:19%;height:100%;background:#3182f6;border-radius:99px"></div></div>
+<div style="display:flex;justify-content:space-between;font:500 11.5px Pretendard;color:#b0b8c1;margin-top:8px"><span>Limit −10%</span><span>Stop trading at −$3,218</span></div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="3b"><div class="dv-olabel"><a class="dv-oid" href="#3b">3b</a>입출금 기록 · 모달 / 모바일 Capital</div>
+<div style="display:flex;gap:24px;align-items:flex-start">
+
+<div class="dv-card" style="width:520px;background:#fff;padding:32px 34px 30px">
+<div style="display:flex;align-items:center;justify-content:space-between"><span style="font:700 19px Pretendard;color:#191f28;letter-spacing:-.02em">Record cash movement</span><span style="font:600 18px Pretendard;color:#8b95a1">✕</span></div>
+<div style="display:flex;gap:8px;margin-top:20px">
+<span style="flex:1;text-align:center;background:#e8f3ff;border-radius:12px;padding:13px 0;font:700 14px Pretendard;color:#3182f6">Deposit</span>
+<span style="flex:1;text-align:center;background:#f2f4f6;border-radius:12px;padding:13px 0;font:600 14px Pretendard;color:#8b95a1">Withdrawal</span>
+</div>
+<div style="margin-top:18px"><div style="font:600 13px Pretendard;color:#8b95a1;margin-bottom:8px">Amount</div><div style="background:#f2f4f6;border-radius:14px;padding:16px 18px;font:800 22px Pretendard;color:#191f28;display:flex;justify-content:space-between;align-items:baseline">$5,000<span style="font:600 13px Pretendard;color:#b0b8c1">USD</span></div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px">
+<div><div style="font:600 13px Pretendard;color:#8b95a1;margin-bottom:8px">Date</div><div style="background:#f2f4f6;border-radius:14px;padding:14px 16px;font:600 15px Pretendard;color:#191f28">2026. 09. 01</div></div>
+<div><div style="font:600 13px Pretendard;color:#8b95a1;margin-bottom:8px">Account</div><div style="background:#f2f4f6;border-radius:14px;padding:14px 16px;font:600 15px Pretendard;color:#191f28;display:flex;justify-content:space-between">Main futures<span style="color:#b0b8c1">▾</span></div></div>
+</div>
+<div style="margin-top:16px"><div style="font:600 13px Pretendard;color:#8b95a1;margin-bottom:8px">Note</div><div style="background:#f2f4f6;border-radius:14px;padding:14px 16px;font:500 14px Pretendard;color:#8b95a1">Monthly top-up · bank transfer</div></div>
+<div style="background:#f9fafb;border-radius:16px;padding:18px 20px;margin-top:18px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;justify-content:space-between;font:600 13.5px Pretendard;color:#4e5968"><span>Balance after</span><span style="font:800 15px Pretendard;color:#191f28">$31,601</span></div>
+<div style="display:flex;justify-content:space-between;font:600 13.5px Pretendard;color:#4e5968"><span>1R moves to</span><span style="font:800 15px Pretendard;color:#3182f6">$316 <span style="font:600 12.5px Pretendard;color:#8b95a1">from $266</span></span></div>
+<div style="font:500 12px/1.5 Pretendard;color:#b0b8c1">Only trades logged after this date use the new 1R.</div>
+</div>
+<div style="display:flex;gap:12px;margin-top:20px">
+<span style="flex:1;text-align:center;background:#f2f4f6;border-radius:14px;padding:15px 0;font:700 15px Pretendard;color:#4e5968">Cancel</span>
+<span style="flex:2;text-align:center;background:#3182f6;border-radius:14px;padding:15px 0;font:700 15px Pretendard;color:#fff">Record deposit</span>
+</div>
+</div>
+
+<div style="width:375px;background:#fff;border-radius:44px;padding:12px;box-shadow:0 6px 24px rgba(0,0,0,.12)">
+<div style="background:#f4f5f7;border-radius:34px;overflow:hidden;height:760px">
+<div style="display:flex;justify-content:space-between;padding:14px 24px 6px;font:600 12px Pretendard;color:#191f28"><span>9:41</span><span>●●● ▮</span></div>
+<div style="padding:12px 20px 20px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:center;justify-content:space-between"><span style="font:800 20px Pretendard;color:#191f28;letter-spacing:-.03em">자산</span><span style="font:600 13px Pretendard;color:#3182f6">입출금</span></div>
+<div style="background:#fff;border-radius:22px;padding:24px">
+<div style="font:600 13px Pretendard;color:#8b95a1">계좌 잔고</div>
+<div style="font:800 40px/1.1 Pretendard;color:#191f28;letter-spacing:-.04em;margin-top:4px">$32,180</div>
+<div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap"><span style="font:600 12px Pretendard;color:#4e5968;background:#f2f4f6;padding:6px 10px;border-radius:8px">원금 $22,500</span><span style="font:600 12px Pretendard;color:#f04452;background:#fdeced;padding:6px 10px;border-radius:8px">+$9,680</span></div>
+<svg viewBox="0 0 300 70" style="width:100%;height:70px;margin-top:16px;display:block" preserveAspectRatio="none"><polyline points="0,60 30,58 60,52 90,47 120,38 150,40 180,30 210,33 240,36 270,22 300,12" fill="none" stroke="#191f28" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline></svg>
+</div>
+<div style="background:#fff;border-radius:22px;padding:20px 22px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 15px Pretendard;color:#191f28">1R 값</span><span style="font:800 20px Pretendard;color:#191f28">$322</span></div>
+<div style="font:500 12px Pretendard;color:#b0b8c1;margin-top:4px">잔고의 1% · 3월 $150에서 시작</div>
+<div style="height:8px;background:#f2f4f6;border-radius:99px;margin-top:14px;display:flex;overflow:hidden"><div style="width:47%;height:100%;background:#d1d6db"></div><div style="width:53%;height:100%;background:#3182f6"></div></div>
+<div style="display:flex;justify-content:space-between;font:500 11.5px Pretendard;color:#b0b8c1;margin-top:7px"><span>$150</span><span>+115%</span><span>$322</span></div>
+</div>
+<div style="background:#fff;border-radius:22px;padding:20px 22px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 15px Pretendard;color:#191f28">최근 내역</span><span style="font:600 12.5px Pretendard;color:#3182f6">전체보기</span></div>
+<div style="display:flex;flex-direction:column;gap:12px;margin-top:14px">
+<div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font:700 14px Pretendard;color:#191f28">NQ · 롱</div><div style="font:500 12px Pretendard;color:#8b95a1;margin-top:2px">09.09 · 트레이드</div></div><div style="text-align:right"><div style="font:800 15px Pretendard;color:#f04452">+$901</div><div style="font:500 11.5px Pretendard;color:#b0b8c1">+2.8R</div></div></div>
+<div style="height:1px;background:#f2f4f6"></div>
+<div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font:700 14px Pretendard;color:#191f28">월 정기 입금</div><div style="font:500 12px Pretendard;color:#8b95a1;margin-top:2px">09.01 · 입금</div></div><div style="text-align:right"><div style="font:800 15px Pretendard;color:#191f28">+$5,000</div><div style="font:500 11.5px Pretendard;color:#b0b8c1">1R $266→$316</div></div></div>
+<div style="height:1px;background:#f2f4f6"></div>
+<div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font:700 14px Pretendard;color:#191f28">분기 출금</div><div style="font:500 12px Pretendard;color:#8b95a1;margin-top:2px">07.15 · 출금</div></div><div style="text-align:right"><div style="font:800 15px Pretendard;color:#191f28">−$2,500</div><div style="font:500 11.5px Pretendard;color:#b0b8c1">1R $265→$239</div></div></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<p class="dv-next">이어서 해볼 것: "계좌 여러 개 지원(프랍 계정 분리)" · "출금 목표·인출 규칙 카드 추가" · "핸드오프 문서에 Capital 탭 반영"</p>
+</section>
+
+<section class="dv-turn" id="t2">
+<div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">목업이 없던 화면 4개 — 기록 목록 · 상세 · 주간 리뷰 · 플레이북</span></div>
+<div style="max-width:860px;margin:0 0 24px;font:400 13px/1.7 Pretendard,sans-serif;color:#4e5968">
+<p style="margin:0">턴 1(<a class="dv-oid" href="#1a">1a</a>~<a class="dv-oid" href="#1d">1d</a>)과 같은 토큰·카드 문법을 그대로 씁니다. 새로 추가한 패턴은 세 가지: 필터 바(칩 + 드롭다운), 읽기 전용 레인지 다이어그램, 그리고 첨부 차트 자리(점선 플레이스홀더 — 실제 이미지는 사용자가 업로드).</p>
+</div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="2a"><div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a>Trade log · filters + sortable table</div>
+<div class="dv-card" style="width:1200px">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:20px 32px;background:#fff">
+<div style="display:flex;align-items:center;gap:32px">
+<span style="font:800 17px Pretendard;color:#191f28;letter-spacing:-.03em">Min Journal</span>
+<div style="display:flex;gap:6px">
+<span style="font:600 14px Pretendard;color:#8b95a1;padding:8px 14px">Dashboard</span>
+<span style="font:600 14px Pretendard;color:#191f28;background:#f2f4f6;padding:8px 14px;border-radius:10px">Trades</span>
+<span style="font:600 14px Pretendard;color:#8b95a1;padding:8px 14px">Calendar</span>
+<span style="font:600 14px Pretendard;color:#8b95a1;padding:8px 14px">Playbook</span>
+</div>
+</div>
+<span style="background:#3182f6;color:#fff;font:700 14px Pretendard;padding:11px 18px;border-radius:12px">New trade</span>
+</div>
+<div style="padding:28px 32px 32px;display:flex;flex-direction:column;gap:16px">
+
+<div style="background:#fff;border-radius:24px;padding:22px 28px">
+<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+<div style="background:#f2f4f6;border-radius:12px;padding:11px 14px;font:600 13.5px Pretendard;color:#191f28;display:flex;gap:10px;align-items:center">Sep 1 — Sep 9<span style="color:#b0b8c1">▾</span></div>
+<div style="background:#f2f4f6;border-radius:12px;padding:11px 14px;font:600 13.5px Pretendard;color:#8b95a1;display:flex;gap:10px;align-items:center">All instruments<span style="color:#b0b8c1">▾</span></div>
+<div style="background:#e8f3ff;border-radius:12px;padding:11px 14px;font:700 13.5px Pretendard;color:#1b64da;display:flex;gap:10px;align-items:center">Session · New York AM<span>✕</span></div>
+<div style="background:#e8f3ff;border-radius:12px;padding:11px 14px;font:700 13.5px Pretendard;color:#1b64da;display:flex;gap:10px;align-items:center">Model · C2 expansion<span>✕</span></div>
+<div style="background:#f2f4f6;border-radius:12px;padding:11px 14px;font:600 13.5px Pretendard;color:#8b95a1;display:flex;gap:10px;align-items:center">Result<span style="color:#b0b8c1">▾</span></div>
+<div style="display:flex;align-items:center;gap:9px;background:#f2f4f6;border-radius:12px;padding:11px 14px;font:600 13.5px Pretendard;color:#4e5968"><span style="width:16px;height:16px;border-radius:4px;background:#3182f6;color:#fff;font:700 11px Pretendard;display:flex;align-items:center;justify-content:center">✓</span>Off-plan only</div>
+<span style="font:600 13px Pretendard;color:#3182f6;margin-left:4px">Reset</span>
+<div style="flex:1"></div>
+<span style="font:600 13px Pretendard;color:#4e5968;background:#f2f4f6;border-radius:10px;padding:10px 14px">Export CSV</span>
+<span style="font:600 13px Pretendard;color:#4e5968;background:#f2f4f6;border-radius:10px;padding:10px 14px">Import</span>
+</div>
+<div style="display:flex;align-items:center;gap:22px;margin-top:18px;padding-top:18px;border-top:1px solid #f2f4f6">
+<div><span style="font:600 12.5px Pretendard;color:#8b95a1">Matching</span><span style="font:800 15px Pretendard;color:#191f28;margin-left:8px">18 trades</span></div>
+<div><span style="font:600 12.5px Pretendard;color:#8b95a1">Net</span><span style="font:800 15px Pretendard;color:#f04452;margin-left:8px">+9.6R</span></div>
+<div><span style="font:600 12.5px Pretendard;color:#8b95a1">Win rate</span><span style="font:800 15px Pretendard;color:#191f28;margin-left:8px">61%</span></div>
+<div><span style="font:600 12.5px Pretendard;color:#8b95a1">Avg hold</span><span style="font:800 15px Pretendard;color:#191f28;margin-left:8px">42m</span></div>
+</div>
+</div>
+
+<div style="background:#fff;border-radius:24px;padding:8px 28px 16px">
+<div style="display:grid;grid-template-columns:76px 1fr 150px 118px 120px 96px 96px 40px;align-items:center;gap:16px;padding:16px 0 12px;border-bottom:1px solid #f2f4f6;font:700 11.5px Pretendard;color:#8b95a1;letter-spacing:.02em">
+<span style="color:#191f28">DATE ↓</span><span>INSTRUMENT</span><span>MODEL</span><span>SESSION</span><span>SWEEP</span><span>PLANNED</span><span style="text-align:right">RESULT</span><span></span>
+</div>
+<div style="display:grid;grid-template-columns:76px 1fr 150px 118px 120px 96px 96px 40px;align-items:center;gap:16px;padding:15px 0;border-bottom:1px solid #f2f4f6">
+<span style="font:700 13px Pretendard;color:#8b95a1">09.09</span>
+<div><div style="font:700 15px Pretendard;color:#191f28">NQ · Long</div><div style="font:500 12px Pretendard;color:#8b95a1;margin-top:2px">H4 → M15 · 3 contracts</div></div>
+<span style="font:600 13px Pretendard;color:#4e5968;background:#f2f4f6;border-radius:8px;padding:6px 10px;justify-self:start">C2 expansion</span>
+<span style="font:500 13px Pretendard;color:#8b95a1">New York AM</span>
+<span style="font:500 13px Pretendard;color:#8b95a1">Low purged</span>
+<span style="font:500 13px Pretendard;color:#8b95a1">3.0R</span>
+<span style="font:800 17px Pretendard;color:#f04452;text-align:right">+2.8R</span>
+<span style="font:600 15px Pretendard;color:#d1d6db;text-align:right">›</span>
+</div>
+<div style="display:grid;grid-template-columns:76px 1fr 150px 118px 120px 96px 96px 40px;align-items:center;gap:16px;padding:15px 0;border-bottom:1px solid #f2f4f6;background:#fbfcfd">
+<span style="font:700 13px Pretendard;color:#8b95a1">09.09</span>
+<div><div style="font:700 15px Pretendard;color:#191f28">NQ · Long</div><div style="font:500 12px Pretendard;color:#8b95a1;margin-top:2px">H4 → M5 · 2 contracts</div></div>
+<span style="font:600 13px Pretendard;color:#4e5968;background:#f2f4f6;border-radius:8px;padding:6px 10px;justify-self:start">C2 expansion</span>
+<span style="font:500 13px Pretendard;color:#8b95a1">New York AM</span>
+<span style="font:500 13px Pretendard;color:#8b95a1">Low purged</span>
+<span style="font:500 13px Pretendard;color:#8b95a1">2.5R</span>
+<span style="font:800 17px Pretendard;color:#f04452;text-align:right">+2.6R</span>
+<span style="font:600 15px Pretendard;color:#8b95a1;text-align:right">›</span>
+</div>
+<div style="display:grid;grid-template-columns:76px 1fr 150px 118px 120px 96px 96px 40px;align-items:center;gap:16px;padding:15px 0;border-bottom:1px solid #f2f4f6">
+<span style="font:700 13px Pretendard;color:#8b95a1">09.08</span>
+<div><div style="font:700 15px Pretendard;color:#191f28">EURUSD · Long</div><div style="font:500 12px Pretendard;color:#8b95a1;margin-top:2px">H4 → M5 · 1.0 lot</div></div>
+<span style="font:600 13px Pretendard;color:#4e5968;background:#f2f4f6;border-radius:8px;padding:6px 10px;justify-self:start">C2 expansion</span>
+<span style="font:500 13px Pretendard;color:#8b95a1">London</span>
+<span style="font:500 13px Pretendard;color:#8b95a1">Low purged</span>
+<span style="font:500 13px Pretendard;color:#8b95a1">4.0R</span>
+<span style="font:800 17px Pretendard;color:#f04452;text-align:right">+3.6R</span>
+<span style="font:600 15px Pretendard;color:#d1d6db;text-align:right">›</span>
+</div>
+<div style="display:grid;grid-template-columns:76px 1fr 150px 118px 120px 96px 96px 40px;align-items:center;gap:16px;padding:15px 0;border-bottom:1px solid #f2f4f6">
+<span style="font:700 13px Pretendard;color:#8b95a1">09.05</span>
+<div><div style="font:700 15px Pretendard;color:#191f28">GC · Long</div><div style="font:500 12px Pretendard;color:#8b95a1;margin-top:2px">W → D · 2 contracts</div></div>
+<span style="font:600 13px Pretendard;color:#3182f6;background:#e8f3ff;border-radius:8px;padding:6px 10px;justify-self:start">Off-plan</span>
+<span style="font:500 13px Pretendard;color:#8b95a1">New York AM</span>
+<span style="font:500 13px Pretendard;color:#8b95a1">No sweep</span>
+<span style="font:500 13px Pretendard;color:#8b95a1">2.0R</span>
+<span style="font:800 17px Pretendard;color:#3182f6;text-align:right">−1.0R</span>
+<span style="font:600 15px Pretendard;color:#d1d6db;text-align:right">›</span>
+</div>
+<div style="display:grid;grid-template-columns:76px 1fr 150px 118px 120px 96px 96px 40px;align-items:center;gap:16px;padding:15px 0">
+<span style="font:700 13px Pretendard;color:#8b95a1">09.04</span>
+<div><div style="font:700 15px Pretendard;color:#191f28">NQ · Short</div><div style="font:500 12px Pretendard;color:#8b95a1;margin-top:2px">H4 → M15 · 3 contracts</div></div>
+<span style="font:600 13px Pretendard;color:#4e5968;background:#f2f4f6;border-radius:8px;padding:6px 10px;justify-self:start">Failed sweep</span>
+<span style="font:500 13px Pretendard;color:#8b95a1">New York AM</span>
+<span style="font:500 13px Pretendard;color:#8b95a1">High purged</span>
+<span style="font:500 13px Pretendard;color:#8b95a1">3.5R</span>
+<span style="font:800 17px Pretendard;color:#f04452;text-align:right">+1.4R</span>
+<span style="font:600 15px Pretendard;color:#d1d6db;text-align:right">›</span>
+</div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:18px 0 6px">
+<span style="font:500 12.5px Pretendard;color:#b0b8c1">Showing 5 of 18</span>
+<div style="display:flex;gap:6px;align-items:center">
+<span style="font:600 13px Pretendard;color:#8b95a1;background:#f2f4f6;border-radius:8px;padding:8px 12px">‹</span>
+<span style="font:700 13px Pretendard;color:#fff;background:#191f28;border-radius:8px;padding:8px 12px">1</span>
+<span style="font:600 13px Pretendard;color:#4e5968;background:#f2f4f6;border-radius:8px;padding:8px 12px">2</span>
+<span style="font:600 13px Pretendard;color:#4e5968;background:#f2f4f6;border-radius:8px;padding:8px 12px">3</span>
+<span style="font:600 13px Pretendard;color:#8b95a1;background:#f2f4f6;border-radius:8px;padding:8px 12px">›</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="2b"><div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a>Trade detail · the CRT sequence, read-only</div>
+<div class="dv-card" style="width:1000px">
+<div style="background:#fff;padding:20px 32px;display:flex;align-items:center;justify-content:space-between">
+<div style="display:flex;align-items:center;gap:14px"><span style="font:600 18px Pretendard;color:#8b95a1">‹</span><span style="font:700 17px Pretendard;color:#191f28;letter-spacing:-.02em">NQ · Long · Sep 9, 2026</span><span style="font:600 12px Pretendard;color:#4e5968;background:#f2f4f6;border-radius:8px;padding:5px 9px">C2 expansion</span></div>
+<div style="display:flex;gap:8px"><span style="font:600 13px Pretendard;color:#4e5968;background:#f2f4f6;border-radius:10px;padding:10px 14px">Edit</span><span style="font:600 13px Pretendard;color:#8b95a1;background:#f2f4f6;border-radius:10px;padding:10px 14px">Delete</span></div>
+</div>
+<div style="padding:28px 32px 32px;display:flex;flex-direction:column;gap:16px">
+
+<div style="background:#fff;border-radius:24px;padding:28px 32px;display:grid;grid-template-columns:220px 1fr;gap:36px;align-items:center">
+<div>
+<div style="font:600 13px Pretendard;color:#8b95a1">Realized</div>
+<div style="font:800 48px/1.1 Pretendard;color:#f04452;letter-spacing:-.04em;margin-top:4px">+2.8R</div>
+<div style="font:500 12.5px Pretendard;color:#b0b8c1;margin-top:6px">Planned 3.0R · 93% captured</div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+<div style="background:#f9fafb;border-radius:16px;padding:16px 18px"><div style="font:600 12px Pretendard;color:#8b95a1">Entry</div><div style="font:800 17px Pretendard;color:#191f28;margin-top:4px">23,411.00</div></div>
+<div style="background:#f9fafb;border-radius:16px;padding:16px 18px"><div style="font:600 12px Pretendard;color:#8b95a1">Stop</div><div style="font:800 17px Pretendard;color:#191f28;margin-top:4px">23,396.50</div></div>
+<div style="background:#f9fafb;border-radius:16px;padding:16px 18px"><div style="font:600 12px Pretendard;color:#8b95a1">Exit</div><div style="font:800 17px Pretendard;color:#191f28;margin-top:4px">23,451.75</div></div>
+<div style="background:#f9fafb;border-radius:16px;padding:16px 18px"><div style="font:600 12px Pretendard;color:#8b95a1">Hold</div><div style="font:800 17px Pretendard;color:#191f28;margin-top:4px">38m</div></div>
+</div>
+</div>
+
+<div style="background:#fff;border-radius:24px;padding:28px 32px">
+<div style="font:700 16px Pretendard;color:#191f28;letter-spacing:-.02em">CRT sequence</div>
+<div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+<span style="font:600 12.5px Pretendard;color:#4e5968;background:#f2f4f6;border-radius:99px;padding:8px 14px">H4 → M15</span>
+<span style="font:600 12.5px Pretendard;color:#4e5968;background:#f2f4f6;border-radius:99px;padding:8px 14px">Low purged</span>
+<span style="font:600 12.5px Pretendard;color:#4e5968;background:#f2f4f6;border-radius:99px;padding:8px 14px">M1 displacement</span>
+<span style="font:600 12.5px Pretendard;color:#4e5968;background:#f2f4f6;border-radius:99px;padding:8px 14px">New York AM</span>
+<span style="font:700 12.5px Pretendard;color:#1b64da;background:#e8f3ff;border-radius:99px;padding:8px 14px">On plan</span>
+</div>
+<div style="background:#f9fafb;border-radius:20px;padding:30px 28px 22px;margin-top:18px;display:grid;grid-template-columns:1fr 190px;gap:28px;align-items:center">
+<div>
+<div style="position:relative;height:76px;background:#eef1f4;border-radius:12px">
+<div style="position:absolute;left:0;right:0;top:0;height:2px;background:#d1d6db"></div>
+<div style="position:absolute;left:0;right:0;bottom:0;height:2px;background:#d1d6db"></div>
+<div style="position:absolute;left:0;right:0;top:50%;height:1px;background:#dde1e6"></div>
+<div style="position:absolute;left:16%;bottom:-8px;width:4px;height:26px;background:#3182f6;border-radius:99px"></div>
+<div style="position:absolute;left:12%;bottom:-34px;font:700 11px Pretendard;color:#3182f6">Sweep</div>
+<div style="position:absolute;left:22%;top:34%;right:38%;height:3px;background:#f04452;border-radius:99px"></div>
+<div style="position:absolute;left:22%;top:14%;font:700 11px Pretendard;color:#f04452">Expansion · exit at 59%</div>
+<div style="position:absolute;right:6%;top:-8px;width:4px;height:26px;background:#d1d6db;border-radius:99px"></div>
+<div style="position:absolute;right:1%;top:-32px;font:700 11px Pretendard;color:#8b95a1">Target</div>
+</div>
+<div style="display:flex;justify-content:space-between;font:500 11.5px Pretendard;color:#b0b8c1;margin-top:18px"><span>Low 23,402.75</span><span>50% 23,444.50</span><span>High 23,486.25</span></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:14px;padding-left:24px;border-left:1px solid #eef1f4">
+<div><div style="font:600 12px Pretendard;color:#8b95a1">Range size</div><div style="font:800 20px Pretendard;color:#191f28;margin-top:2px">83.5 pt</div></div>
+<div><div style="font:600 12px Pretendard;color:#8b95a1">Risk</div><div style="font:800 20px Pretendard;color:#191f28;margin-top:2px">14.5 pt</div></div>
+<div><div style="font:600 12px Pretendard;color:#8b95a1">Exit reason</div><div style="font:700 14px Pretendard;color:#191f28;margin-top:2px">Partial into 50%</div></div>
+</div>
+</div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+<div style="background:#fff;border-radius:24px;padding:26px 28px">
+<div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font:700 16px Pretendard;color:#191f28;letter-spacing:-.02em">Charts</span><span style="font:600 12.5px Pretendard;color:#3182f6">Add</span></div>
+<div style="display:flex;flex-direction:column;gap:12px;margin-top:16px">
+<div style="height:150px;border-radius:16px;background:repeating-linear-gradient(135deg,#f4f5f7 0 8px,#eef1f4 8px 16px);display:flex;align-items:center;justify-content:center;font:500 11.5px ui-monospace,monospace;color:#8b95a1">HTF range screenshot — H4</div>
+<div style="height:150px;border-radius:16px;background:repeating-linear-gradient(135deg,#f4f5f7 0 8px,#eef1f4 8px 16px);display:flex;align-items:center;justify-content:center;font:500 11.5px ui-monospace,monospace;color:#8b95a1">entry timeframe screenshot — M15</div>
+</div>
+</div>
+<div style="background:#fff;border-radius:24px;padding:26px 28px">
+<span style="font:700 16px Pretendard;color:#191f28;letter-spacing:-.02em">Notes</span>
+<div style="font:400 14px/1.7 Pretendard;color:#333d4b;margin-top:14px">Waited for M1 displacement after the London low purge. Took 2/3 off before target — the 50% level had been respected twice on the way up, so I did not want to hold through it.</div>
+<div style="height:1px;background:#f2f4f6;margin:20px 0"></div>
+<div style="font:600 13px Pretendard;color:#8b95a1">Tags</div>
+<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+<span style="font:600 12.5px Pretendard;color:#4e5968;background:#f2f4f6;border-radius:99px;padding:8px 14px">On plan</span>
+<span style="font:600 12.5px Pretendard;color:#4e5968;background:#f2f4f6;border-radius:99px;padding:8px 14px">Early exit</span>
+</div>
+<div style="height:1px;background:#f2f4f6;margin:20px 0"></div>
+<div style="display:flex;justify-content:space-between;font:500 12.5px Pretendard;color:#b0b8c1"><span>Logged Sep 9, 10:24</span><span>Edited 11:02</span></div>
+</div>
+</div>
+
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="2c"><div class="dv-olabel"><a class="dv-oid" href="#2c">2c</a>Weekly review</div>
+<div class="dv-card" style="width:1000px">
+<div style="background:#fff;padding:20px 32px;display:flex;align-items:center;justify-content:space-between">
+<div style="display:flex;align-items:center;gap:16px"><span style="font:600 18px Pretendard;color:#b0b8c1">‹</span><span style="font:700 18px Pretendard;color:#191f28;letter-spacing:-.02em">Week 37 · Sep 7 — Sep 13</span><span style="font:600 18px Pretendard;color:#b0b8c1">›</span></div>
+<span style="font:600 13px Pretendard;color:#4e5968;background:#f2f4f6;border-radius:10px;padding:10px 14px">Copy last week's notes</span>
+</div>
+<div style="padding:28px 32px 32px;display:flex;flex-direction:column;gap:16px">
+
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+<div style="background:#fff;border-radius:20px;padding:22px 24px"><div style="font:600 13px Pretendard;color:#8b95a1">Net</div><div style="font:800 30px Pretendard;color:#f04452;letter-spacing:-.03em;margin-top:6px">+7.2R</div><div style="font:500 11.5px Pretendard;color:#b0b8c1">9 trades</div></div>
+<div style="background:#fff;border-radius:20px;padding:22px 24px"><div style="font:600 13px Pretendard;color:#8b95a1">Win rate</div><div style="font:800 30px Pretendard;color:#191f28;letter-spacing:-.03em;margin-top:6px">67%</div><div style="font:500 11.5px Pretendard;color:#b0b8c1">6 / 9</div></div>
+<div style="background:#fff;border-radius:20px;padding:22px 24px"><div style="font:600 13px Pretendard;color:#8b95a1">Rule adherence</div><div style="font:800 30px Pretendard;color:#191f28;letter-spacing:-.03em;margin-top:6px">89%</div><div style="font:500 11.5px Pretendard;color:#b0b8c1">1 off-plan</div></div>
+<div style="background:#fff;border-radius:20px;padding:22px 24px"><div style="font:600 13px Pretendard;color:#8b95a1">Vs. 4-week avg</div><div style="font:800 30px Pretendard;color:#f04452;letter-spacing:-.03em;margin-top:6px">+2.1R</div><div style="font:500 11.5px Pretendard;color:#b0b8c1">avg +5.1R</div></div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 380px;gap:16px">
+<div style="background:#fff;border-radius:24px;padding:26px 28px">
+<span style="font:700 16px Pretendard;color:#191f28;letter-spacing:-.02em">Day by day</span>
+<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:18px;align-items:end;height:150px">
+<div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%;gap:8px"><div style="height:22%;background:#f04452;border-radius:8px"></div><span style="font:600 11px Pretendard;color:#b0b8c1;text-align:center">Mon</span></div>
+<div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%;gap:8px"><div style="height:38%;background:#3182f6;border-radius:8px"></div><span style="font:600 11px Pretendard;color:#b0b8c1;text-align:center">Tue</span></div>
+<div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%;gap:8px"><div style="height:88%;background:#f04452;border-radius:8px"></div><span style="font:600 11px Pretendard;color:#b0b8c1;text-align:center">Wed</span></div>
+<div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%;gap:8px"><div style="height:30%;background:#f04452;border-radius:8px"></div><span style="font:600 11px Pretendard;color:#b0b8c1;text-align:center">Thu</span></div>
+<div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%;gap:8px"><div style="height:14%;background:#3182f6;border-radius:8px"></div><span style="font:600 11px Pretendard;color:#b0b8c1;text-align:center">Fri</span></div>
+<div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%;gap:8px"><div style="height:4px;background:#e5e8eb;border-radius:8px"></div><span style="font:600 11px Pretendard;color:#d1d6db;text-align:center">Sat</span></div>
+<div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%;gap:8px"><div style="height:4px;background:#e5e8eb;border-radius:8px"></div><span style="font:600 11px Pretendard;color:#d1d6db;text-align:center">Sun</span></div>
+</div>
+<div style="height:1px;background:#f2f4f6;margin:22px 0 18px"></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+<div style="background:#f9fafb;border-radius:16px;padding:18px 20px"><div style="font:600 12px Pretendard;color:#8b95a1">Best trade</div><div style="font:700 15px Pretendard;color:#191f28;margin-top:6px">EURUSD · Long</div><div style="font:500 12px Pretendard;color:#8b95a1;margin-top:2px">C2 expansion · London</div><div style="font:800 20px Pretendard;color:#f04452;margin-top:8px">+3.6R</div></div>
+<div style="background:#f9fafb;border-radius:16px;padding:18px 20px"><div style="font:600 12px Pretendard;color:#8b95a1">Worst trade</div><div style="font:700 15px Pretendard;color:#191f28;margin-top:6px">ES · Short</div><div style="font:500 12px Pretendard;color:#8b95a1;margin-top:2px">C3 continuation · London</div><div style="font:800 20px Pretendard;color:#3182f6;margin-top:8px">−1.0R</div></div>
+</div>
+</div>
+<div style="background:#fff;border-radius:24px;padding:26px 28px">
+<span style="font:700 16px Pretendard;color:#191f28;letter-spacing:-.02em">Tag frequency</span>
+<div style="display:flex;flex-direction:column;gap:14px;margin-top:18px">
+<div><div style="display:flex;justify-content:space-between;font:600 13.5px Pretendard;color:#333d4b"><span>On plan</span><span>8</span></div><div style="height:7px;background:#f2f4f6;border-radius:99px;margin-top:7px"><div style="width:89%;height:100%;background:#191f28;border-radius:99px"></div></div></div>
+<div><div style="display:flex;justify-content:space-between;font:600 13.5px Pretendard;color:#333d4b"><span>Early exit</span><span>4</span></div><div style="height:7px;background:#f2f4f6;border-radius:99px;margin-top:7px"><div style="width:44%;height:100%;background:#191f28;border-radius:99px"></div></div></div>
+<div><div style="display:flex;justify-content:space-between;font:600 13.5px Pretendard;color:#333d4b"><span>Impatient</span><span>2</span></div><div style="height:7px;background:#f2f4f6;border-radius:99px;margin-top:7px"><div style="width:22%;height:100%;background:#d1d6db;border-radius:99px"></div></div></div>
+<div><div style="display:flex;justify-content:space-between;font:600 13.5px Pretendard;color:#333d4b"><span>Chased entry</span><span>1</span></div><div style="height:7px;background:#f2f4f6;border-radius:99px;margin-top:7px"><div style="width:11%;height:100%;background:#d1d6db;border-radius:99px"></div></div></div>
+</div>
+<div style="height:1px;background:#f2f4f6;margin:22px 0 18px"></div>
+<span style="font:700 16px Pretendard;color:#191f28;letter-spacing:-.02em">Focus for next week</span>
+<div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
+<div style="display:flex;gap:10px;align-items:flex-start"><span style="width:18px;height:18px;border-radius:6px;background:#3182f6;color:#fff;font:700 11px Pretendard;display:flex;align-items:center;justify-content:center;flex:none;margin-top:2px">✓</span><span style="font:500 13.5px/1.5 Pretendard;color:#4e5968">Hold to target when 50% is unswept</span></div>
+<div style="display:flex;gap:10px;align-items:flex-start"><span style="width:18px;height:18px;border-radius:6px;background:#f2f4f6;flex:none;margin-top:2px"></span><span style="font:500 13.5px/1.5 Pretendard;color:#4e5968">No entries before the London purge completes</span></div>
+<div style="display:flex;gap:10px;align-items:flex-start"><span style="width:18px;height:18px;border-radius:6px;background:#f2f4f6;flex:none;margin-top:2px"></span><span style="font:500 13.5px/1.5 Pretendard;color:#4e5968">Skip Asia unless the H4 range is already broken</span></div>
+</div>
+</div>
+</div>
+
+<div style="background:#fff;border-radius:24px;padding:26px 28px">
+<span style="font:700 16px Pretendard;color:#191f28;letter-spacing:-.02em">Review</span>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:16px">
+<div><div style="font:600 13px Pretendard;color:#8b95a1;margin-bottom:8px">What worked</div><div style="background:#f2f4f6;border-radius:16px;padding:16px 18px;font:400 13.5px/1.6 Pretendard;color:#333d4b;min-height:110px">Waiting for the purge before the New York open. Every trade taken after a completed sweep was profitable.</div></div>
+<div><div style="font:600 13px Pretendard;color:#8b95a1;margin-bottom:8px">What didn't</div><div style="background:#f2f4f6;border-radius:16px;padding:16px 18px;font:400 13.5px/1.6 Pretendard;color:#333d4b;min-height:110px">Two exits at 50% that ran to target without me. Cost roughly 1.8R of the week.</div></div>
+<div><div style="font:600 13px Pretendard;color:#8b95a1;margin-bottom:8px">One change</div><div style="background:#f2f4f6;border-radius:16px;padding:16px 18px;font:400 13.5px/1.6 Pretendard;color:#8b95a1;min-height:110px">Write one sentence you can check against next week.</div></div>
+</div>
+<div style="display:flex;justify-content:flex-end;margin-top:16px"><span style="background:#3182f6;color:#fff;font:700 15px Pretendard;padding:14px 22px;border-radius:14px">Save review</span></div>
+</div>
+
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="2d"><div class="dv-olabel"><a class="dv-oid" href="#2d">2d</a>Playbook · models and their rules</div>
+<div class="dv-card" style="width:900px">
+<div style="background:#fff;padding:20px 28px;display:flex;align-items:center;justify-content:space-between">
+<span style="font:700 18px Pretendard;color:#191f28;letter-spacing:-.02em">Playbook</span>
+<span style="background:#3182f6;color:#fff;font:700 14px Pretendard;padding:11px 18px;border-radius:12px">New model</span>
+</div>
+<div style="padding:24px 28px 28px;display:flex;flex-direction:column;gap:16px">
+
+<div style="background:#fff;border-radius:24px;padding:26px 28px;display:grid;grid-template-columns:1fr 260px;gap:28px">
+<div>
+<div style="display:flex;align-items:center;gap:10px"><span style="font:700 17px Pretendard;color:#191f28;letter-spacing:-.02em">C2 sweep → expansion</span><span style="font:700 11.5px Pretendard;color:#1b64da;background:#e8f3ff;border-radius:99px;padding:5px 10px">Active</span></div>
+<div style="font:400 13.5px/1.7 Pretendard;color:#4e5968;margin-top:10px">The second candle of the HTF pairing purges one side of the first candle's range, then expands toward the opposite extreme. Entry goes on the displacement back inside the range.</div>
+<div style="display:flex;flex-direction:column;gap:9px;margin-top:16px">
+<div style="display:flex;gap:10px;align-items:flex-start"><span style="width:18px;height:18px;border-radius:6px;background:#f2f4f6;color:#8b95a1;font:700 10px Pretendard;display:flex;align-items:center;justify-content:center;flex:none;margin-top:2px">1</span><span style="font:500 13.5px/1.5 Pretendard;color:#333d4b">HTF range marked before the session opens</span></div>
+<div style="display:flex;gap:10px;align-items:flex-start"><span style="width:18px;height:18px;border-radius:6px;background:#f2f4f6;color:#8b95a1;font:700 10px Pretendard;display:flex;align-items:center;justify-content:center;flex:none;margin-top:2px">2</span><span style="font:500 13.5px/1.5 Pretendard;color:#333d4b">One side purged, wick closes back inside</span></div>
+<div style="display:flex;gap:10px;align-items:flex-start"><span style="width:18px;height:18px;border-radius:6px;background:#f2f4f6;color:#8b95a1;font:700 10px Pretendard;display:flex;align-items:center;justify-content:center;flex:none;margin-top:2px">3</span><span style="font:500 13.5px/1.5 Pretendard;color:#333d4b">M1 displacement in the expansion direction</span></div>
+<div style="display:flex;gap:10px;align-items:flex-start"><span style="width:18px;height:18px;border-radius:6px;background:#f2f4f6;color:#8b95a1;font:700 10px Pretendard;display:flex;align-items:center;justify-content:center;flex:none;margin-top:2px">4</span><span style="font:500 13.5px/1.5 Pretendard;color:#333d4b">Stop beyond the sweep wick, target the opposite extreme</span></div>
+</div>
+</div>
+<div>
+<div style="height:104px;border-radius:16px;background:repeating-linear-gradient(135deg,#f4f5f7 0 8px,#eef1f4 8px 16px);display:flex;align-items:center;justify-content:center;font:500 11px ui-monospace,monospace;color:#8b95a1">reference setup screenshot</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
+<div style="background:#f9fafb;border-radius:14px;padding:14px 16px"><div style="font:600 11.5px Pretendard;color:#8b95a1">Net</div><div style="font:800 18px Pretendard;color:#f04452;margin-top:2px">+11.2R</div></div>
+<div style="background:#f9fafb;border-radius:14px;padding:14px 16px"><div style="font:600 11.5px Pretendard;color:#8b95a1">Win rate</div><div style="font:800 18px Pretendard;color:#191f28;margin-top:2px">62%</div></div>
+<div style="background:#f9fafb;border-radius:14px;padding:14px 16px"><div style="font:600 11.5px Pretendard;color:#8b95a1">Trades</div><div style="font:800 18px Pretendard;color:#191f28;margin-top:2px">24</div></div>
+<div style="background:#f9fafb;border-radius:14px;padding:14px 16px"><div style="font:600 11.5px Pretendard;color:#8b95a1">Avg R</div><div style="font:800 18px Pretendard;color:#191f28;margin-top:2px">0.47</div></div>
+</div>
+</div>
+</div>
+
+<div style="background:#fff;border-radius:24px;padding:24px 28px;display:flex;align-items:center;justify-content:space-between">
+<div>
+<div style="display:flex;align-items:center;gap:10px"><span style="font:700 16px Pretendard;color:#191f28;letter-spacing:-.02em">C3 continuation</span><span style="font:700 11.5px Pretendard;color:#1b64da;background:#e8f3ff;border-radius:99px;padding:5px 10px">Active</span></div>
+<div style="font:500 13px Pretendard;color:#8b95a1;margin-top:6px">Third candle continues the expansion — entry on the retrace into the prior candle's body.</div>
+</div>
+<div style="display:flex;gap:24px;align-items:center">
+<div style="text-align:right"><div style="font:600 11.5px Pretendard;color:#8b95a1">Net</div><div style="font:800 18px Pretendard;color:#f04452">+6.8R</div></div>
+<div style="text-align:right"><div style="font:600 11.5px Pretendard;color:#8b95a1">Win rate</div><div style="font:800 18px Pretendard;color:#191f28">55%</div></div>
+<span style="font:600 15px Pretendard;color:#d1d6db">›</span>
+</div>
+</div>
+
+<div style="background:#fff;border-radius:24px;padding:24px 28px;display:flex;align-items:center;justify-content:space-between">
+<div>
+<div style="display:flex;align-items:center;gap:10px"><span style="font:700 16px Pretendard;color:#191f28;letter-spacing:-.02em">Failed sweep reversal</span><span style="font:700 11.5px Pretendard;color:#1b64da;background:#e8f3ff;border-radius:99px;padding:5px 10px">Active</span></div>
+<div style="font:500 13px Pretendard;color:#8b95a1;margin-top:6px">Expansion stalls and price returns through the sweep — trade back to the origin.</div>
+</div>
+<div style="display:flex;gap:24px;align-items:center">
+<div style="text-align:right"><div style="font:600 11.5px Pretendard;color:#8b95a1">Net</div><div style="font:800 18px Pretendard;color:#f04452">+3.1R</div></div>
+<div style="text-align:right"><div style="font:600 11.5px Pretendard;color:#8b95a1">Win rate</div><div style="font:800 18px Pretendard;color:#191f28">45%</div></div>
+<span style="font:600 15px Pretendard;color:#d1d6db">›</span>
+</div>
+</div>
+
+<div style="background:#fff;border-radius:24px;padding:24px 28px;display:flex;align-items:center;justify-content:space-between;opacity:.72">
+<div>
+<div style="display:flex;align-items:center;gap:10px"><span style="font:700 16px Pretendard;color:#191f28;letter-spacing:-.02em">Mid-range entry</span><span style="font:700 11.5px Pretendard;color:#8b95a1;background:#f2f4f6;border-radius:99px;padding:5px 10px">Retired</span></div>
+<div style="font:500 13px Pretendard;color:#8b95a1;margin-top:6px">No sweep, no confirmation. Kept only so the stats stay honest — new entries are flagged off-plan.</div>
+</div>
+<div style="display:flex;gap:24px;align-items:center">
+<div style="text-align:right"><div style="font:600 11.5px Pretendard;color:#8b95a1">Net</div><div style="font:800 18px Pretendard;color:#3182f6">−2.7R</div></div>
+<div style="text-align:right"><div style="font:600 11.5px Pretendard;color:#8b95a1">Win rate</div><div style="font:800 18px Pretendard;color:#191f28">25%</div></div>
+<span style="font:600 15px Pretendard;color:#d1d6db">›</span>
+</div>
+</div>
+
+</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">이어서 해볼 것: "<a class="dv-oid" href="#2a">2a</a>·<a class="dv-oid" href="#2b">2b</a> 모바일 버전도" · "빈 상태(데이터 없을 때) 화면 추가" · "설정 화면 추가" · "핸드오프 문서에 이 4개 화면 반영"</p>
+</section>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Min Journal — minimal direction (desktop + mobile)</span></div>
+
+<div style="max-width:860px;margin:0 0 28px;font:400 13px/1.7 Pretendard,sans-serif;color:#4e5968">
+<p style="margin:0 0 8px"><strong style="color:#191f28">Assumptions</strong> · CRT = Candle Range Theory. Every trade is logged against the higher-timeframe candle's range, and the input order follows that same flow: HTF pairing → range → sweep (purge) → expansion → execution → result. Single user, charts uploaded as screenshots.</p>
+<p style="margin:0"><strong style="color:#191f28">Style</strong> · White cards on a 24px radius, space instead of lines, numbers as the main event. One accent — blue <span style="color:#3182f6;font-weight:700">#3182f6</span> — reserved for buttons and selected states. P&amp;L follows the Korean market convention: <span style="color:#f04452;font-weight:700">gains in red</span> / <span style="color:#3182f6;font-weight:700">losses in blue</span>.</p>
+</div>
+
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a"><div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Dashboard · desktop</div>
+<div class="dv-card" style="width:1200px">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:20px 32px;background:#fff">
+<div style="display:flex;align-items:center;gap:32px">
+<span style="font:800 17px Pretendard;color:#191f28;letter-spacing:-.03em">M</span>
+<div style="display:flex;gap:6px">
+<span style="font:600 14px Pretendard;color:#191f28;background:#f2f4f6;padding:8px 14px;border-radius:10px">Dashboard</span>
+<span style="font:600 14px Pretendard;color:#8b95a1;padding:8px 14px">Trades</span>
+<span style="font:600 14px Pretendard;color:#8b95a1;padding:8px 14px">Calendar</span>
+<span style="font:600 14px Pretendard;color:#8b95a1;padding:8px 14px">Playbook</span>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:12px">
+<span style="font:600 13px Pretendard;color:#8b95a1">September 2026</span>
+<span style="background:#3182f6;color:#fff;font:700 14px Pretendard;padding:11px 18px;border-radius:12px">New trade</span>
+</div>
+</div>
+
+<div style="padding:28px 32px 32px;display:flex;flex-direction:column;gap:16px">
+
+<div style="background:#fff;border-radius:24px;padding:32px 36px;display:grid;grid-template-columns:340px 1fr;gap:40px;align-items:center">
+<div>
+<div style="font:600 14px Pretendard;color:#8b95a1">Month to date</div>
+<div style="font:800 56px/1.1 Pretendard;color:#f04452;letter-spacing:-.04em;margin-top:6px">+18.4R</div>
+<div style="display:flex;gap:8px;margin-top:14px">
+<span style="font:600 12px Pretendard;color:#4e5968;background:#f2f4f6;padding:6px 10px;border-radius:8px">61 trades</span>
+<span style="font:600 12px Pretendard;color:#4e5968;background:#f2f4f6;padding:6px 10px;border-radius:8px">54% win rate</span>
+<span style="font:600 12px Pretendard;color:#4e5968;background:#f2f4f6;padding:6px 10px;border-radius:8px">0.30R expectancy</span>
+</div>
+</div>
+<div>
+<svg viewBox="0 0 720 180" style="width:100%;height:180px;display:block" preserveAspectRatio="none">
+<defs><linearGradient id="eq" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f04452" stop-opacity=".16"></stop><stop offset="100%" stop-color="#f04452" stop-opacity="0"></stop></linearGradient></defs>
+<path d="M0,150 L40,138 L80,143 L120,116 L160,123 L200,98 L240,105 L280,80 L320,92 L360,71 L400,77 L440,53 L480,65 L520,47 L560,54 L600,33 L640,42 L680,24 L720,12 L720,180 L0,180 Z" fill="url(#eq)"></path>
+<polyline points="0,150 40,138 80,143 120,116 160,123 200,98 240,105 280,80 320,92 360,71 400,77 440,53 480,65 520,47 560,54 600,33 640,42 680,24 720,12" fill="none" stroke="#f04452" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"></polyline>
+<circle cx="720" cy="12" r="5" fill="#f04452"></circle>
+</svg>
+<div style="display:flex;justify-content:space-between;font:500 11px Pretendard;color:#b0b8c1;margin-top:8px"><span>Aug 12</span><span>Max drawdown −3.2R</span><span>Sep 9</span></div>
+</div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+<div style="background:#fff;border-radius:20px;padding:22px 24px"><div style="font:600 13px Pretendard;color:#8b95a1">Avg win</div><div style="font:800 30px Pretendard;color:#191f28;letter-spacing:-.03em;margin-top:6px">2.3R</div></div>
+<div style="background:#fff;border-radius:20px;padding:22px 24px"><div style="font:600 13px Pretendard;color:#8b95a1">Avg loss</div><div style="font:800 30px Pretendard;color:#3182f6;letter-spacing:-.03em;margin-top:6px">−0.9R</div></div>
+<div style="background:#fff;border-radius:20px;padding:22px 24px"><div style="font:600 13px Pretendard;color:#8b95a1">Win streak</div><div style="font:800 30px Pretendard;color:#191f28;letter-spacing:-.03em;margin-top:6px">4 trades</div></div>
+<div style="background:#fff;border-radius:20px;padding:22px 24px"><div style="font:600 13px Pretendard;color:#8b95a1">Rule adherence</div><div style="font:800 30px Pretendard;color:#191f28;letter-spacing:-.03em;margin-top:6px">87%</div></div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+<div style="background:#fff;border-radius:24px;padding:26px 28px">
+<div style="font:700 16px Pretendard;color:#191f28;letter-spacing:-.02em">Performance by model</div>
+<div style="display:flex;flex-direction:column;gap:18px;margin-top:20px">
+<div><div style="display:flex;justify-content:space-between;font:600 14px Pretendard;color:#333d4b"><span>C2 sweep → expansion</span><span style="color:#f04452">+11.2R</span></div><div style="height:8px;background:#f2f4f6;border-radius:99px;margin-top:8px"><div style="width:78%;height:100%;background:#f04452;border-radius:99px"></div></div><div style="font:500 11.5px Pretendard;color:#b0b8c1;margin-top:6px">24 trades · 62% win rate</div></div>
+<div><div style="display:flex;justify-content:space-between;font:600 14px Pretendard;color:#333d4b"><span>C3 continuation</span><span style="color:#f04452">+6.8R</span></div><div style="height:8px;background:#f2f4f6;border-radius:99px;margin-top:8px"><div style="width:52%;height:100%;background:#f04452;border-radius:99px"></div></div><div style="font:500 11.5px Pretendard;color:#b0b8c1;margin-top:6px">18 trades · 55% win rate</div></div>
+<div><div style="display:flex;justify-content:space-between;font:600 14px Pretendard;color:#333d4b"><span>Failed sweep reversal</span><span style="color:#f04452">+3.1R</span></div><div style="height:8px;background:#f2f4f6;border-radius:99px;margin-top:8px"><div style="width:30%;height:100%;background:#f04452;border-radius:99px"></div></div><div style="font:500 11.5px Pretendard;color:#b0b8c1;margin-top:6px">11 trades · 45% win rate</div></div>
+<div><div style="display:flex;justify-content:space-between;font:600 14px Pretendard;color:#333d4b"><span>Mid-range entry</span><span style="color:#3182f6">−2.7R</span></div><div style="height:8px;background:#f2f4f6;border-radius:99px;margin-top:8px"><div style="width:22%;height:100%;background:#3182f6;border-radius:99px"></div></div><div style="font:500 11.5px Pretendard;color:#b0b8c1;margin-top:6px">8 trades · 25% win rate · off-plan entries</div></div>
+</div>
+</div>
+<div style="background:#fff;border-radius:24px;padding:26px 28px">
+<div style="font:700 16px Pretendard;color:#191f28;letter-spacing:-.02em">Session · sweep side</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px">
+<div style="background:#f9fafb;border-radius:16px;padding:18px"><div style="font:600 12px Pretendard;color:#8b95a1">Asia</div><div style="font:800 22px Pretendard;color:#3182f6;margin-top:4px">−1.4R</div><div style="font:500 11px Pretendard;color:#b0b8c1;margin-top:2px">9 trades</div></div>
+<div style="background:#f9fafb;border-radius:16px;padding:18px"><div style="font:600 12px Pretendard;color:#8b95a1">London</div><div style="font:800 22px Pretendard;color:#f04452;margin-top:4px">+7.9R</div><div style="font:500 11px Pretendard;color:#b0b8c1;margin-top:2px">22 trades</div></div>
+<div style="background:#f9fafb;border-radius:16px;padding:18px"><div style="font:600 12px Pretendard;color:#8b95a1">New York AM</div><div style="font:800 22px Pretendard;color:#f04452;margin-top:4px">+11.9R</div><div style="font:500 11px Pretendard;color:#b0b8c1;margin-top:2px">30 trades</div></div>
+</div>
+<div style="height:1px;background:#f2f4f6;margin:24px 0"></div>
+<div style="display:flex;flex-direction:column;gap:14px">
+<div><div style="display:flex;justify-content:space-between;font:600 14px Pretendard;color:#333d4b"><span>Long after low purge</span><span>61%</span></div><div style="height:8px;background:#f2f4f6;border-radius:99px;margin-top:8px"><div style="width:61%;height:100%;background:#191f28;border-radius:99px"></div></div></div>
+<div><div style="display:flex;justify-content:space-between;font:600 14px Pretendard;color:#333d4b"><span>Short after high purge</span><span>52%</span></div><div style="height:8px;background:#f2f4f6;border-radius:99px;margin-top:8px"><div style="width:52%;height:100%;background:#191f28;border-radius:99px"></div></div></div>
+<div><div style="display:flex;justify-content:space-between;font:600 14px Pretendard;color:#333d4b"><span>Entry without a sweep</span><span>25%</span></div><div style="height:8px;background:#f2f4f6;border-radius:99px;margin-top:8px"><div style="width:25%;height:100%;background:#d1d6db;border-radius:99px"></div></div></div>
+</div>
+</div>
+</div>
+
+<div style="background:#fff;border-radius:24px;padding:26px 28px 12px">
+<div style="display:flex;align-items:baseline;justify-content:space-between">
+<span style="font:700 16px Pretendard;color:#191f28;letter-spacing:-.02em">Recent trades</span>
+<span style="font:600 13px Pretendard;color:#3182f6">View all 61</span>
+</div>
+<div style="display:flex;flex-direction:column;margin-top:8px">
+<div style="display:grid;grid-template-columns:64px 1fr 150px 130px 110px 90px;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid #f2f4f6">
+<span style="font:700 13px Pretendard;color:#8b95a1">09.09</span>
+<div><div style="font:700 15px Pretendard;color:#191f28">NQ · Long</div><div style="font:500 12px Pretendard;color:#8b95a1;margin-top:2px">H4 → M15 · low purged</div></div>
+<span style="font:600 13px Pretendard;color:#4e5968;background:#f2f4f6;border-radius:8px;padding:6px 10px;justify-self:start">C2 expansion</span>
+<span style="font:500 13px Pretendard;color:#8b95a1">New York AM</span>
+<span style="font:500 13px Pretendard;color:#8b95a1">Plan 3.0R</span>
+<span style="font:800 17px Pretendard;color:#f04452;text-align:right">+2.8R</span>
+</div>
+<div style="display:grid;grid-template-columns:64px 1fr 150px 130px 110px 90px;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid #f2f4f6">
+<span style="font:700 13px Pretendard;color:#8b95a1">09.08</span>
+<div><div style="font:700 15px Pretendard;color:#191f28">ES · Short</div><div style="font:500 12px Pretendard;color:#8b95a1;margin-top:2px">D → H1 · high purged</div></div>
+<span style="font:600 13px Pretendard;color:#4e5968;background:#f2f4f6;border-radius:8px;padding:6px 10px;justify-self:start">C3 continuation</span>
+<span style="font:500 13px Pretendard;color:#8b95a1">London</span>
+<span style="font:500 13px Pretendard;color:#8b95a1">Plan 2.5R</span>
+<span style="font:800 17px Pretendard;color:#3182f6;text-align:right">−1.0R</span>
+</div>
+<div style="display:grid;grid-template-columns:64px 1fr 150px 130px 110px 90px;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid #f2f4f6">
+<span style="font:700 13px Pretendard;color:#8b95a1">09.08</span>
+<div><div style="font:700 15px Pretendard;color:#191f28">EURUSD · Long</div><div style="font:500 12px Pretendard;color:#8b95a1;margin-top:2px">H4 → M5 · low purged</div></div>
+<span style="font:600 13px Pretendard;color:#4e5968;background:#f2f4f6;border-radius:8px;padding:6px 10px;justify-self:start">C2 expansion</span>
+<span style="font:500 13px Pretendard;color:#8b95a1">London</span>
+<span style="font:500 13px Pretendard;color:#8b95a1">Plan 4.0R</span>
+<span style="font:800 17px Pretendard;color:#f04452;text-align:right">+3.6R</span>
+</div>
+<div style="display:grid;grid-template-columns:64px 1fr 150px 130px 110px 90px;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid #f2f4f6">
+<span style="font:700 13px Pretendard;color:#8b95a1">09.05</span>
+<div><div style="font:700 15px Pretendard;color:#191f28">GC · Long</div><div style="font:500 12px Pretendard;color:#8b95a1;margin-top:2px">W → D · no sweep</div></div>
+<span style="font:600 13px Pretendard;color:#3182f6;background:#e8f3ff;border-radius:8px;padding:6px 10px;justify-self:start">Off-plan</span>
+<span style="font:500 13px Pretendard;color:#8b95a1">New York AM</span>
+<span style="font:500 13px Pretendard;color:#8b95a1">Plan 2.0R</span>
+<span style="font:800 17px Pretendard;color:#3182f6;text-align:right">−1.0R</span>
+</div>
+<div style="display:grid;grid-template-columns:64px 1fr 150px 130px 110px 90px;align-items:center;gap:16px;padding:16px 0">
+<span style="font:700 13px Pretendard;color:#8b95a1">09.04</span>
+<div><div style="font:700 15px Pretendard;color:#191f28">NQ · Short</div><div style="font:500 12px Pretendard;color:#8b95a1;margin-top:2px">H4 → M15 · high purged</div></div>
+<span style="font:600 13px Pretendard;color:#4e5968;background:#f2f4f6;border-radius:8px;padding:6px 10px;justify-self:start">Failed sweep</span>
+<span style="font:500 13px Pretendard;color:#8b95a1">New York AM</span>
+<span style="font:500 13px Pretendard;color:#8b95a1">Plan 3.5R</span>
+<span style="font:800 17px Pretendard;color:#f04452;text-align:right">+1.4R</span>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="1b"><div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>New entry · logged in CRT order</div>
+<div class="dv-card" style="width:1000px">
+<div style="background:#fff;padding:20px 32px;display:flex;align-items:center;justify-content:space-between">
+<div style="display:flex;align-items:center;gap:14px"><span style="font:600 20px Pretendard;color:#8b95a1">✕</span><span style="font:700 17px Pretendard;color:#191f28;letter-spacing:-.02em">New trade</span></div>
+<span style="font:500 13px Pretendard;color:#b0b8c1">Draft saved · 12:41</span>
+</div>
+
+<div style="padding:28px 32px 32px;display:flex;flex-direction:column;gap:16px">
+
+<div style="background:#fff;border-radius:24px;padding:28px 32px">
+<div style="display:flex;align-items:center;gap:10px"><span style="width:24px;height:24px;border-radius:99px;background:#191f28;color:#fff;font:700 12px Pretendard;display:flex;align-items:center;justify-content:center">1</span><span style="font:700 16px Pretendard;color:#191f28">Context</span></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px">
+<div><div style="font:600 13px Pretendard;color:#8b95a1;margin-bottom:8px">Instrument</div><div style="background:#f2f4f6;border-radius:14px;padding:14px 16px;font:600 15px Pretendard;color:#191f28">NQ</div></div>
+<div><div style="font:600 13px Pretendard;color:#8b95a1;margin-bottom:8px">Date</div><div style="background:#f2f4f6;border-radius:14px;padding:14px 16px;font:600 15px Pretendard;color:#191f28">2026. 09. 09</div></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
+<div><div style="font:600 13px Pretendard;color:#8b95a1;margin-bottom:8px">Session</div><div style="display:flex;gap:8px"><span style="flex:1;text-align:center;background:#f2f4f6;border-radius:12px;padding:12px 0;font:600 14px Pretendard;color:#8b95a1">Asia</span><span style="flex:1;text-align:center;background:#f2f4f6;border-radius:12px;padding:12px 0;font:600 14px Pretendard;color:#8b95a1">London</span><span style="flex:1;text-align:center;background:#e8f3ff;border-radius:12px;padding:12px 0;font:700 14px Pretendard;color:#3182f6">New York AM</span></div></div>
+<div><div style="font:600 13px Pretendard;color:#8b95a1;margin-bottom:8px">HTF bias</div><div style="display:flex;gap:8px"><span style="flex:1;text-align:center;background:#e8f3ff;border-radius:12px;padding:12px 0;font:700 14px Pretendard;color:#3182f6">Long</span><span style="flex:1;text-align:center;background:#f2f4f6;border-radius:12px;padding:12px 0;font:600 14px Pretendard;color:#8b95a1">Short</span></div></div>
+</div>
+</div>
+
+<div style="background:#fff;border-radius:24px;padding:28px 32px">
+<div style="display:flex;align-items:center;gap:10px"><span style="width:24px;height:24px;border-radius:99px;background:#191f28;color:#fff;font:700 12px Pretendard;display:flex;align-items:center;justify-content:center">2</span><span style="font:700 16px Pretendard;color:#191f28">Range &amp; sweep</span></div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px">
+<div><div style="font:600 13px Pretendard;color:#8b95a1;margin-bottom:8px">HTF pairing</div><div style="background:#f2f4f6;border-radius:14px;padding:14px 16px;font:600 15px Pretendard;color:#191f28;display:flex;justify-content:space-between">H4 → M15<span style="color:#b0b8c1">▾</span></div></div>
+<div><div style="font:600 13px Pretendard;color:#8b95a1;margin-bottom:8px">Range high</div><div style="background:#f2f4f6;border-radius:14px;padding:14px 16px;font:600 15px Pretendard;color:#191f28">23,486.25</div></div>
+<div><div style="font:600 13px Pretendard;color:#8b95a1;margin-bottom:8px">Range low</div><div style="background:#f2f4f6;border-radius:14px;padding:14px 16px;font:600 15px Pretendard;color:#191f28">23,402.75</div></div>
+</div>
+<div style="background:#f9fafb;border-radius:20px;padding:26px 28px 20px;margin-top:16px;display:grid;grid-template-columns:1fr 180px;gap:28px;align-items:center">
+<div>
+<div style="position:relative;height:64px;background:#eef1f4;border-radius:12px">
+<div style="position:absolute;left:0;right:0;top:0;height:2px;background:#d1d6db;border-radius:99px"></div>
+<div style="position:absolute;left:0;right:0;bottom:0;height:2px;background:#d1d6db;border-radius:99px"></div>
+<div style="position:absolute;left:0;right:0;top:50%;height:1px;background:#dde1e6"></div>
+<div style="position:absolute;left:16%;bottom:-6px;width:4px;height:22px;background:#3182f6;border-radius:99px"></div>
+<div style="position:absolute;left:12%;bottom:-32px;font:700 11px Pretendard;color:#3182f6">Sweep</div>
+<div style="position:absolute;right:6%;top:-6px;width:4px;height:22px;background:#f04452;border-radius:99px"></div>
+<div style="position:absolute;right:2%;top:-30px;font:700 11px Pretendard;color:#f04452">Target</div>
+</div>
+<div style="display:flex;justify-content:space-between;font:500 11.5px Pretendard;color:#b0b8c1;margin-top:16px"><span>Low 23,402.75</span><span>50% 23,444.50</span><span>High 23,486.25</span></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:14px;padding-left:24px;border-left:1px solid #eef1f4">
+<div><div style="font:600 12px Pretendard;color:#8b95a1">Range size</div><div style="font:800 22px Pretendard;color:#191f28;margin-top:2px">83.5 pt</div></div>
+<div><div style="font:600 12px Pretendard;color:#8b95a1">Sweep side</div><div style="font:800 18px Pretendard;color:#191f28;margin-top:2px">Low purged</div></div>
+</div>
+</div>
+</div>
+
+<div style="background:#fff;border-radius:24px;padding:28px 32px">
+<div style="display:flex;align-items:center;gap:10px"><span style="width:24px;height:24px;border-radius:99px;background:#191f28;color:#fff;font:700 12px Pretendard;display:flex;align-items:center;justify-content:center">3</span><span style="font:700 16px Pretendard;color:#191f28">Execution</span></div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:20px">
+<div><div style="font:600 13px Pretendard;color:#8b95a1;margin-bottom:8px">Entry</div><div style="background:#f2f4f6;border-radius:14px;padding:14px 16px;font:600 15px Pretendard;color:#191f28">23,411.00</div></div>
+<div><div style="font:600 13px Pretendard;color:#8b95a1;margin-bottom:8px">Stop</div><div style="background:#f2f4f6;border-radius:14px;padding:14px 16px;font:600 15px Pretendard;color:#191f28">23,396.50</div></div>
+<div><div style="font:600 13px Pretendard;color:#8b95a1;margin-bottom:8px">Target</div><div style="background:#f2f4f6;border-radius:14px;padding:14px 16px;font:600 15px Pretendard;color:#191f28">23,486.25</div></div>
+<div><div style="font:600 13px Pretendard;color:#8b95a1;margin-bottom:8px">Size</div><div style="background:#f2f4f6;border-radius:14px;padding:14px 16px;font:600 15px Pretendard;color:#191f28">3 contracts</div></div>
+</div>
+<div style="display:flex;align-items:center;justify-content:space-between;background:#e8f3ff;border-radius:16px;padding:16px 20px;margin-top:16px">
+<span style="font:600 14px Pretendard;color:#1b64da">Auto-calculated R:R</span>
+<span style="font:800 20px Pretendard;color:#1b64da">1 : 5.2R</span>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
+<div><div style="font:600 13px Pretendard;color:#8b95a1;margin-bottom:8px">Entry model</div><div style="background:#f2f4f6;border-radius:14px;padding:14px 16px;font:600 15px Pretendard;color:#191f28;display:flex;justify-content:space-between">C2 sweep → expansion<span style="color:#b0b8c1">▾</span></div></div>
+<div><div style="font:600 13px Pretendard;color:#8b95a1;margin-bottom:8px">Result</div><div style="display:flex;gap:8px"><span style="flex:1;text-align:center;background:#fdeced;border-radius:12px;padding:12px 0;font:700 14px Pretendard;color:#f04452">Win</span><span style="flex:1;text-align:center;background:#f2f4f6;border-radius:12px;padding:12px 0;font:600 14px Pretendard;color:#8b95a1">Loss</span><span style="flex:1;text-align:center;background:#f2f4f6;border-radius:12px;padding:12px 0;font:600 14px Pretendard;color:#8b95a1">Break-even</span></div></div>
+</div>
+</div>
+
+<div style="background:#fff;border-radius:24px;padding:28px 32px">
+<div style="display:flex;align-items:center;gap:10px"><span style="width:24px;height:24px;border-radius:99px;background:#191f28;color:#fff;font:700 12px Pretendard;display:flex;align-items:center;justify-content:center">4</span><span style="font:700 16px Pretendard;color:#191f28">Chart &amp; notes</span></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px">
+<div style="border:2px dashed #dde1e6;border-radius:20px;height:210px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:#fbfcfd">
+<div style="font:700 14px Pretendard;color:#4e5968">Drag chart screenshots here</div>
+<div style="font:500 12px Pretendard;color:#b0b8c1">Two shots recommended: HTF range + entry timeframe</div>
+<span style="margin-top:6px;background:#f2f4f6;border-radius:10px;padding:9px 14px;font:600 13px Pretendard;color:#333d4b">Choose file</span>
+</div>
+<div>
+<div style="background:#f2f4f6;border-radius:20px;height:210px;padding:18px 20px;font:500 14px/1.6 Pretendard;color:#8b95a1">Write down your reasoning and how you felt.<br><span style="color:#b0b8c1">e.g. Waited for M1 displacement after the London low purge. Took 2/3 off before target.</span></div>
+<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+<span style="background:#f2f4f6;border-radius:99px;padding:8px 14px;font:600 12.5px Pretendard;color:#4e5968">On plan</span>
+<span style="background:#f2f4f6;border-radius:99px;padding:8px 14px;font:600 12.5px Pretendard;color:#4e5968">Impatient</span>
+<span style="background:#f2f4f6;border-radius:99px;padding:8px 14px;font:600 12.5px Pretendard;color:#4e5968">Chased entry</span>
+<span style="background:#f2f4f6;border-radius:99px;padding:8px 14px;font:600 12.5px Pretendard;color:#4e5968">Early exit</span>
+</div>
+</div>
+</div>
+</div>
+
+<div style="display:flex;gap:12px">
+<span style="flex:1;text-align:center;background:#f2f4f6;border-radius:16px;padding:17px 0;font:700 16px Pretendard;color:#4e5968">Save draft</span>
+<span style="flex:2;text-align:center;background:#3182f6;border-radius:16px;padding:17px 0;font:700 16px Pretendard;color:#fff">Log trade</span>
+</div>
+
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="1c"><div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Calendar · daily P&amp;L heatmap</div>
+<div class="dv-card" style="width:900px">
+<div style="background:#fff;padding:20px 28px;display:flex;align-items:center;justify-content:space-between">
+<div style="display:flex;align-items:center;gap:16px"><span style="font:600 18px Pretendard;color:#b0b8c1">‹</span><span style="font:700 18px Pretendard;color:#191f28;letter-spacing:-.02em">September 2026</span><span style="font:600 18px Pretendard;color:#b0b8c1">›</span></div>
+<div style="display:flex;gap:8px"><span style="background:#f2f4f6;border-radius:10px;padding:8px 14px;font:600 13px Pretendard;color:#8b95a1">Week</span><span style="background:#191f28;border-radius:10px;padding:8px 14px;font:700 13px Pretendard;color:#fff">Month</span></div>
+</div>
+<div style="padding:24px 28px 28px;display:flex;flex-direction:column;gap:16px">
+<div style="background:#fff;border-radius:24px;padding:26px 28px">
+<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;font:600 12px Pretendard;color:#b0b8c1;text-align:center;margin-bottom:10px"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px">
+<div style="background:#fafbfc;border-radius:14px;height:78px"></div>
+<div style="background:#fafbfc;border-radius:14px;height:78px"></div>
+<div style="background:#fdeced;border-radius:14px;height:78px;padding:10px 12px"><div style="font:600 11.5px Pretendard;color:#b0b8c1">1</div><div style="font:800 16px Pretendard;color:#f04452;margin-top:6px">+1.8R</div><div style="font:500 11px Pretendard;color:#c4a0a3">2 trades</div></div>
+<div style="background:#fafbfc;border-radius:14px;height:78px;padding:10px 12px"><div style="font:600 11.5px Pretendard;color:#b0b8c1">2</div></div>
+<div style="background:#fbd5d8;border-radius:14px;height:78px;padding:10px 12px"><div style="font:600 11.5px Pretendard;color:#b0b8c1">3</div><div style="font:800 16px Pretendard;color:#e03e4c;margin-top:6px">+4.2R</div><div style="font:500 11px Pretendard;color:#b48c90">3 trades</div></div>
+<div style="background:#e8f3ff;border-radius:14px;height:78px;padding:10px 12px"><div style="font:600 11.5px Pretendard;color:#b0b8c1">4</div><div style="font:800 16px Pretendard;color:#3182f6;margin-top:6px">−0.9R</div><div style="font:500 11px Pretendard;color:#9db6d6">1 trade</div></div>
+<div style="background:#fafbfc;border-radius:14px;height:78px;padding:10px 12px"><div style="font:600 11.5px Pretendard;color:#b0b8c1">5</div></div>
+
+<div style="background:#fafbfc;border-radius:14px;height:78px;padding:10px 12px"><div style="font:600 11.5px Pretendard;color:#b0b8c1">6</div></div>
+<div style="background:#fdeced;border-radius:14px;height:78px;padding:10px 12px"><div style="font:600 11.5px Pretendard;color:#b0b8c1">7</div><div style="font:800 16px Pretendard;color:#f04452;margin-top:6px">+1.1R</div><div style="font:500 11px Pretendard;color:#c4a0a3">2 trades</div></div>
+<div style="background:#e8f3ff;border-radius:14px;height:78px;padding:10px 12px"><div style="font:600 11.5px Pretendard;color:#b0b8c1">8</div><div style="font:800 16px Pretendard;color:#3182f6;margin-top:6px">−2.0R</div><div style="font:500 11px Pretendard;color:#9db6d6">3 trades</div></div>
+<div style="background:#f7c5c9;border-radius:14px;height:78px;padding:10px 12px;outline:2px solid #191f28;outline-offset:0"><div style="font:700 11.5px Pretendard;color:#191f28">9</div><div style="font:800 16px Pretendard;color:#d63a48;margin-top:6px">+5.4R</div><div style="font:500 11px Pretendard;color:#a8838a">4 trades</div></div>
+<div style="background:#fafbfc;border-radius:14px;height:78px;padding:10px 12px"><div style="font:600 11.5px Pretendard;color:#d1d6db">10</div></div>
+<div style="background:#fafbfc;border-radius:14px;height:78px;padding:10px 12px"><div style="font:600 11.5px Pretendard;color:#d1d6db">11</div></div>
+<div style="background:#fafbfc;border-radius:14px;height:78px;padding:10px 12px"><div style="font:600 11.5px Pretendard;color:#d1d6db">12</div></div>
+
+<div style="background:#fafbfc;border-radius:14px;height:78px;padding:10px 12px"><div style="font:600 11.5px Pretendard;color:#d1d6db">13</div></div>
+<div style="background:#fafbfc;border-radius:14px;height:78px;padding:10px 12px"><div style="font:600 11.5px Pretendard;color:#d1d6db">14</div></div>
+<div style="background:#fafbfc;border-radius:14px;height:78px;padding:10px 12px"><div style="font:600 11.5px Pretendard;color:#d1d6db">15</div></div>
+<div style="background:#fafbfc;border-radius:14px;height:78px;padding:10px 12px"><div style="font:600 11.5px Pretendard;color:#d1d6db">16</div></div>
+<div style="background:#fafbfc;border-radius:14px;height:78px;padding:10px 12px"><div style="font:600 11.5px Pretendard;color:#d1d6db">17</div></div>
+<div style="background:#fafbfc;border-radius:14px;height:78px;padding:10px 12px"><div style="font:600 11.5px Pretendard;color:#d1d6db">18</div></div>
+<div style="background:#fafbfc;border-radius:14px;height:78px;padding:10px 12px"><div style="font:600 11.5px Pretendard;color:#d1d6db">19</div></div>
+</div>
+<div style="display:flex;align-items:center;gap:10px;margin-top:18px">
+<span style="font:500 11.5px Pretendard;color:#b0b8c1">Loss</span>
+<span style="width:26px;height:12px;border-radius:99px;background:#3182f6"></span>
+<span style="width:26px;height:12px;border-radius:99px;background:#e8f3ff"></span>
+<span style="width:26px;height:12px;border-radius:99px;background:#f2f4f6"></span>
+<span style="width:26px;height:12px;border-radius:99px;background:#fdeced"></span>
+<span style="width:26px;height:12px;border-radius:99px;background:#f04452"></span>
+<span style="font:500 11.5px Pretendard;color:#b0b8c1">Gain</span>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+<div style="background:#fff;border-radius:20px;padding:22px 24px"><div style="font:600 13px Pretendard;color:#8b95a1">Trading days</div><div style="font:800 26px Pretendard;color:#191f28;margin-top:6px">18</div></div>
+<div style="background:#fff;border-radius:20px;padding:22px 24px"><div style="font:600 13px Pretendard;color:#8b95a1">Green days</div><div style="font:800 26px Pretendard;color:#f04452;margin-top:6px">11</div></div>
+<div style="background:#fff;border-radius:20px;padding:22px 24px"><div style="font:600 13px Pretendard;color:#8b95a1">Best day</div><div style="font:800 26px Pretendard;color:#191f28;margin-top:6px">+5.4R</div></div>
+<div style="background:#fff;border-radius:20px;padding:22px 24px"><div style="font:600 13px Pretendard;color:#8b95a1">Worst day</div><div style="font:800 26px Pretendard;color:#191f28;margin-top:6px">−2.0R</div></div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="1d"><div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>모바일 · 홈 / 빠른 기록 / 캘린더</div>
+<div style="display:flex;gap:24px">
+
+<div style="width:375px;background:#fff;border-radius:44px;padding:12px;box-shadow:0 6px 24px rgba(0,0,0,.12)">
+<div style="background:#f4f5f7;border-radius:34px;overflow:hidden;height:760px">
+<div style="display:flex;justify-content:space-between;padding:14px 24px 6px;font:600 12px Pretendard;color:#191f28"><span>9:41</span><span>●●● ▮</span></div>
+<div style="padding:12px 20px 20px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:center;justify-content:space-between"><span style="font:800 20px Pretendard;color:#191f28;letter-spacing:-.03em">9월 기록</span><span style="width:34px;height:34px;border-radius:99px;background:#e5e8eb"></span></div>
+<div style="background:#fff;border-radius:22px;padding:24px">
+<div style="font:600 13px Pretendard;color:#8b95a1">이번 달 누적</div>
+<div style="font:800 44px/1.1 Pretendard;color:#f04452;letter-spacing:-.04em;margin-top:4px">+18.4R</div>
+<div style="display:flex;gap:6px;margin-top:14px"><span style="font:600 12px Pretendard;color:#4e5968;background:#f2f4f6;padding:6px 10px;border-radius:8px">61건</span><span style="font:600 12px Pretendard;color:#4e5968;background:#f2f4f6;padding:6px 10px;border-radius:8px">승률 54%</span></div>
+<svg viewBox="0 0 300 70" style="width:100%;height:70px;margin-top:18px;display:block" preserveAspectRatio="none"><polyline points="0,60 30,54 60,57 90,44 120,48 150,36 180,40 210,26 240,31 270,16 300,8" fill="none" stroke="#f04452" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline></svg>
+</div>
+<div style="background:#fff;border-radius:22px;padding:20px 22px">
+<div style="font:700 15px Pretendard;color:#191f28">잘 되는 모델</div>
+<div style="display:flex;flex-direction:column;gap:14px;margin-top:14px">
+<div><div style="display:flex;justify-content:space-between;font:600 13.5px Pretendard;color:#333d4b"><span>C2 스윕 → 익스팬션</span><span style="color:#f04452">+11.2R</span></div><div style="height:7px;background:#f2f4f6;border-radius:99px;margin-top:7px"><div style="width:78%;height:100%;background:#f04452;border-radius:99px"></div></div></div>
+<div><div style="display:flex;justify-content:space-between;font:600 13.5px Pretendard;color:#333d4b"><span>C3 연속</span><span style="color:#f04452">+6.8R</span></div><div style="height:7px;background:#f2f4f6;border-radius:99px;margin-top:7px"><div style="width:52%;height:100%;background:#f04452;border-radius:99px"></div></div></div>
+<div><div style="display:flex;justify-content:space-between;font:600 13.5px Pretendard;color:#333d4b"><span>레인지 중단 진입</span><span style="color:#3182f6">−2.7R</span></div><div style="height:7px;background:#f2f4f6;border-radius:99px;margin-top:7px"><div style="width:22%;height:100%;background:#3182f6;border-radius:99px"></div></div></div>
+</div>
+</div>
+<div style="background:#fff;border-radius:22px;padding:20px 22px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 15px Pretendard;color:#191f28">오늘</span><span style="font:600 12.5px Pretendard;color:#3182f6">전체보기</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0 0"><div><div style="font:700 14.5px Pretendard;color:#191f28">NQ · 롱</div><div style="font:500 12px Pretendard;color:#8b95a1;margin-top:2px">C2 익스팬션 · 뉴욕 오전</div></div><span style="font:800 17px Pretendard;color:#f04452">+2.8R</span></div>
+</div>
+<div style="background:#3182f6;border-radius:18px;padding:16px 0;text-align:center;font:700 16px Pretendard;color:#fff">기록하기</div>
+</div>
+</div>
+</div>
+
+<div style="width:375px;background:#fff;border-radius:44px;padding:12px;box-shadow:0 6px 24px rgba(0,0,0,.12)">
+<div style="background:#fff;border-radius:34px;overflow:hidden;height:760px">
+<div style="display:flex;justify-content:space-between;padding:14px 24px 6px;font:600 12px Pretendard;color:#191f28"><span>9:41</span><span>●●● ▮</span></div>
+<div style="padding:12px 20px 20px;height:calc(100% - 32px);box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;align-items:center;justify-content:space-between"><span style="font:600 18px Pretendard;color:#8b95a1">✕</span><span style="font:600 13px Pretendard;color:#b0b8c1">2 / 4</span></div>
+<div style="height:4px;background:#f2f4f6;border-radius:99px"><div style="width:50%;height:100%;background:#3182f6;border-radius:99px"></div></div>
+<div>
+<div style="font:800 24px/1.35 Pretendard;color:#191f28;letter-spacing:-.03em">레인지의 어느 쪽을<br>먼저 쓸었나요?</div>
+<div style="font:500 13.5px Pretendard;color:#8b95a1;margin-top:8px">H4 레인지 23,402.75 — 23,486.25</div>
+</div>
+<div style="position:relative;height:88px;background:#f4f5f7;border-radius:16px;margin-top:4px">
+<div style="position:absolute;left:0;right:0;top:0;height:2px;background:#dde1e6"></div>
+<div style="position:absolute;left:0;right:0;bottom:0;height:2px;background:#dde1e6"></div>
+<div style="position:absolute;left:18%;bottom:-8px;width:4px;height:26px;background:#3182f6;border-radius:99px"></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
+<div style="background:#e8f3ff;border:2px solid #3182f6;border-radius:16px;padding:18px 20px;display:flex;justify-content:space-between;align-items:center"><span style="font:700 15.5px Pretendard;color:#1b64da">저점 퍼지 · 롱 방향</span><span style="font:700 15px Pretendard;color:#3182f6">✓</span></div>
+<div style="background:#f4f5f7;border:2px solid transparent;border-radius:16px;padding:18px 20px;font:600 15.5px Pretendard;color:#4e5968">고점 퍼지 · 숏 방향</div>
+<div style="background:#f4f5f7;border:2px solid transparent;border-radius:16px;padding:18px 20px;font:600 15.5px Pretendard;color:#4e5968">양방향 퍼지</div>
+<div style="background:#f4f5f7;border:2px solid transparent;border-radius:16px;padding:18px 20px;font:600 15.5px Pretendard;color:#4e5968">스윕 없음 (규칙 외)</div>
+</div>
+<div style="flex:1"></div>
+<div style="display:flex;gap:10px">
+<span style="flex:1;text-align:center;background:#f2f4f6;border-radius:16px;padding:17px 0;font:700 16px Pretendard;color:#4e5968">이전</span>
+<span style="flex:2;text-align:center;background:#3182f6;border-radius:16px;padding:17px 0;font:700 16px Pretendard;color:#fff">다음</span>
+</div>
+</div>
+</div>
+</div>
+
+<div style="width:375px;background:#fff;border-radius:44px;padding:12px;box-shadow:0 6px 24px rgba(0,0,0,.12)">
+<div style="background:#f4f5f7;border-radius:34px;overflow:hidden;height:760px">
+<div style="display:flex;justify-content:space-between;padding:14px 24px 6px;font:600 12px Pretendard;color:#191f28"><span>9:41</span><span>●●● ▮</span></div>
+<div style="padding:12px 20px 20px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:center;justify-content:space-between"><span style="font:800 20px Pretendard;color:#191f28;letter-spacing:-.03em">2026년 9월</span><span style="font:600 13px Pretendard;color:#3182f6">주간</span></div>
+<div style="background:#fff;border-radius:22px;padding:20px 18px">
+<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;font:600 11px Pretendard;color:#b0b8c1;text-align:center;margin-bottom:8px"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
+<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center">
+<div style="height:42px;border-radius:12px;background:#fafbfc"></div>
+<div style="height:42px;border-radius:12px;background:#fafbfc"></div>
+<div style="height:42px;border-radius:12px;background:#fdeced;display:flex;flex-direction:column;justify-content:center"><span style="font:700 11px Pretendard;color:#f04452">+1.8</span></div>
+<div style="height:42px;border-radius:12px;background:#fafbfc"></div>
+<div style="height:42px;border-radius:12px;background:#fbd5d8;display:flex;flex-direction:column;justify-content:center"><span style="font:700 11px Pretendard;color:#e03e4c">+4.2</span></div>
+<div style="height:42px;border-radius:12px;background:#e8f3ff;display:flex;flex-direction:column;justify-content:center"><span style="font:700 11px Pretendard;color:#3182f6">−0.9</span></div>
+<div style="height:42px;border-radius:12px;background:#fafbfc"></div>
+<div style="height:42px;border-radius:12px;background:#fafbfc"></div>
+<div style="height:42px;border-radius:12px;background:#fdeced;display:flex;flex-direction:column;justify-content:center"><span style="font:700 11px Pretendard;color:#f04452">+1.1</span></div>
+<div style="height:42px;border-radius:12px;background:#e8f3ff;display:flex;flex-direction:column;justify-content:center"><span style="font:700 11px Pretendard;color:#3182f6">−2.0</span></div>
+<div style="height:42px;border-radius:12px;background:#f7c5c9;outline:2px solid #191f28;display:flex;flex-direction:column;justify-content:center"><span style="font:700 11px Pretendard;color:#d63a48">+5.4</span></div>
+<div style="height:42px;border-radius:12px;background:#fafbfc"></div>
+<div style="height:42px;border-radius:12px;background:#fafbfc"></div>
+<div style="height:42px;border-radius:12px;background:#fafbfc"></div>
+<div style="height:42px;border-radius:12px;background:#fafbfc"></div>
+<div style="height:42px;border-radius:12px;background:#fafbfc"></div>
+<div style="height:42px;border-radius:12px;background:#fafbfc"></div>
+<div style="height:42px;border-radius:12px;background:#fafbfc"></div>
+<div style="height:42px;border-radius:12px;background:#fafbfc"></div>
+<div style="height:42px;border-radius:12px;background:#fafbfc"></div>
+<div style="height:42px;border-radius:12px;background:#fafbfc"></div>
+</div>
+</div>
+<div style="background:#fff;border-radius:22px;padding:20px 22px">
+<div style="font:700 15px Pretendard;color:#191f28">9월 9일 · 4건 · <span style="color:#f04452">+5.4R</span></div>
+<div style="display:flex;flex-direction:column;gap:12px;margin-top:14px">
+<div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font:700 14px Pretendard;color:#191f28">NQ · 롱</div><div style="font:500 12px Pretendard;color:#8b95a1;margin-top:2px">C2 익스팬션</div></div><span style="font:800 16px Pretendard;color:#f04452">+2.8R</span></div>
+<div style="height:1px;background:#f2f4f6"></div>
+<div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font:700 14px Pretendard;color:#191f28">EURUSD · 롱</div><div style="font:500 12px Pretendard;color:#8b95a1;margin-top:2px">C2 익스팬션</div></div><span style="font:800 16px Pretendard;color:#f04452">+3.6R</span></div>
+<div style="height:1px;background:#f2f4f6"></div>
+<div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font:700 14px Pretendard;color:#191f28">ES · 숏</div><div style="font:500 12px Pretendard;color:#8b95a1;margin-top:2px">C3 연속</div></div><span style="font:800 16px Pretendard;color:#3182f6">−1.0R</span></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<p class="dv-next">Try next: "dark mode for <a class="dv-oid" href="#1a">1a</a>" · "compress <a class="dv-oid" href="#1b">1b</a> into one screen" · "add a trade detail screen" · "three more visual directions"</p>
+</section>
+
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,178 @@
+@import "tailwindcss";
+@import "pretendard/dist/web/variable/pretendardvariable.css";
+
+/*
+ * Design tokens — source: docs/README.md § "Design Tokens".
+ * Single flat light theme; the app has no dark mode in the handoff.
+ * P&L color is the one runtime-swappable pair: --pnl-gain / --pnl-loss
+ * are re-pointed by [data-pnl="west"] on <html> (see settings.pnl_convention).
+ */
+:root {
+  /* Surfaces */
+  --color-page: #f4f5f7;
+  --color-surface: #ffffff;
+  --color-surface-subtle: #f9fafb;
+  --color-surface-faint: #fafbfc;
+
+  /* Text / ink */
+  --color-ink: #191f28;
+  --color-body: #333d4b;
+  --color-secondary: #4e5968;
+  --color-muted: #8b95a1;
+  --color-faint: #b0b8c1;
+  --color-disabled: #d1d6db;
+
+  /* Lines / panels */
+  --color-divider: #f2f4f6;
+  --color-border: #dde1e6;
+  --color-panel: #eef1f4;
+
+  /* Accent — buttons and selection state ONLY, never P&L */
+  --color-accent: #3182f6;
+  --color-accent-pressed: #1b64da;
+  --color-accent-tint: #e8f3ff;
+
+  /* P&L palette, Korean convention (red up / blue down) */
+  --pnl-gain-kr: #f04452;
+  --pnl-gain-kr-tint-1: #fdeced;
+  --pnl-gain-kr-tint-2: #fbd5d8;
+  --pnl-gain-kr-tint-3: #f7c5c9;
+  --pnl-gain-kr-deep-1: #e03e4c;
+  --pnl-gain-kr-deep-2: #d63a48;
+  --pnl-loss-kr: #3182f6;
+  --pnl-loss-kr-tint: #e8f3ff;
+
+  /* P&L palette, Western convention (green up / red down) — hex values are
+     not specified in docs/README.md (it only asks for the convention to be
+     swappable); chosen to sit in the same saturation/lightness family as the
+     rest of the palette. See docs/decisions.md. */
+  --pnl-gain-west: #22c55e;
+  --pnl-gain-west-tint-1: #dcfce7;
+  --pnl-gain-west-tint-2: #bbf7d0;
+  --pnl-gain-west-tint-3: #86efac;
+  --pnl-gain-west-deep-1: #16a34a;
+  --pnl-gain-west-deep-2: #15803d;
+  --pnl-loss-west: #f04452;
+  --pnl-loss-west-tint: #fdeced;
+
+  /* Active P&L pair (default: kr) */
+  --pnl-gain: var(--pnl-gain-kr);
+  --pnl-gain-tint-1: var(--pnl-gain-kr-tint-1);
+  --pnl-gain-tint-2: var(--pnl-gain-kr-tint-2);
+  --pnl-gain-tint-3: var(--pnl-gain-kr-tint-3);
+  --pnl-gain-deep-1: var(--pnl-gain-kr-deep-1);
+  --pnl-gain-deep-2: var(--pnl-gain-kr-deep-2);
+  --pnl-loss: var(--pnl-loss-kr);
+  --pnl-loss-tint: var(--pnl-loss-kr-tint);
+
+  /* Elevation — the design is nearly flat; only sheets/modals get a shadow */
+  --shadow-sheet: 0 6px 24px rgba(0, 0, 0, 0.12);
+  --shadow-canvas-ref: 0 2px 12px rgba(0, 0, 0, 0.06);
+
+  /* Motion */
+  --ease-out-fast: 150ms ease-out;
+  --ease-out-slow: 200ms ease-out;
+}
+
+/* Western P&L convention: settings.pnl_convention = 'west' */
+:root[data-pnl="west"] {
+  --pnl-gain: var(--pnl-gain-west);
+  --pnl-gain-tint-1: var(--pnl-gain-west-tint-1);
+  --pnl-gain-tint-2: var(--pnl-gain-west-tint-2);
+  --pnl-gain-tint-3: var(--pnl-gain-west-tint-3);
+  --pnl-gain-deep-1: var(--pnl-gain-west-deep-1);
+  --pnl-gain-deep-2: var(--pnl-gain-west-deep-2);
+  --pnl-loss: var(--pnl-loss-west);
+  --pnl-loss-tint: var(--pnl-loss-west-tint);
+}
+
+@theme inline {
+  /* Map tokens into Tailwind's color namespace -> bg-page, text-ink, etc. */
+  --color-page: var(--color-page);
+  --color-surface: var(--color-surface);
+  --color-surface-subtle: var(--color-surface-subtle);
+  --color-surface-faint: var(--color-surface-faint);
+  --color-ink: var(--color-ink);
+  --color-body: var(--color-body);
+  --color-secondary: var(--color-secondary);
+  --color-muted: var(--color-muted);
+  --color-faint: var(--color-faint);
+  --color-disabled: var(--color-disabled);
+  --color-divider: var(--color-divider);
+  --color-border: var(--color-border);
+  --color-panel: var(--color-panel);
+  --color-accent: var(--color-accent);
+  --color-accent-pressed: var(--color-accent-pressed);
+  --color-accent-tint: var(--color-accent-tint);
+  --color-gain: var(--pnl-gain);
+  --color-gain-tint-1: var(--pnl-gain-tint-1);
+  --color-gain-tint-2: var(--pnl-gain-tint-2);
+  --color-gain-tint-3: var(--pnl-gain-tint-3);
+  --color-gain-deep-1: var(--pnl-gain-deep-1);
+  --color-gain-deep-2: var(--pnl-gain-deep-2);
+  --color-loss: var(--pnl-loss);
+  --color-loss-tint: var(--pnl-loss-tint);
+
+  /* Font */
+  --font-sans: "Pretendard Variable", -apple-system, system-ui, sans-serif;
+
+  /* Type scale — docs/README.md § Design Tokens > Typography.
+     Named by px size; decimals use an underscore (Tailwind reads the
+     literal key, e.g. text-11_5 -> --text-11_5). Line-height is applied
+     per-usage with leading-* utilities, not baked in here, since the same
+     size is used at both display (1.1) and body (1.6) line-heights. */
+  --text-11: 11px;
+  --text-11_5: 11.5px;
+  --text-12: 12px;
+  --text-12_5: 12.5px;
+  --text-13: 13px;
+  --text-13_5: 13.5px;
+  --text-14: 14px;
+  --text-14_5: 14.5px;
+  --text-15: 15px;
+  --text-15_5: 15.5px;
+  --text-16: 16px;
+  --text-17: 17px;
+  --text-18: 18px;
+  --text-20: 20px;
+  --text-22: 22px;
+  --text-24: 24px;
+  --text-26: 26px;
+  --text-30: 30px;
+  --text-44: 44px;
+  --text-56: 56px;
+
+  /* Radius — docs/README.md § Design Tokens > Radius (px-named; "pill" for
+     999px pills/bars). The 34-44px phone-bezel radii are presentation-only
+     in the design canvas and are not part of the app. */
+  --radius-8: 8px;
+  --radius-10: 10px;
+  --radius-12: 12px;
+  --radius-14: 14px;
+  --radius-16: 16px;
+  --radius-18: 18px;
+  --radius-20: 20px;
+  --radius-22: 22px;
+  --radius-24: 24px;
+  --radius-pill: 999px;
+
+  /* Shadow */
+  --shadow-sheet: var(--shadow-sheet);
+  --shadow-canvas-ref: var(--shadow-canvas-ref);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+body {
+  background: var(--color-page);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
