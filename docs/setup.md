@@ -49,3 +49,13 @@ pnpm dev
 
 ## Deploying
 Deploy to Vercel; add the same three env vars (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) in the Vercel project settings.
+
+## Optional: local Supabase stack (no cloud project needed)
+For offline schema work, `supabase start` runs the full stack (Postgres, Auth, Storage, Studio) in Docker and applies every migration in `supabase/migrations/` automatically:
+
+```bash
+pnpm exec supabase start   # prints local API URL + anon/service keys
+pnpm exec supabase stop    # when done
+```
+
+Point `.env.local` at the printed local `API_URL` / anon key instead of the cloud project to develop against it. This was used once during Phase 1 to confirm all four migrations apply cleanly (schema, RLS, auth trigger, storage bucket) before handing them off — it's not required for normal development against the cloud project.
