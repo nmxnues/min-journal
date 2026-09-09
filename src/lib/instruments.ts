@@ -42,3 +42,26 @@ export const INSTRUMENT_PRESETS: readonly string[] = [
 ];
 
 export const DEFAULT_INSTRUMENT = "EURUSD";
+
+/**
+ * Every instrument in this app is an FX pair (docs/decisions.md § Phase 4
+ * formatPrice fix) — metals and indices are explicitly out of scope, so there
+ * is no third "unknown instrument" bucket to design for. Standard pairs quote
+ * to 5 decimals (4 whole + 1 fractional pip); JPY-quoted pairs quote to 3 (2
+ * whole + 1 fractional pip) because JPY sits ~2 orders of magnitude off the
+ * other majors. Free-typed pairs outside the 28 presets still follow this
+ * rule correctly as long as they end in "JPY".
+ */
+export function isJpyPair(instrument: string): boolean {
+  return instrument.trim().toUpperCase().endsWith("JPY");
+}
+
+/** Decimal places for an absolute price in this instrument. */
+export function priceDecimals(instrument: string): number {
+  return isJpyPair(instrument) ? 3 : 5;
+}
+
+/** Size of one pip in this instrument's price units. */
+export function pipSize(instrument: string): number {
+  return isJpyPair(instrument) ? 0.01 : 0.0001;
+}

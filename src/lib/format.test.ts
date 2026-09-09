@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatCurrency, formatPrice, formatR, formatTime, hasValue, parseNumberInput } from "./format";
+import { formatCurrency, formatPips, formatPrice, formatR, formatTime, hasValue, parseNumberInput } from "./format";
 
 describe("parseNumberInput", () => {
   it("accepts thousands separators and broker paste noise", () => {
@@ -44,9 +44,35 @@ describe("formatR", () => {
   });
 });
 
-describe("formatPrice / formatCurrency", () => {
+describe("formatPrice", () => {
+  it("uses 5 decimals for standard FX pairs", () => {
+    expect(formatPrice(1.265, "EURUSD")).toBe("1.26500");
+    expect(formatPrice(1.265, "eurusd")).toBe("1.26500");
+  });
+
+  it("uses 3 decimals for JPY pairs", () => {
+    expect(formatPrice(156.325, "USDJPY")).toBe("156.325");
+    expect(formatPrice(156.325, "EURJPY")).toBe("156.325");
+  });
+
   it("groups thousands", () => {
-    expect(formatPrice(23_411)).toBe("23,411.00");
+    expect(formatPrice(23_411, "EURUSD")).toBe("23,411.00000");
+  });
+});
+
+describe("formatPips", () => {
+  it("converts a standard FX pair's price difference to pips", () => {
+    expect(formatPips(0.005, "EURUSD")).toBe("50.0");
+    expect(formatPips(0.00005, "GBPUSD")).toBe("0.5");
+  });
+
+  it("converts a JPY pair's price difference to pips", () => {
+    expect(formatPips(0.05, "USDJPY")).toBe("5.0");
+  });
+});
+
+describe("formatCurrency", () => {
+  it("groups thousands", () => {
     expect(formatCurrency(32_180)).toBe("$32,180");
   });
 });

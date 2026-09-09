@@ -7,6 +7,8 @@
  * keystroke (which would fight the user mid-typing, e.g. eating a trailing ".").
  */
 
+import { pipSize, priceDecimals } from "./instruments";
+
 /**
  * Parse a typed/pasted number. Strips anything that isn't a digit, a dot, or a
  * leading minus, so "23,411.00", "$23 411.00" and "23411.00 " all land on the
@@ -39,12 +41,30 @@ export function formatR(value: number, precision = 1): string {
   return `${sign}${rounded}R`;
 }
 
-/** Plain price/level formatting with thousands separators, e.g. "23,411.00". */
-export function formatPrice(value: number): string {
+/**
+ * Absolute price formatting, e.g. "1.26500" or "156.325". Decimal precision
+ * depends on the instrument (docs/decisions.md § formatPrice fix) — this app
+ * is FX-only, so every instrument is either a JPY pair (3 decimals) or a
+ * standard pair (5 decimals). This is display-only: the domain layer keeps
+ * full float precision and never rounds.
+ */
+export function formatPrice(value: number, instrument: string): string {
+  const decimals = priceDecimals(instrument);
   return new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
   }).format(value);
+}
+
+/**
+ * A price *difference* (e.g. range size) in pips, formatted as "5.0". Reads
+ * far more clearly than the raw decimal difference (0.0050) for FX pairs,
+ * where the value itself carries no information at that many leading zeros.
+ * Callers attach the locale-specific "pips"/"핍" label themselves, the same
+ * way every other label in this app goes through useT.
+ */
+export function formatPips(value: number, instrument: string): string {
+  return (value / pipSize(instrument)).toFixed(1);
 }
 
 export function formatCurrency(value: number, currency = "USD"): string {

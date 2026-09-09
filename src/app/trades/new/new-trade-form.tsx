@@ -21,7 +21,7 @@ import {
 } from "@/components/ui";
 import { RangeDiagram } from "@/components/range-diagram";
 import { cn } from "@/lib/cn";
-import { formatCurrency, formatPrice, formatR, formatTime, parseNumberInput } from "@/lib/format";
+import { formatCurrency, formatPips, formatPrice, formatR, formatTime, parseNumberInput } from "@/lib/format";
 import { MAX_ATTACHMENTS_PER_TRADE } from "@/lib/attachments";
 import { INSTRUMENT_PRESETS } from "@/lib/instruments";
 import {
@@ -251,9 +251,9 @@ export function NewTradeForm({
   const priceCaptions =
     derived.rangeHigh !== null && derived.rangeLow !== null && derived.size !== null
       ? {
-          low: `${t({ en: "Low", ko: "저점" })} ${formatPrice(derived.rangeLow)}`,
-          mid: `50% ${formatPrice(derived.rangeLow + derived.size / 2)}`,
-          high: `${t({ en: "High", ko: "고점" })} ${formatPrice(derived.rangeHigh)}`,
+          low: `${t({ en: "Low", ko: "저점" })} ${formatPrice(derived.rangeLow, values.instrument)}`,
+          mid: `50% ${formatPrice(derived.rangeLow + derived.size / 2, values.instrument)}`,
+          high: `${t({ en: "High", ko: "고점" })} ${formatPrice(derived.rangeHigh, values.instrument)}`,
         }
       : undefined;
 
@@ -400,7 +400,12 @@ export function NewTradeForm({
                   {t({ en: "Range size", ko: "레인지 크기" })}
                 </div>
                 <div className="mt-4 text-22 font-extrabold tracking-[-.03em] text-ink">
-                  {derived.size === null ? "—" : formatPrice(derived.size)}
+                  {derived.size === null
+                    ? "—"
+                    : t({
+                        en: `${formatPips(derived.size, values.instrument)} pips`,
+                        ko: `${formatPips(derived.size, values.instrument)}핍`,
+                      })}
                 </div>
               </div>
               <div>
