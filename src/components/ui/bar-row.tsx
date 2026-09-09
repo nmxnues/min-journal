@@ -2,10 +2,16 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 /**
- * The progress row used by "Performance by model", the session win-rate bars,
- * and weekly tag frequency: a 7-8px #f2f4f6 track at radius 99 with a coloured
- * fill sized to the row's share, a name/value line above, and an optional
- * 500 11.5px #b0b8c1 caption below.
+ * The progress row used by "Performance by model", session/sweep win-rate
+ * bars, and weekly tag frequency. Two distinct specs read from the canvas,
+ * not one shared guess:
+ *
+ * - 8px track (model rows, win-rate bars): label 600 14px, bar margin-top 8px.
+ * - 7px track (weekly tag frequency): label 600 13.5px, bar margin-top 7px.
+ *
+ * A caption line below the bar (only the model rows have one) sits at
+ * margin-top 6px, not 8 — confirmed from the canvas markup, which sets the
+ * bar's own margin-top equal to its height but the caption's separately.
  */
 const fillTones = {
   gain: "bg-gain",
@@ -16,6 +22,11 @@ const fillTones = {
   weak: "bg-disabled",
 } as const;
 
+const heightVariants = {
+  8: { track: "h-8", barMarginTop: "mt-8", label: "text-14" },
+  7: { track: "h-7", barMarginTop: "mt-7", label: "text-13_5" },
+} as const;
+
 export interface BarRowProps {
   label: ReactNode;
   value?: ReactNode;
@@ -23,7 +34,7 @@ export interface BarRowProps {
   share: number;
   tone?: keyof typeof fillTones;
   caption?: ReactNode;
-  /** Track height: 8px on the dashboard, 7px for tag frequency. */
+  /** Track height: 8px (model rows, win-rate bars) or 7px (tag frequency). */
   height?: 7 | 8;
   className?: string;
 }
@@ -38,20 +49,24 @@ export function BarRow({
   className,
 }: BarRowProps) {
   const width = `${Math.max(0, Math.min(1, share)) * 100}%`;
+  const variant = heightVariants[height];
 
   return (
     <div className={className}>
-      <div className="flex items-baseline justify-between gap-12 text-14 font-semibold text-body">
+      <div
+        className={cn(
+          "flex items-baseline justify-between gap-12 font-semibold text-body",
+          variant.label,
+        )}
+      >
         <span className="truncate">{label}</span>
         {value !== undefined && <span className="shrink-0">{value}</span>}
       </div>
-      <div
-        className={cn("mt-8 overflow-hidden rounded-pill bg-divider", height === 7 ? "h-7" : "h-8")}
-      >
+      <div className={cn("overflow-hidden rounded-pill bg-divider", variant.track, variant.barMarginTop)}>
         <div className={cn("h-full rounded-pill", fillTones[tone])} style={{ width }} />
       </div>
       {caption !== undefined && (
-        <div className="mt-8 text-11_5 font-medium text-faint">{caption}</div>
+        <div className="mt-6 text-11_5 font-medium text-faint">{caption}</div>
       )}
     </div>
   );
