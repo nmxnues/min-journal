@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { login, loginSchema, type LoginInput } from "./actions";
+import { login } from "./actions";
+import { loginSchema, type LoginInput } from "./schema";
 
 // No mockup exists for /login (docs/README.md § Routes lists it with none).
 // Built from the same token vocabulary as the rest of the app; plain

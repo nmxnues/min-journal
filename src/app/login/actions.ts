@@ -1,16 +1,13 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { loginSchema, type LoginInput } from "./schema";
 
-export const loginSchema = z.object({
-  email: z.string().min(1, "Enter your email.").email("Enter a valid email address."),
-  password: z.string().min(1, "Enter your password."),
-});
-
-export type LoginInput = z.infer<typeof loginSchema>;
-
+// A "use server" module may only export async functions (server actions) —
+// loginSchema/LoginInput live in ./schema so the client component can import
+// the real zod object instead of whatever the server-action compiler does
+// with a non-function export from this file.
 export async function login(values: LoginInput, next?: string) {
   const parsed = loginSchema.safeParse(values);
 

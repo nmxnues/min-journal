@@ -12,26 +12,29 @@
    - **service_role key** → `SUPABASE_SERVICE_ROLE_KEY` (server-only, never shipped to the browser)
 3. Copy `.env.example` to `.env.local` and fill in the three values.
 
-## 2. Link the Supabase CLI (for migrations + type generation)
-The CLI is a project devDependency (`pnpm supabase ...`).
-
-```bash
-pnpm supabase login
-pnpm supabase link --project-ref <your-project-ref>   # ref is in the project URL / dashboard
-```
+## 2. Get the database password
+Settings → Database → **Database password** (reset it if you don't have it — this is separate from the anon/service-role keys above, needed only for the CLI's direct Postgres access, never read by the app itself). Add it to `.env.local` as `SUPABASE_DB_PASSWORD`.
 
 ## 3. Run migrations
-Migrations live in `supabase/migrations/*.sql` (added in Phase 1).
+Migrations live in `supabase/migrations/*.sql`. The CLI is a project devDependency (`pnpm exec supabase ...`). `supabase login`/`link` need a personal access token we don't have set up, so push straight to a connection URL instead — the regional **pooler** host (not `db.<ref>.supabase.co` directly) is what actually works from most networks, since the direct host is IPv6-only:
 
 ```bash
-pnpm supabase db push
+set -a; source .env.local; set +a
+REF=$(grep NEXT_PUBLIC_SUPABASE_URL .env.local | sed -E 's#.*https://([a-z0-9]+)\.supabase\.co.*#\1#')
+ENC_PW=$(python3 -c "import urllib.parse,os; print(urllib.parse.quote(os.environ['SUPABASE_DB_PASSWORD'], safe=''))")
+DB_URL="postgresql://postgres.${REF}:${ENC_PW}@aws-0-<region>.pooler.supabase.com:5432/postgres"
+
+pnpm exec supabase db push --db-url "$DB_URL" --dry-run   # preview first
+pnpm exec supabase db push --db-url "$DB_URL" --yes
 ```
 
+`<region>` matches your project's region (e.g. `ap-northeast-2` for Seoul) — same value visible in the pooler connection string on the Database settings page.
+
 ## 4. Generate types
-Regenerate `src/lib/database.types.ts` after any schema change:
+Regenerate `src/lib/database.types.ts` after any schema change, using the same `DB_URL`:
 
 ```bash
-pnpm supabase gen types typescript --linked > src/lib/database.types.ts
+pnpm exec supabase gen types typescript --db-url "$DB_URL" > src/lib/database.types.ts
 ```
 
 ## 5. Create the single user account
