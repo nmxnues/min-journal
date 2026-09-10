@@ -40,7 +40,7 @@ import type { DraftRecord } from "./draft-actions";
 import { createNewTradeSchema, NEW_TRADE_DEFAULTS, type NewTradeInput } from "./schema";
 import { useDraftAttachments } from "./use-draft-attachments";
 import { useDraftAutosave } from "./use-draft-autosave";
-import { collectWarnings, type WarningCode } from "./warnings";
+import { collectWarnings, type WarningCode } from "@/lib/domain/warnings";
 
 export interface NewTradeFormProps {
   models: TradeModel[];
@@ -236,8 +236,7 @@ export function NewTradeForm({
         attachments.attachments.map((a) => a.path),
       );
       if (result.ok) {
-        // Trade detail is Phase 4c; until it exists, land back on the dashboard.
-        router.push("/");
+        router.push(`/trades/${result.id}`);
       } else {
         setServerError(result.error);
       }

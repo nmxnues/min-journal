@@ -3,6 +3,7 @@ import { createClient } from "./server";
 import type { Database } from "@/lib/database.types";
 import type {
   Account,
+  Attachment,
   CashMovement,
   Direction,
   HtfPairing,
@@ -80,6 +81,18 @@ export function toTrade(row: Row<"trades">): Trade {
   };
 }
 
+export function toAttachment(row: Row<"attachments">): Attachment {
+  return {
+    id: row.id,
+    tradeId: row.trade_id,
+    storagePath: row.storage_path,
+    width: row.width,
+    height: row.height,
+    caption: row.caption,
+    createdAt: row.created_at,
+  };
+}
+
 export function toCashMovement(row: Row<"cash_movements">): CashMovement {
   return {
     id: row.id,
@@ -109,6 +122,27 @@ export async function getPrimaryAccount(): Promise<Account | null> {
 
   if (error) throw error;
   return data === null ? null : toAccount(data);
+}
+
+/** RLS scopes this to the signed-in user, so a wrong or someone-else's id just reads back null. */
+export async function getTrade(id: string): Promise<Trade | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("trades").select("*").eq("id", id).maybeSingle();
+
+  if (error) throw error;
+  return data === null ? null : toTrade(data);
+}
+
+export async function getTradeAttachments(tradeId: string): Promise<Attachment[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("attachments")
+    .select("*")
+    .eq("trade_id", tradeId)
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []).map(toAttachment);
 }
 
 export async function getModels(): Promise<TradeModel[]> {

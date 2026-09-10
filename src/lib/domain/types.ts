@@ -76,6 +76,16 @@ export interface Account {
   drawdownLimitPercent: number;
 }
 
+export interface Attachment {
+  id: string;
+  tradeId: string;
+  storagePath: string;
+  width: number | null;
+  height: number | null;
+  caption: string | null;
+  createdAt: string;
+}
+
 export interface CashMovement {
   id: string;
   accountId: string;

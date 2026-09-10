@@ -7,6 +7,7 @@
  * keystroke (which would fight the user mid-typing, e.g. eating a trailing ".").
  */
 
+import type { Locale } from "./i18n/locale";
 import { pipSize, priceDecimals } from "./instruments";
 
 /**
@@ -80,4 +81,45 @@ export function formatTime(date: Date): string {
   return new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(
     date,
   );
+}
+
+/** Trade detail's Hold tile, e.g. "38m" or "1h 15m" — matches mock 2b's "38m". */
+export function formatHoldMinutes(minutes: number): string {
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`;
+}
+
+/**
+ * Trade detail's header date, e.g. "Sep 9, 2026" — matches mock 2b's
+ * "NQ · Long · Sep 9, 2026". `isoDate` is a plain `YYYY-MM-DD` (no time, no
+ * timezone — docs/decisions.md § Phase 2: dates are compared as strings, not
+ * `Date` objects), so this parses the parts directly and formats in UTC
+ * rather than going through `new Date(isoDate)`, which the browser's local
+ * timezone can shift back a day for negative UTC offsets.
+ */
+export function formatTradeDate(isoDate: string, locale: Locale): string {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return new Intl.DateTimeFormat(locale === "ko" ? "ko-KR" : "en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(year, month - 1, day)));
+}
+
+/**
+ * Trade detail's "Logged Sep 9, 10:24" / "Edited 11:02" footer — the one place
+ * this app prints a full date+time, so it's a one-off formatter rather than
+ * a case in `useT()` (which pairs static copy, not a moving date value).
+ */
+export function formatLoggedAt(date: Date, locale: Locale): string {
+  return new Intl.DateTimeFormat(locale === "ko" ? "ko-KR" : "en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(date);
 }

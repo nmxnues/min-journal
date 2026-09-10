@@ -4,32 +4,27 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { CHART_SHOTS_BUCKET, validateAttachments } from "@/lib/attachments";
 import { readImageDimensions } from "@/lib/attachment-client";
 import { createClient } from "@/lib/supabase/client";
-import { deleteDraftAttachment, reserveDraftAttachmentPath } from "./attachments-actions";
+import { confirmTradeAttachment, removeTradeAttachment, reserveTradeAttachmentPath } from "./attachments-actions";
 
-export interface DraftAttachment {
+export interface TradeAttachment {
   path: string;
-  width: number | null;
-  height: number | null;
-  /** Object/signed URL for the thumbnail — always present once loaded. */
   previewUrl: string | null;
 }
 
 /**
- * Manages the draft's attachments: uploads land immediately in
- * {user_id}/drafts/ (see docs/decisions.md § Phase 4b) so they survive a
- * reload the same way the rest of the draft does, and the hook exposes
- * exactly the path list the draft-autosave effect needs to persist.
+ * Trade detail's Charts card (docs/README.md § Trade detail): unlike the New
+ * trade form's draft attachments, these upload straight to the trade's final
+ * `{user_id}/{tradeId}/` folder — the trade already exists, so there is no
+ * draft stage to move out of.
  */
-export function useDraftAttachments(initial: readonly { path: string }[]) {
-  const [attachments, setAttachments] = useState<DraftAttachment[]>(
-    initial.map((a) => ({ path: a.path, width: null, height: null, previewUrl: null })),
+export function useTradeAttachments(tradeId: string, initial: readonly { path: string }[]) {
+  const [attachments, setAttachments] = useState<TradeAttachment[]>(
+    initial.map((a) => ({ path: a.path, previewUrl: null })),
   );
   const [uploading, setUploading] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const supabaseRef = useRef(createClient());
 
-  // Restored-draft attachments have no in-memory File, so their preview comes
-  // from a signed URL (the bucket is private) instead of an object URL.
   useEffect(() => {
     let cancelled = false;
     async function loadPreviews() {
@@ -56,7 +51,6 @@ export function useDraftAttachments(initial: readonly { path: string }[]) {
     return () => {
       cancelled = true;
     };
-    // Only re-run when the set of paths actually changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attachments.map((a) => a.path).join(",")]);
 
@@ -78,7 +72,8 @@ export function useDraftAttachments(initial: readonly { path: string }[]) {
 
       setUploading((n) => n + accepted.length);
       for (const file of accepted) {
-        const reserved = await reserveDraftAttachmentPath(
+        const reserved = await reserveTradeAttachmentPath(
+          tradeId,
           { name: file.name, type: file.type, size: file.size },
           attachments.length,
         );
@@ -88,7 +83,7 @@ export function useDraftAttachments(initial: readonly { path: string }[]) {
           continue;
         }
 
-        const { path } = reserved.attachment;
+        const { path } = reserved;
         const [dimensions, uploadResult] = await Promise.all([
           readImageDimensions(file),
           supabaseRef.current.storage.from(CHART_SHOTS_BUCKET).upload(path, file, {
@@ -97,30 +92,37 @@ export function useDraftAttachments(initial: readonly { path: string }[]) {
           }),
         ]);
 
-        setUploading((n) => n - 1);
         if (uploadResult.error) {
           setError(uploadResult.error.message);
+          setUploading((n) => n - 1);
           continue;
         }
 
-        setAttachments((current) => [
-          ...current,
-          {
-            path,
-            width: dimensions?.width ?? null,
-            height: dimensions?.height ?? null,
-            previewUrl: URL.createObjectURL(file),
-          },
-        ]);
+        const confirmed = await confirmTradeAttachment(
+          tradeId,
+          path,
+          dimensions?.width ?? null,
+          dimensions?.height ?? null,
+        );
+        setUploading((n) => n - 1);
+        if (!confirmed.ok) {
+          setError(confirmed.error);
+          continue;
+        }
+
+        setAttachments((current) => [...current, { path, previewUrl: URL.createObjectURL(file) }]);
       }
     },
-    [attachments.length],
+    [attachments.length, tradeId],
   );
 
-  const removeAttachment = useCallback(async (path: string) => {
-    setAttachments((current) => current.filter((a) => a.path !== path));
-    await deleteDraftAttachment(path);
-  }, []);
+  const removeAttachment = useCallback(
+    async (path: string) => {
+      setAttachments((current) => current.filter((a) => a.path !== path));
+      await removeTradeAttachment(tradeId, path);
+    },
+    [tradeId],
+  );
 
   return { attachments, addFiles, removeAttachment, uploading, error };
 }

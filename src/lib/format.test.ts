@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { formatCurrency, formatPips, formatPrice, formatR, formatTime, hasValue, parseNumberInput } from "./format";
+import {
+  formatCurrency,
+  formatHoldMinutes,
+  formatLoggedAt,
+  formatPips,
+  formatPrice,
+  formatR,
+  formatTime,
+  formatTradeDate,
+  hasValue,
+  parseNumberInput,
+} from "./format";
 
 describe("parseNumberInput", () => {
   it("accepts thousands separators and broker paste noise", () => {
@@ -82,5 +93,31 @@ describe("formatTime", () => {
     expect(formatTime(new Date("2026-09-09T12:41:00"))).toBe("12:41");
     expect(formatTime(new Date("2026-09-09T09:05:00"))).toBe("09:05");
     expect(formatTime(new Date("2026-09-09T00:00:00"))).toBe("00:00");
+  });
+});
+
+describe("formatHoldMinutes", () => {
+  it("matches the mock's \"38m\" under an hour", () => {
+    expect(formatHoldMinutes(38)).toBe("38m");
+    expect(formatHoldMinutes(0)).toBe("0m");
+  });
+
+  it("switches to hours once past 60 minutes", () => {
+    expect(formatHoldMinutes(75)).toBe("1h 15m");
+    expect(formatHoldMinutes(120)).toBe("2h");
+  });
+});
+
+describe("formatTradeDate", () => {
+  it("matches the mock's \"Sep 9, 2026\" header date, in UTC regardless of local timezone", () => {
+    expect(formatTradeDate("2026-09-09", "en")).toBe("Sep 9, 2026");
+  });
+});
+
+describe("formatLoggedAt", () => {
+  it("prints a short month, day, and 24-hour time", () => {
+    // Constructed in local time (not a Z-suffixed UTC instant) so the
+    // expectation holds regardless of the test runner's timezone.
+    expect(formatLoggedAt(new Date(2026, 8, 9, 10, 24), "en")).toBe("Sep 9, 10:24");
   });
 });
