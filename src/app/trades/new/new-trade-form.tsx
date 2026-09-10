@@ -41,6 +41,7 @@ import { createNewTradeSchema, NEW_TRADE_DEFAULTS, type NewTradeInput } from "./
 import { useDraftAttachments } from "./use-draft-attachments";
 import { useDraftAutosave } from "./use-draft-autosave";
 import { collectWarnings, type WarningCode } from "@/lib/domain/warnings";
+import { usePasteAttachment } from "@/lib/use-paste-attachment";
 
 export interface NewTradeFormProps {
   models: TradeModel[];
@@ -126,6 +127,10 @@ export function NewTradeForm({
     [],
   );
   const attachments = useDraftAttachments(initialAttachments);
+  usePasteAttachment(
+    (files) => void attachments.addFiles(files),
+    attachments.attachments.length < MAX_ATTACHMENTS_PER_TRADE,
+  );
 
   const draftPayload = useMemo(
     () => ({ values, attachmentPaths: attachments.attachments.map((a) => a.path) }),
@@ -169,6 +174,7 @@ export function NewTradeForm({
   const warnings = useMemo(
     () =>
       collectWarnings({
+        instrument: values.instrument,
         direction: values.direction,
         entry: derived.entry,
         stop: derived.stop,
@@ -208,6 +214,10 @@ export function NewTradeForm({
     drawdown_near_limit: t({
       en: `Drawdown is ${drawdownPercent.toFixed(1)}% against a ${drawdownLimitPercent}% limit.`,
       ko: `현재 드로다운 ${drawdownPercent.toFixed(1)}%, 한도 ${drawdownLimitPercent}%입니다.`,
+    }),
+    price_implausible_for_instrument: t({
+      en: "One of these prices looks off for this instrument — check for a stray digit.",
+      ko: "이 종목치고 가격이 이상합니다 — 자릿수가 잘못 들어가지 않았는지 확인하세요.",
     }),
   };
 
@@ -580,8 +590,8 @@ export function NewTradeForm({
                 disabled={attachments.attachments.length >= MAX_ATTACHMENTS_PER_TRADE}
                 title={t({ en: "Drag chart screenshots here", ko: "차트 스크린샷을 여기로" })}
                 hint={t({
-                  en: "Two shots recommended: HTF range + entry timeframe",
-                  ko: "HTF 레인지 + 진입 타임프레임 2장 권장",
+                  en: "Two shots recommended: HTF range + entry timeframe · paste with ⌘V",
+                  ko: "HTF 레인지 + 진입 타임프레임 2장 권장 · ⌘V로 붙여넣기 가능",
                 })}
                 buttonLabel={t({ en: "Choose file", ko: "파일 선택" })}
                 onFiles={(files) => void attachments.addFiles(files)}

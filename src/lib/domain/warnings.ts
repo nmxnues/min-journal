@@ -1,5 +1,6 @@
 import { offPlan, realizedR } from "@/lib/domain/trade";
 import type { Direction, SweepSide, TradeResult } from "@/lib/domain/types";
+import { isPlausibleFxPrice } from "@/lib/instruments";
 
 /**
  * Everything that is worth saying but not worth blocking on
@@ -16,9 +17,11 @@ export type WarningCode =
   | "off_plan"
   | "retired_model"
   | "result_disagrees_with_exit"
-  | "drawdown_near_limit";
+  | "drawdown_near_limit"
+  | "price_implausible_for_instrument";
 
 export interface WarningInput {
+  instrument: string;
   direction: Direction;
   entry: number | null;
   stop: number | null;
@@ -82,6 +85,16 @@ export function collectWarnings(input: WarningInput): WarningCode[] {
   // docs/README.md § Capital: the guard "warns in the trade form when the
   // account is within 2% of the limit".
   if (input.accountIsNearDrawdownLimit) warnings.push("drawdown_near_limit");
+
+  // Catches an order-of-magnitude typo (e.g. an index quote like 23,411
+  // pasted into an FX field) rather than anything merely unusual — see
+  // isPlausibleFxPrice's own comment for the reasoning behind the bounds.
+  const prices = [rangeHigh, rangeLow, entry, stop, target, exit].filter(
+    (p): p is number => p !== null,
+  );
+  if (prices.some((p) => !isPlausibleFxPrice(p, input.instrument))) {
+    warnings.push("price_implausible_for_instrument");
+  }
 
   return warnings;
 }

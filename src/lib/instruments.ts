@@ -65,3 +65,21 @@ export function priceDecimals(instrument: string): number {
 export function pipSize(instrument: string): number {
   return isJpyPair(instrument) ? 0.01 : 0.0001;
 }
+
+/**
+ * A coarse "is this even the right order of magnitude" sanity range, not a
+ * real historical high/low per pair — modern-era FX majors and crosses trade
+ * within roughly these bounds regardless of which of the 28 presets it is
+ * (docs/decisions.md § Phase 4c price-plausibility warning). The point isn't
+ * to catch a price that's merely unusual, only a price that's obviously a
+ * different kind of instrument entirely — e.g. pasting an index quote like
+ * 23,411 into an EURUSD field, which is off by four orders of magnitude and
+ * turns every pip/range figure on the screen meaningless.
+ */
+const NON_JPY_PLAUSIBLE_RANGE = { min: 0.2, max: 5 } as const;
+const JPY_PLAUSIBLE_RANGE = { min: 20, max: 500 } as const;
+
+export function isPlausibleFxPrice(price: number, instrument: string): boolean {
+  const { min, max } = isJpyPair(instrument) ? JPY_PLAUSIBLE_RANGE : NON_JPY_PLAUSIBLE_RANGE;
+  return price >= min && price <= max;
+}

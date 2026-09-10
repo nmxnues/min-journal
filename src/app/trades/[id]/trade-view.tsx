@@ -29,6 +29,7 @@ import {
 } from "@/lib/domain/trade";
 import type { Trade } from "@/lib/domain/types";
 import { useLocale, useT } from "@/lib/i18n/locale-context";
+import { usePasteAttachment } from "@/lib/use-paste-attachment";
 import { useTradeAttachments } from "./use-trade-attachments";
 
 export interface TradeViewProps {
@@ -51,6 +52,10 @@ export function TradeView({ trade, attachments }: TradeViewProps) {
   const [lightbox, setLightbox] = useState<string | null>(null);
 
   const tradeAttachments = useTradeAttachments(trade.id, attachments);
+  usePasteAttachment(
+    (files) => void tradeAttachments.addFiles(files),
+    tradeAttachments.attachments.length < MAX_ATTACHMENTS_PER_TRADE,
+  );
 
   const realized = realizedR(trade);
   const planned = plannedR(trade);
@@ -207,11 +212,15 @@ export function TradeView({ trade, attachments }: TradeViewProps) {
             <Dropzone
               className="mt-16 h-[150px]"
               title={t({ en: "No screenshots yet", ko: "아직 스크린샷이 없습니다" })}
+              hint={t({ en: "Drag, choose a file, or paste with ⌘V", ko: "드래그, 파일 선택, 또는 ⌘V로 붙여넣기" })}
               buttonLabel={t({ en: "Choose file", ko: "파일 선택" })}
               onFiles={(files) => void tradeAttachments.addFiles(files)}
             />
           ) : (
             <div className="mt-16 flex flex-col gap-12">
+              <p className="text-11_5 font-medium text-faint">
+                {t({ en: "Paste a screenshot with ⌘V to add another.", ko: "⌘V로 붙여넣으면 스크린샷이 추가됩니다." })}
+              </p>
               {tradeAttachments.attachments.map((attachment) => (
                 <div key={attachment.path} className="group relative">
                   <button

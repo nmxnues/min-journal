@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { controlBase } from "./field";
@@ -35,14 +35,41 @@ export function Combobox({
   const listId = `${inputId}-listbox`;
 
   const [isOpen, setIsOpen] = useState(false);
+  /**
+   * Opening the list (focus, click, arrow key) always shows every option,
+   * scrolled to the current value — the ordinary combobox convention, and
+   * what a fixed 28-item preset list needs: with the old "always filter by
+   * the current field value" behavior, a value that already matched a preset
+   * (e.g. the field already reads "EURUSD") filtered the list down to that
+   * one entry, so switching pairs meant deleting the text first. Filtering
+   * only turns on once the user actually types a character.
+   */
+  const [isFiltering, setIsFiltering] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const listRef = useRef<HTMLUListElement>(null);
 
   const matches = useMemo(() => {
+    if (!isFiltering) return options;
     const query = value.trim().toLowerCase();
-    const list = query === "" ? options : options.filter((o) => o.toLowerCase().includes(query));
-    return list.slice(0, 8);
-  }, [options, value]);
+    if (query === "") return options;
+    return options.filter((o) => o.toLowerCase().includes(query));
+  }, [options, value, isFiltering]);
+
+  // Scrolls the active option into view — both the initial jump to the
+  // current value on open, and normal keyboard-navigation tracking.
+  useEffect(() => {
+    if (!isOpen) return;
+    const el = listRef.current?.querySelector<HTMLElement>(`[data-index="${activeIndex}"]`);
+    el?.scrollIntoView({ block: "nearest" });
+  }, [isOpen, activeIndex]);
+
+  function open() {
+    setIsFiltering(false);
+    setIsOpen(true);
+    const currentIndex = options.findIndex((o) => o === value);
+    setActiveIndex(currentIndex === -1 ? 0 : currentIndex);
+  }
 
   function commit(next: string) {
     onChange(next);
@@ -53,8 +80,7 @@ export function Combobox({
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
       if (!isOpen) {
-        setIsOpen(true);
-        setActiveIndex(0);
+        open();
         return;
       }
       const delta = event.key === "ArrowDown" ? 1 : -1;
@@ -84,10 +110,11 @@ export function Combobox({
         className={cn(controlBase, "pr-40")}
         onChange={(event) => {
           onChange(event.target.value);
+          setIsFiltering(true);
           setIsOpen(true);
           setActiveIndex(0);
         }}
-        onFocus={() => setIsOpen(true)}
+        onFocus={open}
         onKeyDown={onKeyDown}
         onBlur={() => {
           blurTimer.current = setTimeout(() => setIsOpen(false), 120);
@@ -101,12 +128,13 @@ export function Combobox({
 
       {isOpen && matches.length > 0 && (
         <ul
+          ref={listRef}
           id={listId}
           role="listbox"
           className="absolute z-20 mt-6 max-h-[264px] w-full overflow-y-auto rounded-14 bg-surface py-6 shadow-sheet"
         >
           {matches.map((option, index) => (
-            <li key={option}>
+            <li key={option} data-index={index}>
               <button
                 type="button"
                 role="option"

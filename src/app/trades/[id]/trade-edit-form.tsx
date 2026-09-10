@@ -35,6 +35,7 @@ import { deriveSweepSide, plannedR, rangeSize, realizedR } from "@/lib/domain/tr
 import { collectWarnings, type WarningCode } from "@/lib/domain/warnings";
 import type { SweepSide, Trade, TradeModel, TradeResult } from "@/lib/domain/types";
 import { useLocale, useT } from "@/lib/i18n/locale-context";
+import { usePasteAttachment } from "@/lib/use-paste-attachment";
 import { updateTrade } from "./actions";
 import { createEditTradeSchema, tradeToEditInput, type EditTradeInput } from "./schema";
 import { useTradeAttachments } from "./use-trade-attachments";
@@ -104,6 +105,10 @@ export function TradeEditForm({
 
   const values = useWatch({ control }) as EditTradeInput;
   const tradeAttachments = useTradeAttachments(trade.id, attachments);
+  usePasteAttachment(
+    (files) => void tradeAttachments.addFiles(files),
+    tradeAttachments.attachments.length < MAX_ATTACHMENTS_PER_TRADE,
+  );
 
   const derived = useMemo(() => {
     const rangeHigh = parseNumberInput(values.rangeHigh ?? "");
@@ -137,6 +142,7 @@ export function TradeEditForm({
   const warnings = useMemo(
     () =>
       collectWarnings({
+        instrument: values.instrument,
         direction: values.direction,
         entry: derived.entry,
         stop: derived.stop,
@@ -176,6 +182,10 @@ export function TradeEditForm({
     drawdown_near_limit: t({
       en: `Drawdown is ${drawdownPercent.toFixed(1)}% against a ${drawdownLimitPercent}% limit.`,
       ko: `현재 드로다운 ${drawdownPercent.toFixed(1)}%, 한도 ${drawdownLimitPercent}%입니다.`,
+    }),
+    price_implausible_for_instrument: t({
+      en: "One of these prices looks off for this instrument — check for a stray digit.",
+      ko: "이 종목치고 가격이 이상합니다 — 자릿수가 잘못 들어가지 않았는지 확인하세요.",
     }),
   };
 
@@ -474,8 +484,8 @@ export function TradeEditForm({
               disabled={tradeAttachments.attachments.length >= MAX_ATTACHMENTS_PER_TRADE}
               title={t({ en: "Drag chart screenshots here", ko: "차트 스크린샷을 여기로" })}
               hint={t({
-                en: "Two shots recommended: HTF range + entry timeframe",
-                ko: "HTF 레인지 + 진입 타임프레임 2장 권장",
+                en: "Two shots recommended: HTF range + entry timeframe · paste with ⌘V",
+                ko: "HTF 레인지 + 진입 타임프레임 2장 권장 · ⌘V로 붙여넣기 가능",
               })}
               buttonLabel={t({ en: "Choose file", ko: "파일 선택" })}
               onFiles={(files) => void tradeAttachments.addFiles(files)}
