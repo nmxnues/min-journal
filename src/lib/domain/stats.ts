@@ -68,6 +68,11 @@ export const avgLoss = memoize((trades: readonly Trade[]): number | null =>
   mean(realizedRs(trades.filter((t) => t.result === "loss"))),
 );
 
+/** Mean hold time in minutes, over trades that recorded one — the Trade log summary row's "Avg hold". */
+export const avgHoldMinutes = memoize((trades: readonly Trade[]): number | null =>
+  mean(trades.map((t) => t.holdMinutes).filter((m): m is number => m !== null)),
+);
+
 export interface WinStreaks {
   longest: number;
   current: number;

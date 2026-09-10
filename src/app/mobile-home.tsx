@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { Sparkline } from "@/components/charts/equity-curve";
@@ -10,6 +11,7 @@ import { cn } from "@/lib/cn";
 import { formatMonthLabel, todayIso, type IsoMonth } from "@/lib/domain/dates";
 import { byModel, equityCurve, periodStats } from "@/lib/domain/stats";
 import { offPlan, realizedR } from "@/lib/domain/trade";
+import { buildTradeLogSearchParams, EMPTY_TRADE_LOG_FILTERS } from "@/lib/domain/trade-log";
 import type { Trade, TradeModel } from "@/lib/domain/types";
 import { formatPercent, formatR } from "@/lib/format";
 import { useLocale, useT } from "@/lib/i18n/locale-context";
@@ -50,6 +52,7 @@ export function MobileHome({ month, trades, models, hasAccount }: MobileHomeProp
   const today = todayIso();
   const todayTrades = trades.filter((tr) => tr.date === today);
   const maxAbsModelR = Math.max(1e-9, ...modelRows.map((r) => Math.abs(r.netR)));
+  const viewTodayHref = `/trades?${buildTradeLogSearchParams({ ...EMPTY_TRADE_LOG_FILTERS, from: today, to: today }, "date", "desc", 1)}`;
 
   const header = (
     <div className="flex items-center justify-between px-20 pt-16">
@@ -145,9 +148,9 @@ export function MobileHome({ month, trades, models, hasAccount }: MobileHomeProp
         <Card className="px-22 py-20">
           <div className="flex items-baseline justify-between">
             <span className="text-15 font-bold text-ink">{t({ en: "Today", ko: "오늘" })}</span>
-            <span aria-disabled="true" className="text-12_5 font-semibold text-accent opacity-40">
+            <Link href={viewTodayHref} className="text-12_5 font-semibold text-accent">
               {t({ en: "View all", ko: "전체보기" })}
-            </span>
+            </Link>
           </div>
           {todayTrades.length === 0 ? (
             <p className="mt-14 text-12_5 font-medium text-faint">

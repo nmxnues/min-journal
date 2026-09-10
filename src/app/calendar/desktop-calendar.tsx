@@ -107,7 +107,11 @@ export function DesktopCalendar({ month, trades, models }: DesktopCalendarProps)
         </div>
       </div>
 
-      <div className="mx-auto flex max-w-[900px] flex-col gap-16 p-28">
+      {/* Wider than the 900px the mock was authored at — a calendar grid has
+          more to gain from extra horizontal room than it loses to a bigger
+          cap, so this one screen goes wider than Dashboard's 1200px on purpose
+          (docs/decisions.md § Phase 6). */}
+      <div className="mx-auto flex max-w-[1600px] flex-col gap-16 p-28">
         <Card className="px-28 py-26">
           <div className="mb-10 grid grid-cols-7 gap-8 text-center text-12 font-semibold text-faint">
             {WEEKDAY_LABELS[locale].map((label, i) => (

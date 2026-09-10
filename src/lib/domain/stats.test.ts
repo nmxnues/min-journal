@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { makeModel, makeTrade } from "./fixtures";
 import {
+  avgHoldMinutes,
   avgLoss,
   avgWin,
   byModel,
@@ -86,6 +87,21 @@ describe("expectancy / avgWin / avgLoss", () => {
     expect(avgWin([tradeWithR(-1)])).toBeNull();
     expect(avgLoss([tradeWithR(1)])).toBeNull();
     expect(expectancy([])).toBeNull();
+  });
+});
+
+describe("avgHoldMinutes", () => {
+  it("means over trades that recorded a hold time, skipping the ones that didn't", () => {
+    const trades = [
+      makeTrade({ id: "a", holdMinutes: 30 }),
+      makeTrade({ id: "b", holdMinutes: 90 }),
+      makeTrade({ id: "c", holdMinutes: null }),
+    ];
+    expect(avgHoldMinutes(trades)).toBeCloseTo(60, 10);
+  });
+
+  it("is null when nothing recorded a hold time", () => {
+    expect(avgHoldMinutes([makeTrade({ holdMinutes: null })])).toBeNull();
   });
 });
 

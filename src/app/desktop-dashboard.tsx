@@ -9,8 +9,9 @@ import { SignOutButton } from "@/components/nav/sign-out-button";
 import { TopBar } from "@/components/nav/top-bar";
 import { BarRow, Button, Card, CardHeader, Chip, EmptyState, Panel, StatCard } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { formatMonthLabel, type IsoMonth } from "@/lib/domain/dates";
+import { formatMonthLabel, monthRange, type IsoMonth } from "@/lib/domain/dates";
 import { byModel, bySession, equityCurve, periodStats, sweepAlignment } from "@/lib/domain/stats";
+import { buildTradeLogSearchParams, EMPTY_TRADE_LOG_FILTERS } from "@/lib/domain/trade-log";
 import { offPlan, plannedR, realizedR } from "@/lib/domain/trade";
 import type { Trade, TradeModel } from "@/lib/domain/types";
 import { formatCompactDate, formatPercent, formatR, formatTradeDate } from "@/lib/format";
@@ -48,6 +49,9 @@ export function DesktopDashboard({ month, trades, models, hasAccount }: DesktopD
   const alignmentRows = useMemo(() => sweepAlignment(trades), [trades]);
   const recentTrades = trades.slice(0, 5);
   const modelById = new Map(models.map((m) => [m.id, m]));
+
+  const { from: monthFrom, to: monthTo } = monthRange(month);
+  const viewAllHref = `/trades?${buildTradeLogSearchParams({ ...EMPTY_TRADE_LOG_FILTERS, from: monthFrom, to: monthTo }, "date", "desc", 1)}`;
 
   const maxAbsModelR = Math.max(1e-9, ...modelRows.map((r) => Math.abs(r.netR)));
 
@@ -220,9 +224,9 @@ export function DesktopDashboard({ month, trades, models, hasAccount }: DesktopD
             <span className="text-16 font-bold tracking-[-.02em] text-ink">
               {t({ en: "Recent trades", ko: "최근 기록" })}
             </span>
-            <span aria-disabled="true" className="text-13 font-semibold text-accent opacity-40">
+            <Link href={viewAllHref} className="text-13 font-semibold text-accent hover:text-accent-pressed">
               {t({ en: `View all ${trades.length}`, ko: `전체보기 ${trades.length}` })}
-            </span>
+            </Link>
           </div>
           <div className="mt-8 flex flex-col">
             {recentTrades.map((trade) => {

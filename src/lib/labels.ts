@@ -1,4 +1,4 @@
-import type { Direction, HtfPairing, Session, SweepSide } from "@/lib/domain/types";
+import type { Direction, HtfPairing, Session, SweepSide, TradeResult } from "@/lib/domain/types";
 import type { LocaleStrings } from "@/lib/i18n/locale";
 
 /**
@@ -16,6 +16,8 @@ export const SESSION_LABELS: Record<Session, LocaleStrings> = {
   london: { en: "London", ko: "런던" },
   ny_am: { en: "New York AM", ko: "뉴욕 오전" },
 };
+
+export const SESSION_ORDER: readonly Session[] = ["asia", "london", "ny_am"];
 
 /** The four options and their order are fixed; default is W → 2D. */
 export const HTF_PAIRING_LABELS: Record<HtfPairing, LocaleStrings> = {
@@ -36,9 +38,51 @@ export const SWEEP_SIDE_LABELS: Record<SweepSide, LocaleStrings> = {
 
 export const SWEEP_SIDE_ORDER: readonly SweepSide[] = ["low", "high", "both", "none"];
 
+/** New trade's Result segmented control has always inlined these at the call site; centralized here now that Trade log's filter and CSV import both need the same mapping. */
+export const RESULT_LABELS: Record<TradeResult, LocaleStrings> = {
+  win: { en: "Win", ko: "익절" },
+  loss: { en: "Loss", ko: "손절" },
+  be: { en: "Break-even", ko: "본전" },
+};
+
+export const RESULT_ORDER: readonly TradeResult[] = ["win", "loss", "be"];
+
 /** "1 trade" / "2 trades" / "3건" — every trade-count caption on the Dashboard and Calendar goes through this, so English singular isn't a one-off fix. */
 export function tradeCountLabel(n: number): LocaleStrings {
   return { en: `${n} ${n === 1 ? "trade" : "trades"}`, ko: `${n}건` };
+}
+
+/**
+ * "->" reads as "→" for matching purposes — a hand-authored or
+ * spreadsheet-exported CSV importing HTF pairing (docs/decisions.md § Phase
+ * 6) is far more likely to type the ASCII arrow than paste the actual "→"
+ * glyph. Harmless for every other label set this resolves, since none of
+ * them contain an arrow to begin with.
+ */
+function normalizeForLabelMatch(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/->/g, "→")
+    .replace(/\s*→\s*/g, " → ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Resolves a stored code or either locale's display label (case-insensitive)
+ * back to the code — CSV import (docs/decisions.md § Phase 6) can't assume a
+ * hand-authored file uses internal codes like `w_2d`; it's just as likely to
+ * say "W → 2D" or the Korean equivalent, or the raw code itself.
+ */
+export function resolveLabel<T extends string>(labels: Record<T, LocaleStrings>, raw: string): T | null {
+  const needle = normalizeForLabelMatch(raw);
+  for (const code of Object.keys(labels) as T[]) {
+    if (code.toLowerCase() === needle) return code;
+    const pair = labels[code];
+    if (normalizeForLabelMatch(pair.en) === needle || normalizeForLabelMatch(pair.ko) === needle) return code;
+  }
+  return null;
 }
 
 /**

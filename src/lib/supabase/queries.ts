@@ -133,6 +133,20 @@ export async function getTrade(id: string): Promise<Trade | null> {
   return data === null ? null : toTrade(data);
 }
 
+/** Every trade for the account, most recent first — Trade log's own query (filtering/sorting/paging is all client-side, over this one fetch). */
+export async function getAllTrades(accountId: string): Promise<Trade[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("trades")
+    .select("*")
+    .eq("account_id", accountId)
+    .order("date", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map(toTrade);
+}
+
 export async function getTradeAttachments(tradeId: string): Promise<Attachment[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
