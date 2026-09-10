@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Check } from "lucide-react";
 import { Controller, type Control, type UseFormRegister } from "react-hook-form";
 import type { FieldErrors } from "react-hook-form";
@@ -137,6 +138,13 @@ export function MobileQuickLogWizard({
 }: MobileQuickLogWizardProps) {
   const t = useT();
 
+  // Each step is a fresh screen — without this, advancing/going back keeps
+  // whatever scroll position the previous (often taller) step left behind,
+  // landing mid-page with no way to tell which field is which.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [step]);
+
   const rangeReady = derived.rangeHigh !== null && derived.rangeLow !== null;
   const sweepOptions: { value: SweepSide; label: string }[] = [
     { value: "low", label: t({ en: "Low purged · Long bias", ko: "저점 퍼지 · 롱 방향" }) },
@@ -149,7 +157,7 @@ export function MobileQuickLogWizard({
     <div className="mx-auto flex max-w-[560px] flex-col gap-24 px-20 py-24">
       {step === 1 && (
         <div className="flex flex-col gap-20">
-          <StepHeading>{t({ en: "Context", ko: "맥락" })}</StepHeading>
+          <StepHeading>{t({ en: "Context", ko: "컨텍스트" })}</StepHeading>
           <Field label={t({ en: "Instrument", ko: "종목" })} htmlFor="instrument" error={errors.instrument?.message}>
             <Controller
               control={control}
@@ -246,8 +254,17 @@ export function MobileQuickLogWizard({
                 </div>
               </div>
 
+              {/*
+                RangeDiagram's sweep-side label sits *outside* the diagram box
+                itself (top:-34px / bottom:-34px, so it reads next to the
+                marker rather than inside the bar) — on desktop the
+                surrounding Panel's own padding happens to cover that, but
+                this compact mobile layout packs siblings much closer, and the
+                label was overlapping the subtitle line above it. My-40 gives
+                it room on both sides regardless of which side gets swept.
+              */}
               <RangeDiagram
-                className="h-88"
+                className="my-40 h-88"
                 rangeHigh={derived.rangeHigh!}
                 rangeLow={derived.rangeLow!}
                 sweepSide={values.sweepSideOverride ?? "none"}

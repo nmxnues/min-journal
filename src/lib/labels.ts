@@ -31,10 +31,15 @@ export const SWEEP_SIDE_LABELS: Record<SweepSide, LocaleStrings> = {
 
 export const SWEEP_SIDE_ORDER: readonly SweepSide[] = ["low", "high", "both", "none"];
 
-/** The behaviour tags offered on the trade form (docs/README.md § New trade). */
+/**
+ * The behaviour tags offered on the trade form (docs/README.md § New trade).
+ * Kept in English for both locales at the user's own request — these four
+ * are terms he types/reads in English regardless of viewport, unlike every
+ * other label in the app.
+ */
 export const TAG_PRESETS: readonly LocaleStrings[] = [
-  { en: "On plan", ko: "계획대로" },
-  { en: "Impatient", ko: "조급함" },
-  { en: "Chased entry", ko: "추격 진입" },
-  { en: "Early exit", ko: "조기 청산" },
+  { en: "On plan", ko: "On plan" },
+  { en: "Impatient", ko: "Impatient" },
+  { en: "Chased entry", ko: "Chased entry" },
+  { en: "Early exit", ko: "Early exit" },
 ];
