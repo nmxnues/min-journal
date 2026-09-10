@@ -123,10 +123,17 @@ export function RangeDiagram({
       </div>
 
       {captions !== undefined && (
-        <div className="mt-18 flex justify-between text-11_5 font-medium text-faint">
-          <span>{captions.low}</span>
-          <span>{captions.mid}</span>
-          <span>{captions.high}</span>
+        // A plain `flex justify-between` row collapses its own gap to zero
+        // once the three captions' natural width exceeds the container — on
+        // a narrow (<900px) card with 5-decimal FX prices, that read as the
+        // three values jammed together with no space at all. Grid columns
+        // keep a guaranteed gap regardless of overflow, and let a caption
+        // that's still too wide for its column wrap onto a second line
+        // instead of spilling into its neighbor.
+        <div className="mt-18 grid grid-cols-3 gap-8 text-11_5 font-medium text-faint">
+          <span className="text-left">{captions.low}</span>
+          <span className="text-center">{captions.mid}</span>
+          <span className="text-right">{captions.high}</span>
         </div>
       )}
     </div>

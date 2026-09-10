@@ -58,24 +58,33 @@ export function TradeDetail({
 
   return (
     <div>
-      <header className="flex items-center justify-between bg-surface px-32 py-20">
-        <div className="flex items-center gap-14">
+      <header className="flex items-center justify-between gap-12 bg-surface px-20 py-16 sm:px-32 sm:py-20">
+        <div className="flex min-w-0 items-center gap-14">
           <button
             type="button"
             onClick={() => router.push("/")}
             aria-label={t({ en: "Back", ko: "뒤로" })}
-            className="flex h-32 w-32 items-center justify-center rounded-10 text-muted transition-colors duration-150 ease-out hover:bg-divider hover:text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:outline-none"
+            className="flex h-32 w-32 shrink-0 items-center justify-center rounded-10 text-muted transition-colors duration-150 ease-out hover:bg-divider hover:text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:outline-none"
           >
             <ChevronLeft aria-hidden size={20} />
           </button>
-          <h1 className="text-17 font-bold tracking-[-.02em] text-ink">
-            {trade.instrument} · {t(DIRECTION_LABELS[trade.direction])} · {formatTradeDate(trade.date, locale)}
+          {/* Trade detail has no mock at any width, so `sm:` here is a plain
+              CSS breakpoint (Tailwind's default 640px), not this app's
+              locale-driven 900px one — the goal is purely "don't wrap",
+              and a shorter date is enough to achieve that well before 900px
+              (docs/decisions.md § Phase 4 mobile responsive fix). `truncate`
+              is the backstop for a long free-typed instrument name. */}
+          <h1 className="min-w-0 truncate text-15 font-bold tracking-[-.02em] text-ink sm:text-17">
+            {trade.instrument} ·{" "}
+            {t(DIRECTION_LABELS[trade.direction])} ·{" "}
+            <span className="hidden sm:inline">{formatTradeDate(trade.date, locale)}</span>
+            <span className="sm:hidden">{formatTradeDate(trade.date, locale, true)}</span>
           </h1>
-          {model !== null && <Chip>{model.name}</Chip>}
+          {model !== null && <Chip className="hidden shrink-0 sm:inline-flex">{model.name}</Chip>}
         </div>
 
         {mode === "view" && (
-          <div className="flex gap-8">
+          <div className="flex shrink-0 gap-8">
             <Button tone="neutral" size="sm" onClick={() => setMode("edit")}>
               {t({ en: "Edit", ko: "수정" })}
             </Button>

@@ -98,11 +98,15 @@ export function formatHoldMinutes(minutes: number): string {
  * `Date` objects), so this parses the parts directly and formats in UTC
  * rather than going through `new Date(isoDate)`, which the browser's local
  * timezone can shift back a day for negative UTC offsets.
+ *
+ * `compact` drops the year (docs/decisions.md § Phase 4 mobile responsive
+ * fix) — Trade detail's mobile header has no room for the full
+ * "instrument · direction · date" line at 5 characters more per date.
  */
-export function formatTradeDate(isoDate: string, locale: Locale): string {
+export function formatTradeDate(isoDate: string, locale: Locale, compact = false): string {
   const [year, month, day] = isoDate.split("-").map(Number);
   return new Intl.DateTimeFormat(locale === "ko" ? "ko-KR" : "en-US", {
-    year: "numeric",
+    ...(compact ? {} : { year: "numeric" as const }),
     month: "short",
     day: "numeric",
     timeZone: "UTC",

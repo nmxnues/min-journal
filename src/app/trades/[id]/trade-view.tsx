@@ -64,15 +64,30 @@ export function TradeView({ trade, attachments }: TradeViewProps) {
   const isOffPlan = offPlan(trade);
   const em = "—";
 
+  // Trade detail has no mock at any width (docs/README.md only mocks it at
+  // 1000px), so the mobile layout below is designed from the same card
+  // vocabulary rather than ported from a screen — same approach as
+  // Phase 3's EmptyState/BottomTabBar. `locale` is this app's own
+  // mobile/desktop signal (Phase 3: it flips at exactly 900px), reused here
+  // rather than introducing a second breakpoint mechanism.
+  const isMobile = locale === "ko";
+
   return (
-    <div className="mx-auto flex max-w-[1000px] flex-col gap-16 p-32">
+    <div className={cn("mx-auto flex max-w-[1000px] flex-col gap-16", isMobile ? "p-20" : "p-32")}>
       {/* Result card */}
-      <Card className="grid grid-cols-[220px_1fr] items-center gap-36 px-32 py-28">
+      <Card
+        className={cn(
+          isMobile
+            ? "flex flex-col gap-20 px-20 py-24"
+            : "grid grid-cols-[220px_1fr] items-center gap-36 px-32 py-28",
+        )}
+      >
         <div>
           <div className="text-13 font-semibold text-muted">{t({ en: "Realized", ko: "실현" })}</div>
           <div
             className={cn(
-              "mt-4 text-48 leading-[1.1] font-extrabold tracking-[-.04em]",
+              "mt-4 leading-[1.1] font-extrabold tracking-[-.04em]",
+              isMobile ? "text-30" : "text-48",
               realized === null ? "text-ink" : realized >= 0 ? "text-gain" : "text-loss",
             )}
           >
@@ -86,7 +101,7 @@ export function TradeView({ trade, attachments }: TradeViewProps) {
             </div>
           )}
         </div>
-        <div className="grid grid-cols-4 gap-12">
+        <div className={cn("grid gap-12", isMobile ? "grid-cols-2" : "grid-cols-4")}>
           <InfoTile label={t({ en: "Entry", ko: "진입가" })} value={formatPrice(trade.entry, trade.instrument)} />
           <InfoTile label={t({ en: "Stop", ko: "손절가" })} value={formatPrice(trade.stop, trade.instrument)} />
           <InfoTile
@@ -101,7 +116,7 @@ export function TradeView({ trade, attachments }: TradeViewProps) {
       </Card>
 
       {/* CRT sequence card */}
-      <Card className="px-32 py-28">
+      <Card className={cn(isMobile ? "px-20 py-24" : "px-32 py-28")}>
         <h2 className="text-16 font-bold tracking-[-.02em] text-ink">
           {t({ en: "CRT sequence", ko: "CRT 시퀀스" })}
         </h2>
@@ -117,8 +132,13 @@ export function TradeView({ trade, attachments }: TradeViewProps) {
           </Chip>
         </div>
 
-        <Panel className="mt-18 grid grid-cols-[1fr_190px] items-center gap-28 rounded-20 px-28 pt-30 pb-22">
-          <div>
+        <Panel
+          className={cn(
+            "mt-18 items-center rounded-20",
+            isMobile ? "flex flex-col gap-20 px-20 pt-24 pb-20" : "grid grid-cols-[1fr_190px] gap-28 px-28 pt-30 pb-22",
+          )}
+        >
+          <div className="w-full">
             <RangeDiagram
               variant="detail"
               rangeHigh={trade.rangeHigh}
@@ -144,7 +164,12 @@ export function TradeView({ trade, attachments }: TradeViewProps) {
               }}
             />
           </div>
-          <div className="flex flex-col gap-14 border-l border-panel pl-24">
+          <div
+            className={cn(
+              "flex w-full flex-col gap-14 border-panel",
+              isMobile ? "border-t pt-16" : "border-l pl-24",
+            )}
+          >
             <div>
               <div className="text-12 font-semibold text-muted">
                 {t({ en: "Range size", ko: "레인지 크기" })}
@@ -178,7 +203,7 @@ export function TradeView({ trade, attachments }: TradeViewProps) {
         </Panel>
       </Card>
 
-      <div className="grid grid-cols-2 gap-16">
+      <div className={cn("grid gap-16", isMobile ? "grid-cols-1" : "grid-cols-2")}>
         {/* Charts card */}
         <Card className="px-28 py-26">
           <div className="flex items-baseline justify-between">

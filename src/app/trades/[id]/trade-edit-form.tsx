@@ -51,9 +51,19 @@ export interface TradeEditFormProps {
   onSaved: () => void;
 }
 
-function SectionCard({ step, title, children }: { step: number; title: string; children: React.ReactNode }) {
+function SectionCard({
+  step,
+  title,
+  compact,
+  children,
+}: {
+  step: number;
+  title: string;
+  compact: boolean;
+  children: React.ReactNode;
+}) {
   return (
-    <Card className="px-32 py-28">
+    <Card className={compact ? "px-20 py-24" : "px-32 py-28"}>
       <div className="flex items-center gap-10">
         <span className="flex h-24 w-24 items-center justify-center rounded-pill bg-ink text-12 font-bold text-white">
           {step}
@@ -84,6 +94,11 @@ export function TradeEditForm({
 }: TradeEditFormProps) {
   const t = useT();
   const locale = useLocale();
+  // Same signal/rationale as trade-view.tsx: no mock exists for this screen
+  // at any width, so mobile collapses the same numbered sections to a single
+  // column at the app's existing 900px mobile boundary rather than inventing
+  // a second breakpoint mechanism.
+  const isMobile = locale === "ko";
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
   const [showSweepOverride, setShowSweepOverride] = useState(
@@ -221,10 +236,14 @@ export function TradeEditForm({
       : undefined;
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate className="mx-auto flex max-w-[1000px] flex-col gap-16 p-32">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      noValidate
+      className={cn("mx-auto flex max-w-[1000px] flex-col gap-16", isMobile ? "p-20" : "p-32")}
+    >
       {/* 1 — Context */}
-      <SectionCard step={1} title={t({ en: "Context", ko: "맥락" })}>
-        <div className="grid grid-cols-2 gap-16">
+      <SectionCard step={1} title={t({ en: "Context", ko: "맥락" })} compact={isMobile}>
+        <div className={cn("grid gap-16", isMobile ? "grid-cols-1" : "grid-cols-2")}>
           <Field label={t({ en: "Instrument", ko: "종목" })} htmlFor="instrument" error={errors.instrument?.message}>
             <Controller
               control={control}
@@ -245,7 +264,7 @@ export function TradeEditForm({
           </Field>
         </div>
 
-        <div className="mt-16 grid grid-cols-2 gap-16">
+        <div className={cn("mt-16 grid gap-16", isMobile ? "grid-cols-1" : "grid-cols-2")}>
           <Field label={t({ en: "Session", ko: "세션" })}>
             <Controller
               control={control}
@@ -284,8 +303,8 @@ export function TradeEditForm({
       </SectionCard>
 
       {/* 2 — Range & sweep */}
-      <SectionCard step={2} title={t({ en: "Range & sweep", ko: "레인지 · 스윕" })}>
-        <div className="grid grid-cols-3 gap-16">
+      <SectionCard step={2} title={t({ en: "Range & sweep", ko: "레인지 · 스윕" })} compact={isMobile}>
+        <div className={cn("grid gap-16", isMobile ? "grid-cols-1" : "grid-cols-3")}>
           <Field label={t({ en: "HTF pairing", ko: "HTF 페어링" })} htmlFor="htf-pairing">
             <Select id="htf-pairing" {...register("htfPairing")}>
               {HTF_PAIRING_ORDER.map((value) => (
@@ -303,7 +322,14 @@ export function TradeEditForm({
           </Field>
         </div>
 
-        <Panel className="mt-16 grid grid-cols-[1fr_180px] gap-28 rounded-20 px-28 pt-26 pb-20">
+        <Panel
+          className={cn(
+            "mt-16 rounded-20",
+            isMobile
+              ? "flex flex-col gap-20 px-20 pt-24 pb-20"
+              : "grid grid-cols-[1fr_180px] gap-28 px-28 pt-26 pb-20",
+          )}
+        >
           <RangeDiagram
             rangeHigh={derived.rangeHigh ?? 0}
             rangeLow={derived.rangeLow ?? 0}
@@ -312,7 +338,12 @@ export function TradeEditForm({
             labels={{ sweep: t({ en: "Sweep", ko: "스윕" }), target: t({ en: "Target", ko: "타겟" }) }}
             captions={priceCaptions}
           />
-          <div className="flex flex-col gap-18 border-l border-panel pl-28">
+          <div
+            className={cn(
+              "flex flex-col gap-18 border-panel",
+              isMobile ? "border-t pt-16" : "border-l pl-28",
+            )}
+          >
             <div>
               <div className="text-13 font-semibold text-muted">{t({ en: "Range size", ko: "레인지 크기" })}</div>
               <div className="mt-4 text-22 font-extrabold tracking-[-.03em] text-ink">
@@ -361,8 +392,8 @@ export function TradeEditForm({
       </SectionCard>
 
       {/* 3 — Execution */}
-      <SectionCard step={3} title={t({ en: "Execution", ko: "실행" })}>
-        <div className="grid grid-cols-4 gap-16">
+      <SectionCard step={3} title={t({ en: "Execution", ko: "실행" })} compact={isMobile}>
+        <div className={cn("grid gap-16", isMobile ? "grid-cols-2" : "grid-cols-4")}>
           <Field label={t({ en: "Entry", ko: "진입가" })} htmlFor="entry" error={errors.entry?.message}>
             <Input id="entry" inputMode="decimal" {...register("entry")} />
           </Field>
@@ -386,7 +417,7 @@ export function TradeEditForm({
           </span>
         </div>
 
-        <div className="mt-16 grid grid-cols-2 gap-16">
+        <div className={cn("mt-16 grid gap-16", isMobile ? "grid-cols-1" : "grid-cols-2")}>
           <Field label={t({ en: "Entry model", ko: "진입 모델" })} htmlFor="model">
             <Controller
               control={control}
@@ -421,7 +452,7 @@ export function TradeEditForm({
           </Field>
         </div>
 
-        <div className="mt-16 grid grid-cols-2 gap-16">
+        <div className={cn("mt-16 grid gap-16", isMobile ? "grid-cols-1" : "grid-cols-2")}>
           <Field
             label={t({ en: "Exit", ko: "청산가" })}
             htmlFor="exit"
@@ -457,7 +488,7 @@ export function TradeEditForm({
           </Field>
         </div>
 
-        <div className="mt-16 grid grid-cols-2 gap-16">
+        <div className={cn("mt-16 grid gap-16", isMobile ? "grid-cols-1" : "grid-cols-2")}>
           <Field label={t({ en: "Exit reason", ko: "청산 사유" })} htmlFor="exit-reason" error={errors.exitReason?.message}>
             <Input id="exit-reason" placeholder="Partial into 50%" {...register("exitReason")} />
           </Field>
@@ -477,8 +508,8 @@ export function TradeEditForm({
       </SectionCard>
 
       {/* 4 — Chart & notes */}
-      <SectionCard step={4} title={t({ en: "Chart & notes", ko: "차트 · 노트" })}>
-        <div className="grid grid-cols-2 gap-16">
+      <SectionCard step={4} title={t({ en: "Chart & notes", ko: "차트 · 노트" })} compact={isMobile}>
+        <div className={cn("grid gap-16", isMobile ? "grid-cols-1" : "grid-cols-2")}>
           <div>
             <Dropzone
               disabled={tradeAttachments.attachments.length >= MAX_ATTACHMENTS_PER_TRADE}
@@ -537,7 +568,7 @@ export function TradeEditForm({
       </SectionCard>
 
       {warnings.length > 0 && (
-        <Card className="px-32 py-24">
+        <Card className={cn(isMobile ? "px-20 py-20" : "px-32 py-24")}>
           <div className="flex flex-col gap-12">
             {warnings.map((code) => (
               <div key={code} className="flex items-start gap-10">
