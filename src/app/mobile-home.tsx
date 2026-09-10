@@ -101,6 +101,10 @@ export function MobileHome({ month, trades, models, hasAccount }: MobileHomeProp
       {header}
 
       <div className="flex flex-1 flex-col gap-14 px-20 py-12">
+        <Link href="/weekly-review" className="self-start text-12_5 font-semibold text-accent">
+          {t({ en: "Weekly review", ko: "주간 리뷰" })} →
+        </Link>
+
         <Card className="p-24">
           <div className="text-13 font-semibold text-muted">{t({ en: "Month to date", ko: "이번 달 누적" })}</div>
           <div

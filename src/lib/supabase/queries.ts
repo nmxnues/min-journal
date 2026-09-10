@@ -6,6 +6,7 @@ import type {
   Attachment,
   CashMovement,
   Direction,
+  FocusItem,
   HtfPairing,
   RiskMode,
   Session,
@@ -13,6 +14,7 @@ import type {
   Trade,
   TradeModel,
   TradeResult,
+  WeeklyReview,
 } from "@/lib/domain/types";
 
 type Row<T extends keyof Database["public"]["Tables"]> =
@@ -90,6 +92,19 @@ export function toAttachment(row: Row<"attachments">): Attachment {
     height: row.height,
     caption: row.caption,
     createdAt: row.created_at,
+  };
+}
+
+export function toWeeklyReview(row: Row<"weekly_reviews">): WeeklyReview {
+  return {
+    id: row.id,
+    isoWeek: row.iso_week,
+    whatWorked: row.what_worked,
+    whatDidnt: row.what_didnt,
+    oneChange: row.one_change,
+    focusItems: Array.isArray(row.focus_items) ? (row.focus_items as unknown as FocusItem[]) : [],
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }
 
@@ -216,4 +231,17 @@ export async function getAccountLedgerInputs(accountId: string): Promise<{
     trades: (tradesResult.data ?? []).map(toTrade),
     cashMovements: (cashResult.data ?? []).map(toCashMovement),
   };
+}
+
+/** RLS + the table's own `unique (user_id, iso_week)` scope this to at most one row. */
+export async function getWeeklyReview(isoWeek: string): Promise<WeeklyReview | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("weekly_reviews")
+    .select("*")
+    .eq("iso_week", isoWeek)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data === null ? null : toWeeklyReview(data);
 }

@@ -62,6 +62,9 @@ export function DesktopDashboard({ month, trades, models, hasAccount }: DesktopD
       right={
         <>
           <span className="text-13 font-semibold text-muted">{formatMonthLabel(month, locale)}</span>
+          <Link href="/weekly-review" className="text-13 font-semibold text-accent hover:text-accent-pressed">
+            {t({ en: "Weekly review", ko: "주간 리뷰" })}
+          </Link>
           <Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "New trade" })}</Button>
           <SignOutButton signOutAction={signOut} />
         </>

@@ -160,7 +160,12 @@
 
   /* Radius — docs/README.md § Design Tokens > Radius (px-named; "pill" for
      999px pills/bars). The 34-44px phone-bezel radii are presentation-only
-     in the design canvas and are not part of the app. */
+     in the design canvas and are not part of the app. `6` isn't in that
+     summary list but appears twice in the canvas itself, identically, for
+     the same small numbered/checkbox badge (Playbook's rule numbers,
+     Weekly review's focus checkboxes) — real repeated intent, not a
+     one-off the README's own list just omitted enumerating. */
+  --radius-6: 6px;
   --radius-8: 8px;
   --radius-10: 10px;
   --radius-12: 12px;

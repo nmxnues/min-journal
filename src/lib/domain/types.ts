@@ -96,3 +96,19 @@ export interface CashMovement {
   note: string | null;
   createdAt: string;
 }
+
+export interface FocusItem {
+  text: string;
+  checked: boolean;
+}
+
+export interface WeeklyReview {
+  id: string;
+  isoWeek: string;
+  whatWorked: string | null;
+  whatDidnt: string | null;
+  oneChange: string | null;
+  focusItems: FocusItem[];
+  createdAt: string;
+  updatedAt: string;
+}
