@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { BarChart3, CalendarDays, LineChart, NotebookPen, Wallet } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { INSTRUMENT_PRESETS } from "@/lib/instruments";
 import { LOCALE_BREAKPOINT_PX } from "@/lib/i18n/locale";
@@ -9,6 +8,7 @@ import { useLocale, useT } from "@/lib/i18n/locale-context";
 import { BalanceAndRValueChart } from "@/components/charts/balance-r-value-chart";
 import { EquityCurve, Sparkline } from "@/components/charts/equity-curve";
 import { BottomTabBar } from "@/components/nav/bottom-tab-bar";
+import { toNavItems, toTabItems } from "@/components/nav/routes";
 import { TopBar } from "@/components/nav/top-bar";
 import { RangeDiagram } from "@/components/range-diagram";
 import { AttachmentThumbnails } from "@/components/attachment-thumbnails";
@@ -33,25 +33,6 @@ import {
   Textarea,
   ToggleChip,
 } from "@/components/ui";
-
-/**
- * One shared dictionary for both TopBar (PC, >=900px) and BottomTabBar
- * (mobile, <900px) — same 5 destinations, resolved through the same useT()
- * mechanism rather than two hardcoded lists. Korean sides are natural
- * equivalents, not literal translations (docs/README.md §9's own example
- * pairs "Month to date" with "이번 달 누적", not a translation of it):
- * "홈" for the dashboard/home tab, and "자산" for Capital is lifted directly
- * from the 3b-mobile mock's own header for that screen.
- */
-const NAV_ROUTES = [
-  { href: "/", strings: { en: "Dashboard", ko: "홈" }, icon: BarChart3 },
-  { href: "/trades", strings: { en: "Trades", ko: "기록" }, icon: NotebookPen },
-  { href: "/calendar", strings: { en: "Calendar", ko: "캘린더" }, icon: CalendarDays },
-  { href: "/playbook", strings: { en: "Playbook", ko: "플레이북" }, icon: LineChart },
-  { href: "/capital", strings: { en: "Capital", ko: "자산" }, icon: Wallet },
-] as const;
-
-
 
 /** Mock 1a's equity curve, as cumulative R. */
 const EQUITY = [0, 1.2, 0.7, 3.4, 2.7, 5.2, 4.5, 7.0, 5.8, 7.9, 7.3, 9.7, 8.4, 10.3, 9.6, 11.7, 10.8, 12.6, 13.4];
@@ -106,12 +87,8 @@ export function ComponentGallery() {
   const toggleTag = (tag: string) =>
     setTags((current) => (current.includes(tag) ? current.filter((existing) => existing !== tag) : [...current, tag]));
 
-  const navItems = NAV_ROUTES.map((route) => ({ href: route.href, label: t(route.strings) }));
-  const tabItems = NAV_ROUTES.map((route) => ({
-    href: route.href,
-    label: t(route.strings),
-    icon: route.icon,
-  }));
+  const navItems = toNavItems(t);
+  const tabItems = toTabItems(t);
 
   return (
     <main className="min-h-full bg-page pb-40">

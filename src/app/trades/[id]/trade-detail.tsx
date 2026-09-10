@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { Button, Chip, Modal } from "@/components/ui";
 import { formatTradeDate } from "@/lib/format";
+import { DIRECTION_LABELS } from "@/lib/labels";
 import type { Attachment, Trade, TradeModel } from "@/lib/domain/types";
 import { useLocale, useT } from "@/lib/i18n/locale-context";
 import { deleteTrade } from "./actions";
@@ -19,11 +20,6 @@ export interface TradeDetailProps {
   drawdownPercent: number;
   drawdownLimitPercent: number;
 }
-
-const DIRECTION_LABELS = {
-  long: { en: "Long", ko: "롱" },
-  short: { en: "Short", ko: "숏" },
-} as const;
 
 export function TradeDetail({
   trade,

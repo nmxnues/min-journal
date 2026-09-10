@@ -10,6 +10,8 @@ import { cn } from "@/lib/cn";
 export interface NavItem {
   href: string;
   label: string;
+  /** Route doesn't exist yet — render inert rather than linking into a 404. */
+  disabled?: boolean;
 }
 
 export interface TopBarProps {
@@ -39,6 +41,18 @@ export function TopBar({
 
       <nav className="flex items-center gap-4">
         {items.map((item) => {
+          if (item.disabled === true) {
+            return (
+              <span
+                key={item.href}
+                aria-disabled="true"
+                className="rounded-10 px-14 py-8 text-14 font-semibold text-faint opacity-40"
+              >
+                {item.label}
+              </span>
+            );
+          }
+
           const isActive = item.href === activeHref;
           return (
             <Link

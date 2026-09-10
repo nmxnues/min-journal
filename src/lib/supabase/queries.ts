@@ -163,6 +163,26 @@ export async function getSettings() {
   return data;
 }
 
+/** Trades within an inclusive date range, most recent first — the Dashboard and Calendar's own query. */
+export async function getTradesInRange(
+  accountId: string,
+  from: string,
+  to: string,
+): Promise<Trade[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("trades")
+    .select("*")
+    .eq("account_id", accountId)
+    .gte("date", from)
+    .lte("date", to)
+    .order("date", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map(toTrade);
+}
+
 /** Everything `currentRValue` and the drawdown guard need for one account. */
 export async function getAccountLedgerInputs(accountId: string): Promise<{
   trades: Trade[];

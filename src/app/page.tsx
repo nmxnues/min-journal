@@ -1,29 +1,25 @@
-import Link from "next/link";
-import { TopBar } from "@/components/nav/top-bar";
-import { SignOutButton } from "@/components/nav/sign-out-button";
-import { signOut } from "./actions";
+import type { Metadata } from "next";
+import { currentIsoMonth, monthRange } from "@/lib/domain/dates";
+import { getModels, getPrimaryAccount, getTradesInRange } from "@/lib/supabase/queries";
+import { Dashboard } from "./dashboard";
 
-export default function Home() {
-  return (
-    <>
-      {/* Nav items are empty on purpose — Dashboard/Trades/Calendar/Playbook/
-          Capital don't exist yet (Phase 5+). This TopBar exists right now
-          only so a signed-in user has somewhere to sign out from. */}
-      <TopBar items={[]} activeHref="/" right={<SignOutButton signOutAction={signOut} />} />
-      <main className="flex flex-1 flex-col items-center justify-center gap-16 bg-page px-32 text-center">
-        <div>
-          <p className="text-14 font-semibold text-muted">Min Journal</p>
-          <h1 className="mt-6 text-30 font-extrabold tracking-[-.03em] text-ink">
-            Phase 0 foundation
-          </h1>
-          <p className="mt-8 text-14 text-secondary">
-            Screens land in later phases.{" "}
-            <Link href="/dev/tokens" className="font-semibold text-accent hover:text-accent-pressed">
-              View design tokens →
-            </Link>
-          </p>
-        </div>
-      </main>
-    </>
-  );
+export const metadata: Metadata = {
+  title: "Dashboard · Min Journal",
+};
+
+export default async function Home() {
+  const account = await getPrimaryAccount();
+  const month = currentIsoMonth();
+
+  if (account === null) {
+    return <Dashboard month={month} trades={[]} models={[]} hasAccount={false} />;
+  }
+
+  const { from, to } = monthRange(month);
+  const [trades, models] = await Promise.all([
+    getTradesInRange(account.id, from, to),
+    getModels(),
+  ]);
+
+  return <Dashboard month={month} trades={trades} models={models} hasAccount />;
 }

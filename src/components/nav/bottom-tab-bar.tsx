@@ -12,6 +12,8 @@ export interface TabItem {
   href: string;
   label: string;
   icon: ComponentType<{ size?: number; className?: string; "aria-hidden"?: boolean }>;
+  /** Route doesn't exist yet — render inert rather than linking into a 404. */
+  disabled?: boolean;
 }
 
 export interface BottomTabBarProps {
@@ -29,8 +31,22 @@ export function BottomTabBar({ items, activeHref, className }: BottomTabBarProps
       )}
     >
       {items.map((item) => {
-        const isActive = item.href === activeHref;
         const Icon = item.icon;
+
+        if (item.disabled === true) {
+          return (
+            <span
+              key={item.href}
+              aria-disabled="true"
+              className="flex min-h-[56px] flex-1 flex-col items-center justify-center gap-4 py-8 text-muted opacity-40"
+            >
+              <Icon aria-hidden size={20} />
+              <span className="text-11 font-semibold">{item.label}</span>
+            </span>
+          );
+        }
+
+        const isActive = item.href === activeHref;
         return (
           <Link
             key={item.href}

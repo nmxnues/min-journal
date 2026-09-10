@@ -35,11 +35,29 @@ const R_FORMAT = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 1,
 });
 
-/** "+2.8R" / "−1.0R" — the mocks always carry an explicit sign on R values. */
-export function formatR(value: number, precision = 1): string {
+/**
+ * "+2.8R" / "−1.0R" — the mocks always carry an explicit sign on R values.
+ * `unit: false` drops the trailing "R" for the mobile calendar's abbreviated
+ * cell values (docs/README.md § Mobile: Calendar shows "+1.8", not "+1.8R").
+ * `forceSign: false` omits the leading "+" on a non-negative value — the
+ * dashboard's Avg win stat and expectancy chip read "2.3R"/"0.30R" in the
+ * mock, with no plus, while every other R value in the app (the hero
+ * headline, recent trades, model/session breakdowns) does carry one.
+ */
+export function formatR(value: number, precision = 1, unit = true, forceSign = true): string {
   const rounded = precision === 1 ? R_FORMAT.format(Math.abs(value)) : Math.abs(value).toFixed(precision);
-  const sign = value > 0 ? "+" : value < 0 ? "−" : "";
-  return `${sign}${rounded}R`;
+  const sign = value > 0 ? (forceSign ? "+" : "") : value < 0 ? "−" : "";
+  return `${sign}${rounded}${unit ? "R" : ""}`;
+}
+
+/** "87%" — selectors return raw 0..1 ratios; rounding is display-only. */
+export function formatPercent(ratio: number, decimals = 0): string {
+  return `${(ratio * 100).toFixed(decimals)}%`;
+}
+
+/** "09.09" — the dashboard's Recent trades date column. */
+export function formatCompactDate(isoDate: string): string {
+  return `${isoDate.slice(5, 7)}.${isoDate.slice(8, 10)}`;
 }
 
 /**

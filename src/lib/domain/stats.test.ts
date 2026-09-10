@@ -13,6 +13,7 @@ import {
   netR,
   ruleAdherence,
   sortChronologically,
+  sweepAlignment,
   winRate,
   winStreaks,
 } from "./stats";
@@ -206,6 +207,41 @@ describe("bySession / bySweepSide", () => {
     expect(rows.find((r) => r.sweepSide === "low")!.winRate).toBe(0.5);
     expect(rows.find((r) => r.sweepSide === "high")!.winRate).toBe(1);
     expect(rows.find((r) => r.sweepSide === "both")!.winRate).toBeNull();
+  });
+});
+
+describe("sweepAlignment", () => {
+  it("keys long-after-low-purge separately from short-after-high-purge", () => {
+    const rows = sweepAlignment([
+      makeTrade({ id: "a", direction: "long", sweepSide: "low", entry: 10, stop: 5, exit: 20, result: "win" }),
+      makeTrade({ id: "b", direction: "long", sweepSide: "low", entry: 10, stop: 5, exit: 0, result: "loss" }),
+      makeTrade({ id: "c", direction: "short", sweepSide: "high", entry: 10, stop: 15, exit: 0, result: "win" }),
+      // A long entry after a HIGH purge doesn't count toward either aligned row.
+      makeTrade({ id: "d", direction: "long", sweepSide: "high", entry: 10, stop: 5, exit: 20, result: "win" }),
+    ]);
+
+    const longAfterLow = rows.find((r) => r.key === "long_after_low")!;
+    expect(longAfterLow.tradeCount).toBe(2);
+    expect(longAfterLow.winRate).toBe(0.5);
+
+    const shortAfterHigh = rows.find((r) => r.key === "short_after_high")!;
+    expect(shortAfterHigh.tradeCount).toBe(1);
+    expect(shortAfterHigh.winRate).toBe(1);
+  });
+
+  it("groups every no-sweep entry regardless of direction", () => {
+    const rows = sweepAlignment([
+      makeTrade({ id: "a", direction: "long", sweepSide: "none", result: "loss" }),
+      makeTrade({ id: "b", direction: "short", sweepSide: "none", result: "loss" }),
+    ]);
+    const noSweep = rows.find((r) => r.key === "no_sweep")!;
+    expect(noSweep.tradeCount).toBe(2);
+    expect(noSweep.winRate).toBe(0);
+  });
+
+  it("is null, not zero, for a row with no matching trades", () => {
+    const rows = sweepAlignment([]);
+    expect(rows.every((r) => r.winRate === null && r.tradeCount === 0)).toBe(true);
   });
 });
 

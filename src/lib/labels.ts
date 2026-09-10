@@ -1,4 +1,4 @@
-import type { HtfPairing, Session, SweepSide } from "@/lib/domain/types";
+import type { Direction, HtfPairing, Session, SweepSide } from "@/lib/domain/types";
 import type { LocaleStrings } from "@/lib/i18n/locale";
 
 /**
@@ -6,6 +6,11 @@ import type { LocaleStrings } from "@/lib/i18n/locale";
  * constraint stays cheap to change and the arrow glyphs stay out of the
  * database (docs/decisions.md § Phase 1).
  */
+export const DIRECTION_LABELS: Record<Direction, LocaleStrings> = {
+  long: { en: "Long", ko: "롱" },
+  short: { en: "Short", ko: "숏" },
+};
+
 export const SESSION_LABELS: Record<Session, LocaleStrings> = {
   asia: { en: "Asia", ko: "아시아" },
   london: { en: "London", ko: "런던" },
@@ -30,6 +35,11 @@ export const SWEEP_SIDE_LABELS: Record<SweepSide, LocaleStrings> = {
 };
 
 export const SWEEP_SIDE_ORDER: readonly SweepSide[] = ["low", "high", "both", "none"];
+
+/** "1 trade" / "2 trades" / "3건" — every trade-count caption on the Dashboard and Calendar goes through this, so English singular isn't a one-off fix. */
+export function tradeCountLabel(n: number): LocaleStrings {
+  return { en: `${n} ${n === 1 ? "trade" : "trades"}`, ko: `${n}건` };
+}
 
 /**
  * The behaviour tags offered on the trade form (docs/README.md § New trade).

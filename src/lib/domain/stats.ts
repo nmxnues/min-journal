@@ -263,6 +263,35 @@ export const equityCurve = memoize((trades: readonly Trade[]): EquityCurve => {
   return { points, maxDrawdownR, maxDrawdownDate };
 });
 
+export type SweepAlignmentKey = "long_after_low" | "short_after_high" | "no_sweep";
+
+export interface SweepAlignmentStats {
+  key: SweepAlignmentKey;
+  winRate: number | null;
+  tradeCount: number;
+}
+
+const SWEEP_ALIGNMENT_FILTERS: Record<SweepAlignmentKey, (t: Trade) => boolean> = {
+  long_after_low: (t) => t.direction === "long" && t.sweepSide === "low",
+  short_after_high: (t) => t.direction === "short" && t.sweepSide === "high",
+  no_sweep: (t) => t.sweepSide === "none",
+};
+
+/**
+ * Win rate for the three CRT-alignment rows on "Session · sweep side"
+ * (docs/README.md § Dashboard: "Long after low purge" / "Short after high
+ * purge" / "Entry without a sweep"). Distinct from `bySweepSide` — these
+ * cross sweep side with direction, since a long entry after a *high* purge
+ * isn't the textbook setup even though it shares a `sweepSide` bucket with a
+ * short entry that is.
+ */
+export const sweepAlignment = memoize((trades: readonly Trade[]): SweepAlignmentStats[] =>
+  (Object.keys(SWEEP_ALIGNMENT_FILTERS) as SweepAlignmentKey[]).map((key) => {
+    const matching = trades.filter(SWEEP_ALIGNMENT_FILTERS[key]);
+    return { key, winRate: winRate(matching), tradeCount: matching.length };
+  }),
+);
+
 export interface PeriodStats {
   tradeCount: number;
   netR: number;
