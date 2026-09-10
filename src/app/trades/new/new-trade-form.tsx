@@ -43,6 +43,7 @@ import { useDraftAttachments } from "./use-draft-attachments";
 import { useDraftAutosave } from "./use-draft-autosave";
 import { collectWarnings, type WarningCode } from "@/lib/domain/warnings";
 import { usePasteAttachment } from "@/lib/use-paste-attachment";
+import { MobileQuickLogWizard, WIZARD_STEP_COUNT, WIZARD_STEP_FIELDS } from "./mobile-quicklog-wizard";
 
 export interface NewTradeFormProps {
   models: TradeModel[];
@@ -100,12 +101,15 @@ export function NewTradeForm({
   const [showSweepOverride, setShowSweepOverride] = useState(false);
   /** Once the trader sets Result by hand, the exit never overwrites it again. */
   const [resultTouched, setResultTouched] = useState(draft !== null);
+  /** Mobile quicklog wizard step (docs/decisions.md § Phase 4d) — unused on desktop. */
+  const [wizardStep, setWizardStep] = useState(1);
 
   const {
     control,
     register,
     handleSubmit,
     setValue,
+    trigger,
     formState: { errors },
   } = useForm<NewTradeInput>({
     resolver: zodResolver(createNewTradeSchema(locale)),
@@ -258,6 +262,22 @@ export function NewTradeForm({
     void autosave.flush().then(() => router.push("/"));
   }
 
+  function onResultChange(value: TradeResult) {
+    setResultTouched(true);
+    setValue("result", value, { shouldDirty: true });
+  }
+
+  /** Validates the current wizard step's required fields before advancing. */
+  function onWizardNext() {
+    void trigger(WIZARD_STEP_FIELDS[wizardStep]).then((valid) => {
+      if (valid) setWizardStep((s) => Math.min(s + 1, WIZARD_STEP_COUNT));
+    });
+  }
+
+  function onWizardBack() {
+    setWizardStep((s) => Math.max(s - 1, 1));
+  }
+
   const priceCaptions =
     derived.rangeHigh !== null && derived.rangeLow !== null && derived.size !== null
       ? {
@@ -266,6 +286,55 @@ export function NewTradeForm({
           high: `${t({ en: "High", ko: "고점" })} ${formatPrice(derived.rangeHigh, values.instrument)}`,
         }
       : undefined;
+
+  if (locale === "ko") {
+    return (
+      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+        <header className="sticky top-0 z-10 flex flex-col gap-14 bg-page px-20 pt-16 pb-14">
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              aria-label={t({ en: "Close", ko: "닫기" })}
+              className="text-18 font-semibold text-muted transition-colors duration-150 ease-out hover:text-ink"
+            >
+              <X aria-hidden size={20} />
+            </button>
+            <span className="text-13 font-semibold text-faint">
+              {wizardStep} / {WIZARD_STEP_COUNT}
+            </span>
+          </div>
+          <div className="h-4 rounded-pill bg-divider">
+            <div
+              className="h-full rounded-pill bg-accent transition-[width] duration-150 ease-out"
+              style={{ width: `${(wizardStep / WIZARD_STEP_COUNT) * 100}%` }}
+            />
+          </div>
+        </header>
+
+        <MobileQuickLogWizard
+          step={wizardStep}
+          onBack={onWizardBack}
+          onNext={onWizardNext}
+          control={control}
+          register={register}
+          errors={errors}
+          values={values}
+          derived={derived}
+          models={models}
+          rValueToday={rValueToday}
+          currency={currency}
+          attachments={attachments}
+          onExitChange={onExitChange}
+          onResultChange={onResultChange}
+          warnings={warnings}
+          warningText={warningText}
+          serverError={serverError}
+          isPending={isPending}
+        />
+      </form>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate>
@@ -558,10 +627,7 @@ export function NewTradeForm({
                   <Segmented
                     name="result"
                     value={field.value}
-                    onChange={(value) => {
-                      setResultTouched(true);
-                      field.onChange(value);
-                    }}
+                    onChange={onResultChange}
                     options={[
                       { value: "win", label: t({ en: "Win", ko: "익절" }), tone: "gain" },
                       { value: "loss", label: t({ en: "Loss", ko: "손절" }), tone: "loss" },
