@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { X } from "lucide-react";
-import { Card, Chip, Dropzone, Modal, Panel } from "@/components/ui";
+import { Card, Chip, Dropzone, Panel } from "@/components/ui";
 import { RangeDiagram } from "@/components/range-diagram";
+import { AttachmentThumbnails } from "@/components/attachment-thumbnails";
 import { cn } from "@/lib/cn";
 import {
   formatHoldMinutes,
@@ -49,7 +48,6 @@ function InfoTile({ label, value }: { label: string; value: string }) {
 export function TradeView({ trade, attachments }: TradeViewProps) {
   const t = useT();
   const locale = useLocale();
-  const [lightbox, setLightbox] = useState<string | null>(null);
 
   const tradeAttachments = useTradeAttachments(trade.id, attachments);
   usePasteAttachment(
@@ -221,30 +219,10 @@ export function TradeView({ trade, attachments }: TradeViewProps) {
               <p className="text-11_5 font-medium text-faint">
                 {t({ en: "Paste a screenshot with ⌘V to add another.", ko: "⌘V로 붙여넣으면 스크린샷이 추가됩니다." })}
               </p>
-              {tradeAttachments.attachments.map((attachment) => (
-                <div key={attachment.path} className="group relative">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (attachment.previewUrl !== null) setLightbox(attachment.previewUrl);
-                    }}
-                    className="block h-[150px] w-full overflow-hidden rounded-16 bg-divider"
-                  >
-                    {attachment.previewUrl !== null && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={attachment.previewUrl} alt="" className="h-full w-full object-cover" />
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void tradeAttachments.removeAttachment(attachment.path)}
-                    aria-label={t({ en: "Remove", ko: "삭제" })}
-                    className="absolute top-8 right-8 flex h-24 w-24 items-center justify-center rounded-pill bg-ink/60 text-white opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                  >
-                    <X aria-hidden size={14} />
-                  </button>
-                </div>
-              ))}
+              <AttachmentThumbnails
+                attachments={tradeAttachments.attachments}
+                onRemove={(path) => void tradeAttachments.removeAttachment(path)}
+              />
               {tradeAttachments.uploading > 0 && (
                 <p className="text-11_5 font-medium text-faint">
                   {t({ en: "Uploading…", ko: "업로드 중…" })}
@@ -290,18 +268,6 @@ export function TradeView({ trade, attachments }: TradeViewProps) {
           </div>
         </Card>
       </div>
-
-      <Modal
-        open={lightbox !== null}
-        onClose={() => setLightbox(null)}
-        title={t({ en: "Chart", ko: "차트" })}
-        closeLabel={t({ en: "Close", ko: "닫기" })}
-      >
-        {lightbox !== null && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={lightbox} alt="" className="w-full rounded-16" />
-        )}
-      </Modal>
     </div>
   );
 }

@@ -11,6 +11,8 @@ import { EquityCurve, Sparkline } from "@/components/charts/equity-curve";
 import { BottomTabBar } from "@/components/nav/bottom-tab-bar";
 import { TopBar } from "@/components/nav/top-bar";
 import { RangeDiagram } from "@/components/range-diagram";
+import { AttachmentThumbnails } from "@/components/attachment-thumbnails";
+import { usePasteAttachment } from "@/lib/use-paste-attachment";
 import {
   BarRow,
   Button,
@@ -93,6 +95,13 @@ export function ComponentGallery() {
   const [modalOpen, setModalOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [dropped, setDropped] = useState<string[]>([]);
+  const [demoAttachments, setDemoAttachments] = useState<{ path: string; previewUrl: string | null }[]>([]);
+  usePasteAttachment((files) => {
+    setDemoAttachments((current) => [
+      ...current,
+      ...files.map((file) => ({ path: `${file.name}-${Date.now()}`, previewUrl: URL.createObjectURL(file) })),
+    ]);
+  });
 
   const toggleTag = (tag: string) =>
     setTags((current) => (current.includes(tag) ? current.filter((existing) => existing !== tag) : [...current, tag]));
@@ -406,14 +415,32 @@ export function ComponentGallery() {
           />
         </Section>
 
-        <Section title="Textarea / Dropzone">
+        <Section title="Textarea / Dropzone / AttachmentThumbnails">
           <div className="grid grid-cols-2 gap-16">
-            <Dropzone
-              title="Drag chart screenshots here"
-              hint="Two shots recommended: HTF range + entry timeframe"
-              buttonLabel="Choose file"
-              onFiles={(files) => setDropped(files.map((f) => f.name))}
-            />
+            <div>
+              <Dropzone
+                title="Drag chart screenshots here"
+                hint="Two shots recommended: HTF range + entry timeframe · paste with ⌘V"
+                buttonLabel="Choose file"
+                onFiles={(files) => {
+                  setDropped(files.map((f) => f.name));
+                  setDemoAttachments((current) => [
+                    ...current,
+                    ...files.map((file) => ({
+                      path: `${file.name}-${Date.now()}`,
+                      previewUrl: URL.createObjectURL(file),
+                    })),
+                  ]);
+                }}
+              />
+              <AttachmentThumbnails
+                attachments={demoAttachments}
+                onRemove={(path) =>
+                  setDemoAttachments((current) => current.filter((a) => a.path !== path))
+                }
+                className="mt-12"
+              />
+            </div>
             <Textarea placeholder="What did you see? What did you do?&#10;e.g. Waited for M1 displacement after the London low purge." />
           </div>
           {dropped.length > 0 && (

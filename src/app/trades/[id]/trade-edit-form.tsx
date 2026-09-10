@@ -3,7 +3,6 @@
 import { useMemo, useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm, useWatch } from "react-hook-form";
-import { X } from "lucide-react";
 import {
   Button,
   Card,
@@ -19,6 +18,7 @@ import {
   ToggleChip,
 } from "@/components/ui";
 import { RangeDiagram } from "@/components/range-diagram";
+import { AttachmentThumbnails } from "@/components/attachment-thumbnails";
 import { cn } from "@/lib/cn";
 import { formatPips, formatPrice, formatR, parseNumberInput } from "@/lib/format";
 import { MAX_ATTACHMENTS_PER_TRADE } from "@/lib/attachments";
@@ -496,28 +496,11 @@ export function TradeEditForm({
             {tradeAttachments.uploading > 0 && (
               <p className="mt-8 text-11_5 font-medium text-faint">{t({ en: "Uploading…", ko: "업로드 중…" })}</p>
             )}
-            {tradeAttachments.attachments.length > 0 && (
-              <div className="mt-12 grid grid-cols-3 gap-8">
-                {tradeAttachments.attachments.map((attachment) => (
-                  <div key={attachment.path} className="group relative">
-                    <div className="aspect-square overflow-hidden rounded-14 bg-divider">
-                      {attachment.previewUrl !== null && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={attachment.previewUrl} alt="" className="h-full w-full object-cover" />
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => void tradeAttachments.removeAttachment(attachment.path)}
-                      aria-label={t({ en: "Remove", ko: "삭제" })}
-                      className="absolute top-6 right-6 flex h-24 w-24 items-center justify-center rounded-pill bg-ink/60 text-white opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                    >
-                      <X aria-hidden size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+            <AttachmentThumbnails
+              attachments={tradeAttachments.attachments}
+              onRemove={(path) => void tradeAttachments.removeAttachment(path)}
+              className="mt-12"
+            />
           </div>
           <div>
             <Textarea
