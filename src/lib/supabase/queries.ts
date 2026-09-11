@@ -1,5 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
+import { cache } from "react";
 import { createClient } from "./server";
 import { CURRENT_ACCOUNT_COOKIE } from "@/lib/current-account";
 import type { Database } from "@/lib/database.types";
@@ -246,12 +247,21 @@ export async function getModels(): Promise<TradeModel[]> {
   return (data ?? []).map(toTradeModel);
 }
 
-export async function getSettings() {
+/**
+ * `cache()`'d because RootLayout reads this on every route (for
+ * `data-pnl`/`r_precision`) and at least one page (`/trades/new`, for its
+ * default instrument/session) reads it again in the same request — without
+ * this they were two separate round trips to the same row on that route.
+ * Request-scoped only (React's per-render memoization, not a module-level
+ * singleton), so this stays safe with `createClient()`'s own "fresh per
+ * request" rule above.
+ */
+export const getSettings = cache(async () => {
   const supabase = await createClient();
   const { data, error } = await supabase.from("settings").select("*").maybeSingle();
   if (error) throw error;
   return data;
-}
+});
 
 /** Row -> domain mapper for the Settings screen, which wants typed fields rather than `getSettings()`'s raw row. */
 export function toSettings(row: Row<"settings">): Settings {
