@@ -22,8 +22,18 @@ export const metadata: Metadata = {
 // Matches manifest.ts's theme_color — this is the separate mechanism that
 // also tints the browser chrome (e.g. Safari/Chrome's address-bar area on
 // mobile) even before the app is ever added to a home screen.
+//
+// `viewportFit: "cover"` is the actual prerequisite for
+// `env(safe-area-inset-*)` to resolve to anything but `0` on iOS — without
+// it, Safari never lets the page draw under the home-indicator area at all,
+// so `BottomTabBar`'s own safe-area padding (and the extra breathing room
+// added on top of it) was computing against a permanently-zero inset no
+// matter what the component itself did. Missing here the whole time; found
+// only once the padding bump still didn't read as any different on a real
+// iPhone.
 export const viewport: Viewport = {
   themeColor: "#191f28",
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
