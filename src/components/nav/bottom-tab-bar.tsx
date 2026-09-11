@@ -39,6 +39,11 @@ export interface BottomTabBarProps {
  * instead of it, so the row of tabs sits a real 10px above the indicator on
  * any device — zero extra padding added on a device with no inset at all
  * (an older iPhone SE shape), since `env()` resolves to 0 there.
+ *
+ * Once the bottom finally had real breathing room, the icon read as too
+ * close to the bar's own top border by comparison — `pt-12` (vs. the
+ * `pb-8` the bottom still keeps) nudges the icon/label block down a few
+ * px so the two edges feel balanced instead of top-heavy.
  */
 const BAR_EXTRA_BOTTOM_PADDING = 10;
 
@@ -64,7 +69,7 @@ export function BottomTabBar({ items, activeHref, className }: BottomTabBarProps
             <span
               key={item.href}
               aria-disabled="true"
-              className="flex min-h-[56px] flex-1 flex-col items-center justify-center gap-4 py-8 text-muted opacity-40"
+              className="flex min-h-[56px] flex-1 flex-col items-center justify-center gap-4 pt-12 pb-8 text-muted opacity-40"
             >
               <Icon aria-hidden size={20} />
               <span className="text-11 font-semibold">{item.label}</span>
@@ -79,7 +84,7 @@ export function BottomTabBar({ items, activeHref, className }: BottomTabBarProps
             href={item.href}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "flex min-h-[56px] flex-1 flex-col items-center justify-center gap-4 py-8",
+              "flex min-h-[56px] flex-1 flex-col items-center justify-center gap-4 pt-12 pb-8",
               "transition-colors duration-150 ease-out",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2",
               isActive ? "text-ink" : "text-muted",
