@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, Plus, X } from "lucide-react";
+import { ChevronRight, ChevronUp, Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { BottomTabBar } from "@/components/nav/bottom-tab-bar";
@@ -211,17 +211,22 @@ function ExpandedModelCard({
       <div className={cn("grid gap-28", isMobile ? "grid-cols-1" : "grid-cols-[1fr_260px]")}>
         <div>
           <div className="flex flex-wrap items-center gap-10">
-            <button type="button" onClick={onCollapse} className="text-left">
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                onBlur={(e) => save({ name: e.target.value })}
-                onClick={(e) => e.stopPropagation()}
-                className={cn(
-                  "rounded-8 bg-transparent font-bold tracking-[-.02em] text-ink outline-none hover:bg-divider focus-visible:bg-divider",
-                  isMobile ? "text-16" : "text-17",
-                )}
-              />
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={(e) => save({ name: e.target.value })}
+              className={cn(
+                "rounded-8 bg-transparent font-bold tracking-[-.02em] text-ink outline-none hover:bg-divider focus-visible:bg-divider",
+                isMobile ? "text-16" : "text-17",
+              )}
+            />
+            <button
+              type="button"
+              onClick={onCollapse}
+              aria-label={t({ en: "Collapse model", ko: "모델 접기" })}
+              className="rounded-8 p-4 text-faint transition-colors duration-150 ease-out hover:bg-divider hover:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+            >
+              <ChevronUp aria-hidden size={16} />
             </button>
             <Chip tone={model.status === "retired" ? "muted" : "accent"} shape="pill">
               {model.status === "retired" ? t({ en: "Retired", ko: "은퇴" }) : t({ en: "Active", ko: "활성" })}
@@ -233,7 +238,7 @@ function ExpandedModelCard({
                   window.location.reload();
                 })
               }
-              className="ml-auto text-12_5 font-semibold text-accent hover:text-accent-pressed"
+              className="ml-auto rounded-8 text-12_5 font-semibold text-accent hover:text-accent-pressed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
             >
               {model.status === "retired" ? t({ en: "Reactivate", ko: "다시 활성화" }) : t({ en: "Retire model", ko: "모델 은퇴시키기" })}
             </button>
@@ -271,7 +276,7 @@ function ExpandedModelCard({
                   type="button"
                   onClick={() => removeRule(index)}
                   aria-label={t({ en: "Remove rule", ko: "규칙 삭제" })}
-                  className="text-faint hover:text-loss"
+                  className="rounded-6 text-faint hover:text-loss focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
                 >
                   <X aria-hidden size={14} />
                 </button>
@@ -280,7 +285,7 @@ function ExpandedModelCard({
             <button
               type="button"
               onClick={addRule}
-              className="flex items-center gap-6 self-start text-12_5 font-semibold text-accent hover:text-accent-pressed"
+              className="flex items-center gap-6 self-start rounded-8 text-12_5 font-semibold text-accent hover:text-accent-pressed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
             >
               <Plus aria-hidden size={14} />
               {t({ en: "Add rule", ko: "규칙 추가" })}
@@ -338,6 +343,7 @@ function CollapsedModelRow({
         "flex items-center justify-between rounded-24 bg-surface text-left transition-opacity duration-150 ease-out",
         isMobile ? "px-20 py-20" : "px-28 py-24",
         isRetired && "opacity-[.72]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2",
       )}
     >
       <div className="min-w-0">

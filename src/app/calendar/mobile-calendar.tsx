@@ -71,7 +71,7 @@ export function MobileCalendar({ month, trades, models, hasAccount }: MobileCale
           <Link
             href={`/calendar?month=${prevMonth}`}
             aria-label={t({ en: "Previous month", ko: "이전 달" })}
-            className="text-faint"
+            className="rounded-6 text-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
           >
             <ChevronLeft aria-hidden size={18} />
           </Link>
@@ -79,7 +79,7 @@ export function MobileCalendar({ month, trades, models, hasAccount }: MobileCale
           <Link
             href={`/calendar?month=${nextMonth}`}
             aria-label={t({ en: "Next month", ko: "다음 달" })}
-            className="text-faint"
+            className="rounded-6 text-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
           >
             <ChevronRight aria-hidden size={18} />
           </Link>
@@ -125,6 +125,7 @@ export function MobileCalendar({ month, trades, models, hasAccount }: MobileCale
                     "flex h-42 flex-col items-center justify-center rounded-12",
                     style.fill,
                     isSelected && "ring-2 ring-inset ring-ink",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2",
                   )}
                 >
                   {style.text !== null && dayStats !== undefined && (

@@ -68,7 +68,7 @@ export function MobileHome({ month, trades, models, hasAccount, drawdownAlert, c
       <Link
         href="/settings"
         aria-label={t({ en: "Settings", ko: "설정" })}
-        className="block h-34 w-34 rounded-pill bg-[#e5e8eb] transition-colors duration-150 ease-out hover:bg-disabled"
+        className="block h-34 w-34 rounded-pill bg-[#e5e8eb] transition-colors duration-150 ease-out hover:bg-disabled focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
       />
     </div>
   );
@@ -107,7 +107,7 @@ export function MobileHome({ month, trades, models, hasAccount, drawdownAlert, c
 
       <div className="flex flex-1 flex-col gap-14 px-20 py-12">
         {drawdownAlert != null && <DrawdownAlert {...drawdownAlert} compact />}
-        <Link href="/weekly-review" className="self-start text-12_5 font-semibold text-accent">
+        <Link href="/weekly-review" className="self-start rounded-6 text-12_5 font-semibold text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">
           {t({ en: "Weekly review", ko: "주간 리뷰" })} →
         </Link>
 
@@ -161,7 +161,7 @@ export function MobileHome({ month, trades, models, hasAccount, drawdownAlert, c
         <Card className="px-22 py-20">
           <div className="flex items-baseline justify-between">
             <span className="text-15 font-bold text-ink">{t({ en: "Today", ko: "오늘" })}</span>
-            <Link href={viewTodayHref} className="text-12_5 font-semibold text-accent">
+            <Link href={viewTodayHref} className="rounded-6 text-12_5 font-semibold text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">
               {t({ en: "View all", ko: "전체보기" })}
             </Link>
           </div>

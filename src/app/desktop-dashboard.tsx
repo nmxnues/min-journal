@@ -80,10 +80,10 @@ export function DesktopDashboard({
       right={
         <>
           <span className="text-13 font-semibold text-muted">{formatMonthLabel(month, locale)}</span>
-          <Link href="/weekly-review" className="text-13 font-semibold text-accent hover:text-accent-pressed">
+          <Link href="/weekly-review" className="rounded-6 text-13 font-semibold text-accent hover:text-accent-pressed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">
             {t({ en: "Weekly review", ko: "주간 리뷰" })}
           </Link>
-          <Link href="/settings" className="text-13 font-semibold text-accent hover:text-accent-pressed">
+          <Link href="/settings" className="rounded-6 text-13 font-semibold text-accent hover:text-accent-pressed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">
             {t({ en: "Settings", ko: "설정" })}
           </Link>
           <Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "New trade" })}</Button>
@@ -254,7 +254,7 @@ export function DesktopDashboard({
             <span className="text-16 font-bold tracking-[-.02em] text-ink">
               {t({ en: "Recent trades", ko: "최근 기록" })}
             </span>
-            <Link href={viewAllHref} className="text-13 font-semibold text-accent hover:text-accent-pressed">
+            <Link href={viewAllHref} className="rounded-6 text-13 font-semibold text-accent hover:text-accent-pressed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">
               {t({ en: `View all ${trades.length}`, ko: `전체보기 ${trades.length}` })}
             </Link>
           </div>
@@ -268,7 +268,7 @@ export function DesktopDashboard({
                 <Link
                   key={trade.id}
                   href={`/trades/${trade.id}`}
-                  className="grid grid-cols-[64px_1fr_150px_130px_90px] items-center gap-16 border-b border-divider py-16 transition-colors duration-150 ease-out last:border-b-0 hover:bg-surface-faint min-[1200px]:grid-cols-[64px_1fr_150px_130px_110px_90px]"
+                  className="grid grid-cols-[64px_1fr_150px_130px_90px] items-center gap-16 border-b border-divider py-16 transition-colors duration-150 ease-out last:border-b-0 hover:bg-surface-faint min-[1200px]:grid-cols-[64px_1fr_150px_130px_110px_90px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
                 >
                   <span className="text-13 font-bold text-muted">{formatCompactDate(trade.date)}</span>
                   <div>

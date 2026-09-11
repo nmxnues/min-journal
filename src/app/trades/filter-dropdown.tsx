@@ -67,32 +67,42 @@ export function FilterDropdown<T extends string>({
 
   return (
     <div className={cn("relative", className)} onBlur={onBlur} onFocus={onFocus}>
-      <button
-        type="button"
-        onClick={() => setIsOpen((v) => !v)}
+      {/*
+        Two sibling buttons, not one button with a `<span role="button">`
+        clear icon nested inside it: a real <button> can't contain another
+        interactive element (invalid HTML, and the inner span never actually
+        picked up a keyboard handler — Enter/Space silently did nothing).
+        The pill's fill/radius/padding now lives on this wrapping div so the
+        two buttons still read as one visual pill.
+      */}
+      <div
         className={cn(
-          "flex items-center gap-10 rounded-12 px-14 py-11 text-13_5 font-semibold transition-colors duration-150 ease-out",
+          "flex items-center rounded-12 text-13_5 font-semibold transition-colors duration-150 ease-out",
           isApplied ? "bg-accent-tint text-accent-pressed" : "bg-divider text-muted hover:bg-divider-hover",
         )}
       >
-        {isApplied ? `${label} · ${summary}` : placeholder}
-        {isApplied ? (
-          <span
-            role="button"
-            tabIndex={0}
+        <button
+          type="button"
+          onClick={() => setIsOpen((v) => !v)}
+          className={cn(
+            "flex items-center gap-10 rounded-l-12 py-11 pl-14 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2",
+            isApplied ? "pr-6" : "pr-14",
+          )}
+        >
+          {isApplied ? `${label} · ${summary}` : placeholder}
+          {!isApplied && <ChevronDown aria-hidden size={14} className="text-faint" />}
+        </button>
+        {isApplied && (
+          <button
+            type="button"
             aria-label={`Clear ${label}`}
-            onMouseDown={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              onChange([]);
-            }}
+            onClick={() => onChange([])}
+            className="flex items-center rounded-r-12 py-11 pr-14 pl-2 hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
           >
             <X aria-hidden size={14} />
-          </span>
-        ) : (
-          <ChevronDown aria-hidden size={14} className="text-faint" />
+          </button>
         )}
-      </button>
+      </div>
 
       {isOpen && (
         <ul className="absolute z-20 mt-6 max-h-[280px] min-w-full overflow-y-auto rounded-14 bg-surface py-6 shadow-sheet">
@@ -102,14 +112,30 @@ export function FilterDropdown<T extends string>({
               <li key={option.value}>
                 <button
                   type="button"
+                  // Mouse path: preventDefault on mousedown (not click) keeps
+                  // focus on whatever's already focused so the container's
+                  // onBlur-close timer never races this selection.
                   onMouseDown={(event) => {
                     event.preventDefault();
                     if (blurTimer.current) clearTimeout(blurTimer.current);
                     toggle(option.value);
                   }}
+                  // Keyboard path: a button with only onMouseDown never
+                  // actually responds to Enter/Space (there's no onClick for
+                  // the browser's own key-to-click synthesis to invoke), so
+                  // arrowing/tabbing here and pressing a key did nothing.
+                  onKeyDown={(event) => {
+                    if (event.key !== "Enter" && event.key !== " ") return;
+                    event.preventDefault();
+                    toggle(option.value);
+                  }}
                   className={cn(
                     "flex w-full items-center gap-10 px-16 py-10 text-left text-14 font-semibold whitespace-nowrap text-body",
                     isSelected && "bg-divider",
+                    // ring-inset, not the usual ring-offset-2: a full-width
+                    // row inside a scrollable dropdown would clip an
+                    // outward-pushed ring against the list's own overflow.
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent",
                   )}
                 >
                   {multiple && (

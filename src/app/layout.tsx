@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import { LocaleProvider } from "@/lib/i18n/locale-context";
 import { parseInitialLocale, VIEWPORT_LOCALE_COOKIE } from "@/lib/i18n/locale";
@@ -6,12 +6,24 @@ import { SettingsProvider } from "@/lib/settings/context";
 import { getSettings } from "@/lib/supabase/queries";
 import "./globals.css";
 
-// PWA manifest + icons + `viewport` are Phase 9's task 4, not part of this
-// pass (docs/decisions.md) — added here once the actual icon files exist,
-// rather than pointing metadata at assets that don't exist yet.
+// The manifest itself (app/manifest.ts) and the icon/apple-icon routes are
+// Next's own file conventions — both auto-detected and auto-linked into
+// <head>, so nothing about them belongs in this metadata object.
 export const metadata: Metadata = {
   title: "Min Journal",
   description: "A single-user CRT trading journal.",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Min Journal",
+  },
+};
+
+// Matches manifest.ts's theme_color — this is the separate mechanism that
+// also tints the browser chrome (e.g. Safari/Chrome's address-bar area on
+// mobile) even before the app is ever added to a home screen.
+export const viewport: Viewport = {
+  themeColor: "#191f28",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {

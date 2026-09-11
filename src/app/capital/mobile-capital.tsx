@@ -124,7 +124,7 @@ export function MobileCapital({ data, summary, onRecordCash }: CapitalScreenProp
               <button
                 type="button"
                 onClick={() => setExpanded((v) => !v)}
-                className="-my-12 -mr-8 min-h-44 px-8 text-12_5 font-semibold text-accent"
+                className="-my-12 -mr-8 min-h-44 rounded-8 px-8 text-12_5 font-semibold text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
               >
                 {expanded ? t({ en: "Show less", ko: "접기" }) : t({ en: "View all", ko: "전체보기" })}
               </button>
@@ -153,7 +153,10 @@ export function MobileCapital({ data, summary, onRecordCash }: CapitalScreenProp
           {expanded && (
             <div className="mt-14 flex items-center justify-between text-12_5">
               <span className="font-medium text-faint">{t({ en: `${rows.length} entries`, ko: `${rows.length}건` })}</span>
-              <a href={`/capital/export?filter=${filter}`} className="font-semibold text-accent">
+              <a
+                href={`/capital/export?filter=${filter}`}
+                className="rounded-6 font-semibold text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+              >
                 {t({ en: "Export CSV", ko: "CSV 내보내기" })}
               </a>
             </div>
@@ -220,7 +223,7 @@ function ActivityRow({
     </>
   );
 
-  const rowClass = "flex min-h-44 w-full items-center justify-between gap-12 py-6 text-left";
+  const rowClass = "flex min-h-44 w-full items-center justify-between gap-12 rounded-8 py-6 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2";
 
   if (entry.source.kind === "trade") {
     return (

@@ -298,7 +298,7 @@ export function NewTradeForm({
               type="button"
               onClick={() => router.push("/")}
               aria-label={t({ en: "Close", ko: "닫기" })}
-              className="text-18 font-semibold text-muted transition-colors duration-150 ease-out hover:text-ink"
+              className="rounded-8 text-18 font-semibold text-muted transition-colors duration-150 ease-out hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
             >
               <X aria-hidden size={20} />
             </button>

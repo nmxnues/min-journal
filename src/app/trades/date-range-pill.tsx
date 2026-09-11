@@ -93,6 +93,7 @@ export function DateRangePill({ from, to, onChange }: DateRangePillProps) {
         className={cn(
           "flex items-center gap-10 rounded-12 px-14 py-11 text-13_5 font-semibold transition-colors duration-150 ease-out",
           isSet ? "bg-divider text-ink" : "bg-divider text-muted hover:bg-divider-hover",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2",
         )}
       >
         {summary}

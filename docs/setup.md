@@ -50,8 +50,43 @@ pnpm install
 pnpm dev
 ```
 
-## Deploying
-Deploy to Vercel; add the same three env vars (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) in the Vercel project settings.
+## Deploying to Vercel
+
+Nothing in `next.config.ts` or the build needs Vercel-specific setup — it's a plain Next.js 15 App Router project (`pnpm build` / `pnpm start`), and `package.json`'s `packageManager: "pnpm@12.3.4"` field is enough for Vercel to pick the right pnpm version on its own. What follows is what actually differs from a stock "import and deploy" flow.
+
+### 1. Import the repository
+Vercel dashboard → **Add New → Project** → import `nmxnues/min-journal` from GitHub. Framework Preset auto-detects as Next.js; leave Build/Output/Install commands on their defaults (`pnpm build`, `pnpm install`).
+
+### 2. Set the environment variables
+Project Settings → **Environment Variables**. Add exactly the three the app actually reads at runtime — the same three in `.env.local`:
+
+| Name | Value | Notes |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | from Supabase → Settings → API | public, ships to the browser |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | from Supabase → Settings → API | public, ships to the browser |
+| `SUPABASE_SERVICE_ROLE_KEY` | from Supabase → Settings → API | **mark it Sensitive** — server-only, full-bypass-RLS access |
+
+Apply all three to **Production**, **Preview**, and **Development** environments (a Preview deploy on a branch still needs to reach the same Supabase project — there's no separate staging database in this setup).
+
+**Do not add `SUPABASE_DB_PASSWORD`.** It exists only for this doc's own `supabase db push`/`gen types` commands run from a developer's machine (§3–4 above); the deployed app never opens a direct Postgres connection and never reads that variable. Adding it to Vercel would just be a real Postgres credential sitting in a platform that has no use for it.
+
+### 3. Push migrations before the deploy that needs them
+Vercel's build does **not** run `supabase db push` — a deploy that ships code expecting a column/table a migration adds will break against a database that doesn't have it yet. Whenever `supabase/migrations/` has new files, run §3's push (and, if `database.types.ts` changed, §4's `gen types`, committed alongside) **before or during the same change** that deploys code depending on them — not after. For a schema change with no code depending on it yet, order doesn't matter; for one a deploy needs, push first.
+
+### 4. Deploy
+Push to `main` (or open a PR — Vercel deploys every branch as a Preview automatically once the project is imported). No manual trigger needed beyond the git push itself.
+
+### 5. Supabase Auth — Site URL (optional)
+This app has no email confirmation, magic links, or OAuth — just email+password against `/login` — so Supabase's **Authentication → URL Configuration → Site URL** doesn't gate login itself. Still worth setting to the production Vercel URL (`https://<project>.vercel.app` or a custom domain) once one exists, since Supabase uses it as the default redirect target for any auth email templates, even ones this app doesn't currently trigger.
+
+### 6. Custom domain (optional)
+Project Settings → **Domains**. Not required — the `*.vercel.app` domain Vercel assigns on import works as-is for a single-user app.
+
+### Post-deploy checklist
+- `/login` loads and is served over HTTPS (Vercel does this by default).
+- Sign in with the account created in §5. A wrong/no session correctly bounces to `/login` (`middleware.ts`); a signed-in visit to `/login` bounces back to `/`.
+- Open dev tools → Application → Manifest on the deployed URL: confirms `/manifest.webmanifest` and both icon sizes (`/icon-192.png`, `/icon-512.png`) resolve without a redirect (they're excluded from the auth middleware — see `src/middleware.ts` — precisely so this works logged out too). On a phone, "Add to Home Screen" should show the app's own icon and open without browser chrome.
+- Log one real trade end to end, including an attachment upload, to confirm Supabase Storage's bucket/policies are reachable from the deployed domain (not just `localhost`).
 
 ## Optional: local Supabase stack (no cloud project needed)
 For offline schema work, `supabase start` runs the full stack (Postgres, Auth, Storage, Studio) in Docker and applies every migration in `supabase/migrations/` automatically:

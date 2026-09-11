@@ -268,7 +268,7 @@ function LedgerCard({ data, summary }: Pick<CapitalScreenProps, "data" | "summar
 
           if (entry.source.kind === "trade") {
             return (
-              <Link key={entry.id} href={`/trades/${entry.id}`} className={cn(rowBase, "hover:bg-surface-faint")}>
+              <Link key={entry.id} href={`/trades/${entry.id}`} className={cn(rowBase, "hover:bg-surface-faint", "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2")}>
                 {content}
               </Link>
             );
@@ -308,7 +308,7 @@ function LedgerCard({ data, summary }: Pick<CapitalScreenProps, "data" | "summar
               <button
                 type="button"
                 onClick={() => setShowAll((v) => !v)}
-                className="font-semibold text-accent hover:text-accent-pressed"
+                className="rounded-6 font-semibold text-accent hover:text-accent-pressed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
               >
                 {showAll ? t({ en: "Show fewer", ko: "접기" }) : t({ en: "Show all", ko: "모두 보기" })}
               </button>
@@ -317,7 +317,7 @@ function LedgerCard({ data, summary }: Pick<CapitalScreenProps, "data" | "summar
         </span>
         <a
           href={`/capital/export?filter=${filter}`}
-          className="text-12_5 font-semibold text-accent hover:text-accent-pressed"
+          className="rounded-6 text-12_5 font-semibold text-accent hover:text-accent-pressed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
         >
           {t({ en: "Export CSV", ko: "CSV 내보내기" })}
         </a>

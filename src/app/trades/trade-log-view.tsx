@@ -223,7 +223,7 @@ export function TradeLogView({ hasAccount, models, matching, summary, pagination
             <button
               type="button"
               onClick={() => updateFilters({ offPlanOnly: !filters.offPlanOnly })}
-              className="flex items-center gap-9 rounded-12 bg-divider px-14 py-11 text-13_5 font-semibold text-secondary"
+              className="flex items-center gap-9 rounded-12 bg-divider px-14 py-11 text-13_5 font-semibold text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
             >
               <span
                 className={cn(
@@ -237,7 +237,7 @@ export function TradeLogView({ hasAccount, models, matching, summary, pagination
             </button>
 
             {hasActiveFilters(filters) && (
-              <button type="button" onClick={resetFilters} className="ml-4 text-13 font-semibold text-accent hover:text-accent-pressed">
+              <button type="button" onClick={resetFilters} className="ml-4 rounded-8 text-13 font-semibold text-accent hover:text-accent-pressed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">
                 {t({ en: "Reset", ko: "초기화" })}
               </button>
             )}
@@ -247,14 +247,14 @@ export function TradeLogView({ hasAccount, models, matching, summary, pagination
                 <div className="flex-1" />
                 <a
                   href={exportHref}
-                  className="rounded-10 bg-divider px-14 py-9 text-13 font-semibold text-secondary transition-colors duration-150 ease-out hover:bg-divider-hover"
+                  className="rounded-10 bg-divider px-14 py-9 text-13 font-semibold text-secondary transition-colors duration-150 ease-out hover:bg-divider-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
                 >
                   {t({ en: "Export CSV", ko: "CSV 내보내기" })}
                 </a>
                 <button
                   type="button"
                   onClick={() => setImportOpen(true)}
-                  className="rounded-10 bg-divider px-14 py-9 text-13 font-semibold text-secondary transition-colors duration-150 ease-out hover:bg-divider-hover"
+                  className="rounded-10 bg-divider px-14 py-9 text-13 font-semibold text-secondary transition-colors duration-150 ease-out hover:bg-divider-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
                 >
                   {t({ en: "Import", ko: "가져오기" })}
                 </button>
@@ -266,14 +266,14 @@ export function TradeLogView({ hasAccount, models, matching, summary, pagination
             <div className="mt-10 flex gap-8">
               <a
                 href={exportHref}
-                className="flex-1 rounded-10 bg-divider px-14 py-9 text-center text-13 font-semibold text-secondary"
+                className="flex-1 rounded-10 bg-divider px-14 py-9 text-center text-13 font-semibold text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
               >
                 {t({ en: "Export CSV", ko: "CSV 내보내기" })}
               </a>
               <button
                 type="button"
                 onClick={() => setImportOpen(true)}
-                className="flex-1 rounded-10 bg-divider px-14 py-9 text-13 font-semibold text-secondary"
+                className="flex-1 rounded-10 bg-divider px-14 py-9 text-13 font-semibold text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
               >
                 {t({ en: "Import", ko: "가져오기" })}
               </button>
@@ -414,8 +414,9 @@ function TableHeader({
             type="button"
             onClick={() => onSort(column)}
             className={cn(
-              "flex items-center gap-4 text-left text-11_5 font-bold tracking-[.02em]",
+              "flex items-center gap-4 rounded-6 text-left text-11_5 font-bold tracking-[.02em]",
               isActive ? "text-ink" : "text-muted",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2",
             )}
           >
             {t(HEADER_LABELS[column]).toUpperCase()}
@@ -506,6 +507,7 @@ function pageWindow(current: number, total: number): (number | "ellipsis")[] {
 }
 
 function Pager({ currentPage, totalPages, onGo }: { currentPage: number; totalPages: number; onGo: (page: number) => void }) {
+  const t = useT();
   if (totalPages <= 1) return null;
 
   return (
@@ -514,7 +516,8 @@ function Pager({ currentPage, totalPages, onGo }: { currentPage: number; totalPa
         type="button"
         disabled={currentPage <= 1}
         onClick={() => onGo(currentPage - 1)}
-        className="rounded-8 bg-divider px-12 py-8 text-13 font-semibold text-muted disabled:opacity-40"
+        aria-label={t({ en: "Previous page", ko: "이전 페이지" })}
+        className="rounded-8 bg-divider px-12 py-8 text-13 font-semibold text-muted disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
       >
         <ChevronLeft aria-hidden size={14} />
       </button>
@@ -528,9 +531,11 @@ function Pager({ currentPage, totalPages, onGo }: { currentPage: number; totalPa
             key={p}
             type="button"
             onClick={() => onGo(p)}
+            aria-current={p === currentPage ? "page" : undefined}
             className={cn(
               "rounded-8 px-12 py-8 text-13 font-semibold",
               p === currentPage ? "bg-ink text-white" : "bg-divider text-secondary",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2",
             )}
           >
             {p}
@@ -541,7 +546,8 @@ function Pager({ currentPage, totalPages, onGo }: { currentPage: number; totalPa
         type="button"
         disabled={currentPage >= totalPages}
         onClick={() => onGo(currentPage + 1)}
-        className="rounded-8 bg-divider px-12 py-8 text-13 font-semibold text-muted disabled:opacity-40"
+        aria-label={t({ en: "Next page", ko: "다음 페이지" })}
+        className="rounded-8 bg-divider px-12 py-8 text-13 font-semibold text-muted disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
       >
         <ChevronRight aria-hidden size={14} />
       </button>

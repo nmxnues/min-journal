@@ -60,11 +60,52 @@ export function Modal({
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
+  /**
+   * Keyboard focus traversal: while a dialog is open, Tab must not escape it
+   * into the (still-visible, still-clickable-by-mouse but hidden behind the
+   * backdrop) page underneath, and closing it must hand focus back to
+   * whatever opened it — otherwise Tab silently resumes from the top of
+   * <body>, which is disorienting for anyone not using a mouse to reopen it.
+   */
   useEffect(() => {
     if (!open) return;
 
+    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+    function focusableElements(): HTMLElement[] {
+      const panel = panelRef.current;
+      if (panel === null) return [];
+      const selector =
+        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+      return Array.from(panel.querySelectorAll<HTMLElement>(selector)).filter(
+        (el) => el.offsetParent !== null,
+      );
+    }
+
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onCloseRef.current();
+      if (event.key === "Escape") {
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const elements = focusableElements();
+      const panel = panelRef.current;
+      if (elements.length === 0 || panel === null) {
+        event.preventDefault();
+        panel?.focus();
+        return;
+      }
+
+      const first = elements[0]!;
+      const last = elements[elements.length - 1]!;
+      const active = document.activeElement;
+      const activeIsInPanel = active instanceof Node && panel.contains(active);
+
+      if (event.shiftKey ? active === first || !activeIsInPanel : active === last || !activeIsInPanel) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      }
     }
 
     document.addEventListener("keydown", onKeyDown);
@@ -75,6 +116,7 @@ export function Modal({
     return () => {
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = previousOverflow;
+      if (trigger !== null && document.contains(trigger)) trigger.focus();
     };
   }, [open]);
 

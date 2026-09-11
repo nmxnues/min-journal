@@ -86,7 +86,7 @@ export function DesktopCalendar({ month, trades, models, hasAccount }: DesktopCa
           <Link
             href={`/calendar?month=${prevMonth}`}
             aria-label={t({ en: "Previous month", ko: "이전 달" })}
-            className="text-faint transition-colors duration-150 ease-out hover:text-muted"
+            className="rounded-6 text-faint transition-colors duration-150 ease-out hover:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
           >
             <ChevronLeft aria-hidden size={18} />
           </Link>
@@ -94,7 +94,7 @@ export function DesktopCalendar({ month, trades, models, hasAccount }: DesktopCa
           <Link
             href={`/calendar?month=${nextMonth}`}
             aria-label={t({ en: "Next month", ko: "다음 달" })}
-            className="text-faint transition-colors duration-150 ease-out hover:text-muted"
+            className="rounded-6 text-faint transition-colors duration-150 ease-out hover:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
           >
             <ChevronRight aria-hidden size={18} />
           </Link>
@@ -155,6 +155,7 @@ export function DesktopCalendar({ month, trades, models, hasAccount }: DesktopCa
                     style.fill,
                     isClickable ? "cursor-pointer" : "cursor-default",
                     isToday && "ring-2 ring-inset ring-ink",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2",
                   )}
                 >
                   <div className={cn("text-11_5 font-semibold", isFuture ? "text-disabled" : "text-faint", isToday && "font-bold text-ink")}>

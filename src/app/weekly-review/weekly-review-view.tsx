@@ -181,13 +181,13 @@ export function WeeklyReviewView({ week, hasAccount, review, previous, trades = 
 
       <div className={cn("flex items-center justify-between", isMobile ? "px-20 pb-8" : "bg-surface px-32 py-20")}>
         <div className="flex items-center gap-16">
-          <Link href={prevHref} aria-label={t({ en: "Previous week", ko: "지난 주" })} className="text-faint hover:text-muted">
+          <Link href={prevHref} aria-label={t({ en: "Previous week", ko: "지난 주" })} className="rounded-6 text-faint hover:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">
             <ChevronLeft aria-hidden size={18} />
           </Link>
           <span className={cn("font-bold tracking-[-.02em] text-ink", isMobile ? "text-16" : "text-18")}>
             {formatWeekLabel(week, locale)}
           </span>
-          <Link href={nextHref} aria-label={t({ en: "Next week", ko: "다음 주" })} className="text-faint hover:text-muted">
+          <Link href={nextHref} aria-label={t({ en: "Next week", ko: "다음 주" })} className="rounded-6 text-faint hover:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">
             <ChevronRight aria-hidden size={18} />
           </Link>
         </div>
@@ -195,7 +195,7 @@ export function WeeklyReviewView({ week, hasAccount, review, previous, trades = 
           <button
             type="button"
             onClick={copyLastWeek}
-            className="rounded-10 bg-divider px-14 py-10 text-13 font-semibold text-secondary hover:bg-divider-hover"
+            className="rounded-10 bg-divider px-14 py-10 text-13 font-semibold text-secondary hover:bg-divider-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
           >
             {t({ en: "Copy last week's notes", ko: "지난주 노트 복사" })}
           </button>
@@ -207,7 +207,7 @@ export function WeeklyReviewView({ week, hasAccount, review, previous, trades = 
           <button
             type="button"
             onClick={copyLastWeek}
-            className="self-start rounded-10 bg-divider px-14 py-10 text-13 font-semibold text-secondary"
+            className="self-start rounded-10 bg-divider px-14 py-10 text-13 font-semibold text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
           >
             {t({ en: "Copy last week's notes", ko: "지난주 노트 복사" })}
           </button>
@@ -312,9 +312,11 @@ export function WeeklyReviewView({ week, hasAccount, review, previous, trades = 
                         type="button"
                         onClick={() => toggleFocus(index)}
                         aria-pressed={item.checked}
+                        aria-label={item.text}
                         className={cn(
                           "mt-2 flex h-18 w-18 shrink-0 items-center justify-center rounded-6",
                           item.checked ? "bg-accent text-white" : "bg-divider",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2",
                         )}
                       >
                         {item.checked && <Check aria-hidden size={12} />}
@@ -322,7 +324,7 @@ export function WeeklyReviewView({ week, hasAccount, review, previous, trades = 
                       <span className={cn("flex-1 text-13_5 leading-[1.5] font-medium", item.checked ? "text-faint line-through" : "text-secondary")}>
                         {item.text}
                       </span>
-                      <button type="button" onClick={() => removeFocus(index)} aria-label={t({ en: "Remove", ko: "삭제" })} className="text-faint hover:text-loss">
+                      <button type="button" onClick={() => removeFocus(index)} aria-label={t({ en: "Remove", ko: "삭제" })} className="rounded-6 text-faint hover:text-loss focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">
                         <X aria-hidden size={13} />
                       </button>
                     </div>
@@ -340,7 +342,7 @@ export function WeeklyReviewView({ week, hasAccount, review, previous, trades = 
                       placeholder={t({ en: "Add a focus item", ko: "포커스 항목 추가" })}
                       className="flex-1 rounded-10 bg-divider px-12 py-9 text-13_5 font-medium text-ink outline-none placeholder:text-faint"
                     />
-                    <button type="button" onClick={addFocus} className="flex h-32 w-32 items-center justify-center rounded-10 bg-divider text-secondary hover:bg-divider-hover">
+                    <button type="button" onClick={addFocus} aria-label={t({ en: "Add focus item", ko: "포커스 추가" })} className="flex h-32 w-32 items-center justify-center rounded-10 bg-divider text-secondary hover:bg-divider-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">
                       <Plus aria-hidden size={16} />
                     </button>
                   </div>

@@ -42,7 +42,8 @@ export function AttachmentThumbnails({ attachments, onRemove, className }: Attac
               onClick={() => {
                 if (attachment.previewUrl !== null) setLightbox(attachment.previewUrl);
               }}
-              className="block h-full w-full"
+              aria-label={t({ en: "Open screenshot", ko: "스크린샷 열기" })}
+              className="block h-full w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
             >
               {attachment.previewUrl !== null && (
                 // Screenshots the trader just added — no next/image benefit

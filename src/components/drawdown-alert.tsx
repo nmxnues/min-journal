@@ -43,7 +43,7 @@ export function DrawdownAlert({
           ko: `고점 대비 −${drawdown}%, 한도 ${limit}% — 가드 기준으로는 매매를 멈출 때입니다.`,
         })}
       </p>
-      <Link href="/capital" className="shrink-0 text-13 font-semibold text-accent hover:text-accent-pressed">
+      <Link href="/capital" className="shrink-0 rounded-6 text-13 font-semibold text-accent hover:text-accent-pressed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">
         {t({ en: "Open Capital", ko: "자산 보기" })}
       </Link>
     </Card>
