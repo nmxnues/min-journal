@@ -592,3 +592,38 @@ Confirmed: `AccountSetup` only ever rendered behind a "no account yet" gate, and
 **Verified live**, with a disposable test user, through the real `createTrade` action (not a DB-level shortcut): created a `backtest` account, starting capital $10,000, start date 2025-09-01. Logged a EUR trade dated 2025-10-05 (+14R) — stored `r_value_at_entry: 100`, correct (nothing precedes it). Logged a second EUR trade dated 2026-08-20 (+14R) — stored `114`, correct (1% of the post-first-trade balance, $11,400). Logged a GBP trade dated 2025-09-05 — *before* both EUR trades by date, but entered *last*, after both already existed in the table — and its stored `r_value_at_entry` was `100`, not the `130` the old (still-correct-for-live) `currentRValue` path would have produced from the already-inflated $12,996 total. Confirmed via direct query against `trades`, ordered by date, immediately after each submission — not inferred from the UI. Also confirmed end to end: Capital's account switcher listed both accounts with correct kind chips; creating and switching to a second `live` account instantly emptied Dashboard/Trades (a fresh account, genuinely no trades) and switching back restored all three backtest trades; Dashboard on the backtest account defaulted to "August 2026" (the latest trade's month), not the real "September 2026."
 
 `npx tsc --noEmit`, `pnpm lint`, and `pnpm test` (235 passed, 3 new covering `balanceAsOfDate`/`rValueAsOfDate`) all clean. The test user, both its accounts, and all trades were deleted afterward and confirmed gone.
+
+## Dashboard period picker
+
+Raised by the user directly off the backtest work above: the Dashboard was hard-locked to "this real calendar month," no `‹`/`›`, no way to look at anything else — fine for a live account trading month to month, unusable for a backtest account holding a year or more of history nowhere near today.
+
+### Presets
+
+Proposed and used six: **This month / Last month / Last 3 months / This year / All time / Custom range**, plus `‹`/`›` as the baseline month-stepper. Reasoning for the set: the user's own examples (이번 달/지난 달/최근 3개월/올해/전체/직접 지정) already covered the two shapes of need — quick recency windows for a live trader reviewing the last few weeks, and wide-open ranges for a backtest run — so nothing further was added on top.
+
+### URL semantics: rolling vs. frozen, same split as Trade log's own date filter
+
+Split into two kinds by design, matching the convention the user explicitly asked to mirror:
+
+- **Rolling** (`this-month`, `last-month`, `3m`, `ytd`, `all`) carry only `?range=`, no dates — resolved fresh against *today* on every load, so a bookmarked "This year" always means the current year, not a snapshot frozen to whenever it was first clicked.
+- **Frozen** (`month` via `‹`/`›`, `custom` via the date-input sub-form) carry concrete values in the query (`?range=month&month=2026-08`, `?range=custom&from=…&to=…`) — exactly Trade log's own `from`/`to` convention, unset state kept out of the query string entirely so the smart default keeps working for a plain `/`.
+
+`‹`/`›` only have a well-defined "one month over" for kinds reducible to a single month (`this-month`/`last-month`/`month`) — implemented as `next/link` `Link`s, disabled (`tabIndex={-1}`, `pointer-events-none`, dimmed) rather than removed for `3m`/`ytd`/`all`/`custom`, so the control stays in a stable place instead of shifting the layout per preset.
+
+**Relabeling, caught mid-build**: the smart-default landing state (no `?range=` at all, resolves to `kind: "month"` against the most recent trade's month) always showed a generic "Net R" hero label even when that month happened to equal today's real month — the common case for an active live trader, and a real regression from mock 1a's warmer "Month to date" wording. Fixed by relabeling `month` as `this-month` whenever the resolved month equals today's, regardless of whether it got there via the default or by `‹`/`›` landing back on today — same data, same wording either way.
+
+### Placement — hero itself untouched
+
+Mock 1a's hero card is fixed to "Month to date"; kept the card's own structure completely unchanged and swapped only its label (`DASHBOARD_HERO_LABELS[period.kind]`) and the chrome around it:
+
+- **Desktop**: replaced the static month-label `<span>` in `TopBar`'s right slot with `<PeriodPicker>` — same visual position, now interactive.
+- **Mobile**: added a new compact row (`<PeriodPicker compact>`) under the existing header (title + settings avatar), since that header previously carried no date context at all.
+
+All four recomputation targets (hero R, equity curve, the 4 stat cards, model/session breakdown) and Recent trades needed zero selector changes — `periodStats`/`equityCurve`/`byModel`/`bySession`/`sweepAlignment` already take a plain `trades: readonly Trade[]`, period-agnostic by construction, so fetching the right trade list in `page.tsx` (`getTradesInRange` for every kind except `all`, which uses the existing `getAllTrades`) was the entire recomputation fix.
+
+**Verified live** with a disposable test user (6 trades spanning Feb 2025–Sep 2026) at both widths:
+
+- **Desktop (1300px)**: default month, `‹` stepping to the previous month, the preset popover open/close, "All time," "Custom range" (date-input sub-form → Apply), and "This year" — each confirmed by matching URL query string, correctly enabled/disabled `‹`/`›`, and hero numbers/equity curve/stat cards all agreeing with the seeded data for that range.
+- **Mobile (420px, Korean)**: same default-month landing, opened the preset popover and confirmed all six Korean labels render (이번 달/지난 달/최근 3개월/올해/전체/직접 지정), and clicked "최근 3개월" — URL became `?range=3m`, hero showed "+2.3R"/"+$230"/"3건"/"67% 승률" with both arrows disabled, matching the desktop YTD/all-time runs' underlying data exactly.
+
+`npx tsc --noEmit`, `pnpm lint`, `pnpm test` (251 passed, new coverage in `dashboard-period.test.ts`), and `pnpm build` all clean. The test user, its account, and all 6 trades were deleted afterward and confirmed gone.

@@ -11,7 +11,7 @@ import { TopBar } from "@/components/nav/top-bar";
 import { BarRow, Button, Card, CardHeader, Chip, EmptyState, Panel, StatCard } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { tradingPnL } from "@/lib/domain/capital";
-import { formatMonthLabel, monthRange, type IsoMonth } from "@/lib/domain/dates";
+import type { ResolvedDashboardPeriod } from "@/lib/domain/dashboard-period";
 import { byModel, bySession, equityCurve, periodStats, sweepAlignment } from "@/lib/domain/stats";
 import { buildTradeLogSearchParams, EMPTY_TRADE_LOG_FILTERS } from "@/lib/domain/trade-log";
 import { offPlan, plannedR, realizedR } from "@/lib/domain/trade";
@@ -21,6 +21,8 @@ import { useFormatR } from "@/lib/settings/context";
 import { useLocale, useT } from "@/lib/i18n/locale-context";
 import { DIRECTION_LABELS, HTF_PAIRING_LABELS, SESSION_LABELS, SWEEP_SIDE_LABELS, tradeCountLabel } from "@/lib/labels";
 import { signOut } from "./actions";
+import { DASHBOARD_HERO_LABELS } from "./dashboard-period-copy";
+import { PeriodPicker } from "./period-picker";
 
 const SWEEP_ALIGNMENT_LABELS = {
   long_after_low: { en: "Long after low purge", ko: "저점 퍼지 후 롱" },
@@ -29,7 +31,7 @@ const SWEEP_ALIGNMENT_LABELS = {
 } as const;
 
 export interface DesktopDashboardProps {
-  month: IsoMonth;
+  period: ResolvedDashboardPeriod;
   trades: Trade[];
   models: TradeModel[];
   hasAccount: boolean;
@@ -40,7 +42,7 @@ export interface DesktopDashboardProps {
 const em = "—";
 
 export function DesktopDashboard({
-  month,
+  period,
   trades,
   models,
   hasAccount,
@@ -58,7 +60,7 @@ export function DesktopDashboard({
   // and vice versa" — R stays the primary figure here (this screen's whole
   // vocabulary is R-first), so the dollar total rides underneath as a small
   // caption rather than displacing it.
-  const monthPnl = useMemo(() => tradingPnL(trades), [trades]);
+  const periodPnl = useMemo(() => tradingPnL(trades), [trades]);
   const modelRows = useMemo(
     () => byModel(trades, models).filter((r) => r.tradeCount > 0),
     [trades, models],
@@ -68,8 +70,10 @@ export function DesktopDashboard({
   const recentTrades = trades.slice(0, 5);
   const modelById = new Map(models.map((m) => [m.id, m]));
 
-  const { from: monthFrom, to: monthTo } = monthRange(month);
-  const viewAllHref = `/trades?${buildTradeLogSearchParams({ ...EMPTY_TRADE_LOG_FILTERS, from: monthFrom, to: monthTo }, "date", "desc", 1)}`;
+  // "View all" links into the exact same range the hero/analysis are
+  // reading, not always the calendar month it used to be fixed to
+  // (docs/decisions.md § Dashboard period picker).
+  const viewAllHref = `/trades?${buildTradeLogSearchParams({ ...EMPTY_TRADE_LOG_FILTERS, from: period.from, to: period.to }, "date", "desc", 1)}`;
 
   const maxAbsModelR = Math.max(1e-9, ...modelRows.map((r) => Math.abs(r.netR)));
 
@@ -79,7 +83,7 @@ export function DesktopDashboard({
       activeHref="/"
       right={
         <>
-          <span className="text-13 font-semibold text-muted">{formatMonthLabel(month, locale)}</span>
+          <PeriodPicker resolved={period} />
           <Link href="/weekly-review" className="rounded-6 text-13 font-semibold text-accent hover:text-accent-pressed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">
             {t({ en: "Weekly review", ko: "주간 리뷰" })}
           </Link>
@@ -102,7 +106,9 @@ export function DesktopDashboard({
           <EmptyState
             title={
               hasAccount
-                ? t({ en: "No trades logged this month yet", ko: "이번 달 기록이 없습니다" })
+                ? period.stepMonth !== null
+                  ? t({ en: "No trades logged this month yet", ko: "이번 달 기록이 없습니다" })
+                  : t({ en: "No trades in this period", ko: "이 기간에는 기록이 없습니다" })
                 : t({ en: "Log your first trade", ko: "첫 트레이드를 기록하세요" })
             }
             description={t({
@@ -127,7 +133,7 @@ export function DesktopDashboard({
         {/* Hero */}
         <Card className="grid grid-cols-[340px_1fr] items-center gap-40 px-36 py-32">
           <div>
-            <div className="text-14 font-semibold text-muted">{t({ en: "Month to date", ko: "이번 달 누적" })}</div>
+            <div className="text-14 font-semibold text-muted">{t(DASHBOARD_HERO_LABELS[period.kind])}</div>
             <div
               className={cn(
                 "mt-6 text-56 font-extrabold leading-[1.1] tracking-[-.04em]",
@@ -137,7 +143,7 @@ export function DesktopDashboard({
               {formatR(stats.netR)}
             </div>
             {stats.tradeCount > 0 && (
-              <div className="mt-4 text-15 font-bold text-muted">{formatSignedCurrency(monthPnl, currency)}</div>
+              <div className="mt-4 text-15 font-bold text-muted">{formatSignedCurrency(periodPnl, currency)}</div>
             )}
             <div className="mt-14 flex gap-8">
               <Chip shape="stat">{t(tradeCountLabel(stats.tradeCount))}</Chip>

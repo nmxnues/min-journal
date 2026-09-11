@@ -10,18 +10,21 @@ import { toTabItems } from "@/components/nav/routes";
 import { Button, Card, EmptyState } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { tradingPnL } from "@/lib/domain/capital";
-import { formatMonthLabel, todayIso, type IsoMonth } from "@/lib/domain/dates";
+import type { ResolvedDashboardPeriod } from "@/lib/domain/dashboard-period";
+import { todayIso } from "@/lib/domain/dates";
 import { byModel, equityCurve, periodStats } from "@/lib/domain/stats";
 import { offPlan, realizedR } from "@/lib/domain/trade";
 import { buildTradeLogSearchParams, EMPTY_TRADE_LOG_FILTERS } from "@/lib/domain/trade-log";
 import type { Trade, TradeModel } from "@/lib/domain/types";
 import { formatPercent, formatSignedCurrency } from "@/lib/format";
 import { useFormatR } from "@/lib/settings/context";
-import { useLocale, useT } from "@/lib/i18n/locale-context";
+import { useT } from "@/lib/i18n/locale-context";
 import { DIRECTION_LABELS, SESSION_LABELS, tradeCountLabel } from "@/lib/labels";
+import { DASHBOARD_HERO_LABELS } from "./dashboard-period-copy";
+import { PeriodPicker } from "./period-picker";
 
 export interface MobileHomeProps {
-  month: IsoMonth;
+  period: ResolvedDashboardPeriod;
   trades: Trade[];
   models: TradeModel[];
   hasAccount: boolean;
@@ -41,15 +44,14 @@ function topAndBottomModels<T extends { netR: number }>(rows: readonly T[]): T[]
   return [sorted[0], sorted[1], sorted[sorted.length - 1]];
 }
 
-export function MobileHome({ month, trades, models, hasAccount, drawdownAlert, currency }: MobileHomeProps) {
+export function MobileHome({ period, trades, models, hasAccount, drawdownAlert, currency }: MobileHomeProps) {
   const formatR = useFormatR();
   const t = useT();
-  const locale = useLocale();
   const router = useRouter();
 
   const stats = useMemo(() => periodStats(trades), [trades]);
   const equity = useMemo(() => equityCurve(trades), [trades]);
-  const monthPnl = useMemo(() => tradingPnL(trades), [trades]);
+  const periodPnl = useMemo(() => tradingPnL(trades), [trades]);
   const modelRows = useMemo(
     () => topAndBottomModels(byModel(trades, models).filter((r) => r.tradeCount > 0)),
     [trades, models],
@@ -61,16 +63,19 @@ export function MobileHome({ month, trades, models, hasAccount, drawdownAlert, c
   const viewTodayHref = `/trades?${buildTradeLogSearchParams({ ...EMPTY_TRADE_LOG_FILTERS, from: today, to: today }, "date", "desc", 1)}`;
 
   const header = (
-    <div className="flex items-center justify-between px-20 pt-16">
-      <span className="text-20 font-extrabold tracking-[-.03em] text-ink">
-        {formatMonthLabel(month, locale, false)} {t({ en: "log", ko: "기록" })}
-      </span>
-      <Link
-        href="/settings"
-        aria-label={t({ en: "Settings", ko: "설정" })}
-        className="block h-34 w-34 rounded-pill bg-[#e5e8eb] transition-colors duration-150 ease-out hover:bg-disabled focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
-      />
-    </div>
+    <>
+      <div className="flex items-center justify-between px-20 pt-16">
+        <span className="text-20 font-extrabold tracking-[-.03em] text-ink">{t({ en: "Log", ko: "기록" })}</span>
+        <Link
+          href="/settings"
+          aria-label={t({ en: "Settings", ko: "설정" })}
+          className="block h-34 w-34 rounded-pill bg-[#e5e8eb] transition-colors duration-150 ease-out hover:bg-disabled focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+        />
+      </div>
+      <div className="flex justify-end px-20 pt-6">
+        <PeriodPicker resolved={period} compact />
+      </div>
+    </>
   );
 
   if (!hasAccount || trades.length === 0) {
@@ -82,7 +87,9 @@ export function MobileHome({ month, trades, models, hasAccount, drawdownAlert, c
           <EmptyState
             title={
               hasAccount
-                ? t({ en: "No trades logged this month yet", ko: "이번 달 기록이 없습니다" })
+                ? period.stepMonth !== null
+                  ? t({ en: "No trades logged this month yet", ko: "이번 달 기록이 없습니다" })
+                  : t({ en: "No trades in this period", ko: "이 기간에는 기록이 없습니다" })
                 : t({ en: "Log your first trade", ko: "첫 트레이드를 기록하세요" })
             }
             description={t({
@@ -112,7 +119,7 @@ export function MobileHome({ month, trades, models, hasAccount, drawdownAlert, c
         </Link>
 
         <Card className="p-24">
-          <div className="text-13 font-semibold text-muted">{t({ en: "Month to date", ko: "이번 달 누적" })}</div>
+          <div className="text-13 font-semibold text-muted">{t(DASHBOARD_HERO_LABELS[period.kind])}</div>
           <div
             className={cn(
               "mt-4 text-44 font-extrabold leading-[1.1] tracking-[-.04em]",
@@ -122,7 +129,7 @@ export function MobileHome({ month, trades, models, hasAccount, drawdownAlert, c
             {formatR(stats.netR)}
           </div>
           {stats.tradeCount > 0 && (
-            <div className="mt-2 text-13_5 font-bold text-muted">{formatSignedCurrency(monthPnl, currency)}</div>
+            <div className="mt-2 text-13_5 font-bold text-muted">{formatSignedCurrency(periodPnl, currency)}</div>
           )}
           <div className="mt-14 flex gap-6">
             <span className="rounded-8 bg-divider px-10 py-6 text-12 font-semibold text-secondary">

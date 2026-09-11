@@ -1,14 +1,14 @@
 "use client";
 
 import type { DrawdownAlertInfo } from "@/components/drawdown-alert";
-import type { IsoMonth } from "@/lib/domain/dates";
+import type { ResolvedDashboardPeriod } from "@/lib/domain/dashboard-period";
 import type { Trade, TradeModel } from "@/lib/domain/types";
 import { useLocale } from "@/lib/i18n/locale-context";
 import { DesktopDashboard } from "./desktop-dashboard";
 import { MobileHome } from "./mobile-home";
 
 export interface DashboardProps {
-  month: IsoMonth;
+  period: ResolvedDashboardPeriod;
   trades: Trade[];
   models: TradeModel[];
   hasAccount: boolean;
