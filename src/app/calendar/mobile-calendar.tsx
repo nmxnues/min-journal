@@ -115,6 +115,8 @@ export function MobileCalendar({ month, trades, models, hasAccount }: MobileCale
               const dayStats = dayMap.get(date);
               const style = heatStyle(dayStats);
               const isSelected = date === selectedDate;
+              const hasValue = style.text !== null && dayStats !== undefined;
+              const dayNumber = Number(date.slice(-2));
 
               return (
                 <button
@@ -122,14 +124,19 @@ export function MobileCalendar({ month, trades, models, hasAccount }: MobileCale
                   type="button"
                   onClick={() => setSelectedDate(date)}
                   className={cn(
-                    "flex h-42 flex-col items-center justify-center rounded-12",
+                    "flex h-42 flex-col items-center justify-center gap-1 rounded-12",
                     style.fill,
                     isSelected && "ring-2 ring-inset ring-ink",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2",
                   )}
                 >
-                  {style.text !== null && dayStats !== undefined && (
-                    <span className={cn("text-11 font-bold", style.text)}>{formatR(dayStats.netR, 1, false)}</span>
+                  <span className={cn("text-11 font-semibold", hasValue ? style.text : "text-faint")}>
+                    {dayNumber}
+                  </span>
+                  {hasValue && (
+                    <span className={cn("text-11 font-bold leading-none", style.text)}>
+                      {formatR(dayStats.netR, 1, false)}
+                    </span>
                   )}
                 </button>
               );

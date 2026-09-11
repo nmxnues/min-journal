@@ -22,14 +22,26 @@ export interface BottomTabBarProps {
   className?: string;
 }
 
+/**
+ * `fixed`, not `sticky` — a page shorter than the viewport (an empty state,
+ * a short list) has nothing for `sticky` to stick against, so it rendered in
+ * normal flow right after the content instead of pinned to the screen's own
+ * bottom edge, leaving a gap of bare page background below it (found on a
+ * real phone, not just reasoned about). The leading spacer div reserves the
+ * same height in normal flow so the bar never overlaps the last thing on the
+ * page — one place to get this right instead of a bottom-padding value
+ * copied into every mobile screen that renders this component.
+ */
 export function BottomTabBar({ items, activeHref, className }: BottomTabBarProps) {
   return (
-    <nav
-      className={cn(
-        "sticky bottom-0 flex border-t border-divider bg-surface pb-[env(safe-area-inset-bottom)]",
-        className,
-      )}
-    >
+    <>
+      <div aria-hidden className="h-[calc(56px+env(safe-area-inset-bottom))]" />
+      <nav
+        className={cn(
+          "fixed inset-x-0 bottom-0 z-30 flex border-t border-divider bg-surface pb-[env(safe-area-inset-bottom)]",
+          className,
+        )}
+      >
       {items.map((item) => {
         const Icon = item.icon;
 
@@ -64,6 +76,7 @@ export function BottomTabBar({ items, activeHref, className }: BottomTabBarProps
           </Link>
         );
       })}
-    </nav>
+      </nav>
+    </>
   );
 }

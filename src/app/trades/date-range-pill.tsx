@@ -18,25 +18,21 @@ export interface DateRangePillProps {
  * not two visible date fields. A plain pair of native `<input type="date">`
  * always renders its own text (the empty-state placeholder, and — once a
  * value exists — the value itself) from the *browser's* configured display
- * language, not this app's `t()`/`useLocale()`. On the desktop (English)
- * screen with a Korean-language browser, that showed up as "연도. 월. 일."
- * where the mock has an English summary — wrong locale on an always-visible
- * control, not just a one-off cosmetic gap.
+ * language, not this app's `t()`/`useLocale()`, and an *unset* native date
+ * input's own placeholder segments render close to invisible at this pill's
+ * size — on the <900px screen that showed up as apparently blank but for a
+ * lone "—" separator, no "전체 기간"/"All dates" anywhere (found on a real
+ * phone, not just reasoned about).
  *
- * Fix: render the mock's own summary text ourselves (always English here,
- * since this component only reaches the desktop branch at ≥900px) as a
- * closed pill, and keep the native date inputs only inside a popover that's
- * open for the moment of actually picking a date — real, correct-locale text
- * the rest of the time, with the calendar-picker convenience preserved
- * exactly where it's needed. `<900px` keeps the plain inline pair below: two
- * native inputs read fine there since that screen is Korean-only by
- * construction, matching the browser locale of a Korean-first user, and a
- * popover adds a tap for no benefit on a screen already this compact.
+ * Fix: render the mock's own summary text ourselves, in the current locale,
+ * as a closed pill matching every sibling `FilterDropdown` pill on this same
+ * row — real, correct-locale text at rest, same width regardless of screen,
+ * with the calendar-picker native inputs only inside a popover that's open
+ * for the moment of actually picking a date.
  */
 export function DateRangePill({ from, to, onChange }: DateRangePillProps) {
   const locale = useLocale();
   const t = useT();
-  const isMobile = locale === "ko";
   const isSet = from !== null || to !== null;
 
   const [isOpen, setIsOpen] = useState(false);
@@ -49,41 +45,14 @@ export function DateRangePill({ from, to, onChange }: DateRangePillProps) {
     if (blurTimer.current) clearTimeout(blurTimer.current);
   }
 
-  if (isMobile) {
-    return (
-      <div
-        className={cn(
-          "flex items-center gap-8 rounded-12 bg-divider px-14 py-9 text-13_5 font-semibold",
-          isSet ? "text-ink" : "text-muted",
-        )}
-      >
-        <input
-          type="date"
-          lang={locale}
-          value={from ?? ""}
-          onChange={(event) => onChange(event.target.value === "" ? null : event.target.value, to)}
-          className="w-[124px] bg-transparent outline-none [color-scheme:light]"
-        />
-        <span className="text-faint">—</span>
-        <input
-          type="date"
-          lang={locale}
-          value={to ?? ""}
-          onChange={(event) => onChange(from, event.target.value === "" ? null : event.target.value)}
-          className="w-[124px] bg-transparent outline-none [color-scheme:light]"
-        />
-      </div>
-    );
-  }
-
   const summary =
     from !== null && to !== null
-      ? `${formatTradeDate(from, "en", true)} – ${formatTradeDate(to, "en", true)}`
+      ? `${formatTradeDate(from, locale, true)} – ${formatTradeDate(to, locale, true)}`
       : from !== null
-        ? `From ${formatTradeDate(from, "en", true)}`
+        ? t({ en: `From ${formatTradeDate(from, locale, true)}`, ko: `${formatTradeDate(from, locale, true)}부터` })
         : to !== null
-          ? `Until ${formatTradeDate(to, "en", true)}`
-          : "All dates";
+          ? t({ en: `Until ${formatTradeDate(to, locale, true)}`, ko: `${formatTradeDate(to, locale, true)}까지` })
+          : t({ en: "All dates", ko: "전체 기간" });
 
   return (
     <div className="relative" onBlur={onBlur} onFocus={onFocus}>
@@ -109,7 +78,7 @@ export function DateRangePill({ from, to, onChange }: DateRangePillProps) {
             <input
               id="trade-log-date-from"
               type="date"
-              lang="en"
+              lang={locale}
               value={from ?? ""}
               onChange={(event) => onChange(event.target.value === "" ? null : event.target.value, to)}
               className="rounded-10 bg-divider px-12 py-8 text-13_5 font-semibold text-ink outline-none [color-scheme:light]"
@@ -122,7 +91,7 @@ export function DateRangePill({ from, to, onChange }: DateRangePillProps) {
             <input
               id="trade-log-date-to"
               type="date"
-              lang="en"
+              lang={locale}
               value={to ?? ""}
               onChange={(event) => onChange(from, event.target.value === "" ? null : event.target.value)}
               className="rounded-10 bg-divider px-12 py-8 text-13_5 font-semibold text-ink outline-none [color-scheme:light]"

@@ -65,7 +65,9 @@ export function MobileHome({ period, trades, models, hasAccount, drawdownAlert, 
   const header = (
     <>
       <div className="flex items-center justify-between px-20 pt-16">
-        <span className="text-20 font-extrabold tracking-[-.03em] text-ink">{t({ en: "Log", ko: "기록" })}</span>
+        <span className="text-20 font-extrabold tracking-[-.03em] text-ink">
+          {t({ en: "Dashboard", ko: "대시보드" })}
+        </span>
         <Link
           href="/settings"
           aria-label={t({ en: "Settings", ko: "설정" })}
@@ -140,7 +142,9 @@ export function MobileHome({ period, trades, models, hasAccount, drawdownAlert, 
               {t({ en: "win rate", ko: "승률" })}
             </span>
           </div>
-          <Sparkline values={equity.points.map((p) => p.cumulativeR)} className="mt-18" />
+          {equity.points.length > 1 && (
+            <Sparkline values={equity.points.map((p) => p.cumulativeR)} className="mt-18" />
+          )}
         </Card>
 
         {modelRows.length > 0 && (
