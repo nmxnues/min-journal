@@ -43,6 +43,7 @@ export function makeAccount(overrides: Partial<Account> = {}): Account {
     riskPercent: 1,
     fixedRiskAmount: null,
     drawdownLimitPercent: 10,
+    kind: "live",
     ...overrides,
   };
 }

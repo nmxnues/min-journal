@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   availableBalanceOn,
+  balanceAsOfDate,
   balanceSeries,
   capitalSeries,
   cashTotals,
@@ -13,6 +14,7 @@ import {
   netDeposits,
   previewCashMovement,
   riskSettingOn,
+  rValueAsOfDate,
   rValueForBalance,
   timeWeightedReturn,
   timeline,
@@ -345,6 +347,60 @@ describe("riskSettingOn", () => {
 
   it("uses the account's own setting when there is no history", () => {
     expect(riskSettingOn(account, [], "2026-05-01").riskPercent).toBe(2);
+  });
+});
+
+describe("balanceAsOfDate / rValueAsOfDate — the backtest 1R fix", () => {
+  // docs/decisions.md § Phase 9 backtest follow-up: entering a full year of
+  // one instrument, then a full year of another, into the same account is
+  // not chronological insertion order. `currentBalance` (what a "live"
+  // account's rValueAtEntry freezes to) would let the *whole first block*
+  // inflate the second block's earliest trades' 1R just because those rows
+  // already exist in the table — even though, by date, most of them haven't
+  // "happened" yet as of the second block's first trade.
+  const account = makeAccount({ startingCapital: 10_000, startedAt: "2025-01-01", riskPercent: 1 });
+
+  it("ignores trades dated after the target date, however many are already stored", () => {
+    // A full year of EUR, entered first: +$50 every month, Sep 2025 .. Aug 2026.
+    const eurTrades = Array.from({ length: 12 }, (_, i) => {
+      const month = ((9 - 1 + i) % 12) + 1;
+      const year = 2025 + Math.floor((9 - 1 + i) / 12);
+      const date = `${year}-${String(month).padStart(2, "0")}-10`;
+      return tradeWorth(50, { id: `eur${i}`, date, rValueAtEntry: 1_000 });
+    });
+
+    // The first GBP trade, dated *before* almost all of the EUR block above.
+    const target = "2025-09-05";
+    expect(balanceAsOfDate(account, [], eurTrades, target)).toBe(10_000); // none of the EUR trades count yet
+    expect(rValueAsOfDate(account, [], eurTrades, [], target)).toBeCloseTo(100, 10);
+
+    // currentBalance — what a "live" account uses — is the bug: it sums
+    // every stored EUR trade regardless of date, inflating the same figure.
+    expect(currentBalance(account, [], eurTrades)).toBe(10_600);
+    expect(currentRValue(account, [], eurTrades)).toBeCloseTo(106, 10);
+  });
+
+  it("still counts same-day-or-earlier trades and cash, in the usual order", () => {
+    const trades = [
+      tradeWorth(200, { id: "jan", date: "2025-01-15" }),
+      tradeWorth(300, { id: "jun", date: "2025-06-15" }),
+      tradeWorth(-100, { id: "dec", date: "2025-12-15" }), // after the target — excluded
+    ];
+    const deposit = makeCashMovement({ amount: 1_000, date: "2025-06-01" });
+
+    expect(balanceAsOfDate(account, [deposit], trades, "2025-06-15")).toBe(10_000 + 200 + 1_000 + 300);
+    expect(balanceAsOfDate(account, [deposit], trades, "2025-01-01")).toBe(10_000);
+  });
+
+  it("reads the risk setting in force on the target date, not today's", () => {
+    const history = [
+      { id: "r0", accountId: "a1", effectiveAt: "2025-01-01T00:00:00Z", riskMode: "percent" as const, riskPercent: 1, fixedRiskAmount: null, createdAt: "2025-01-01T00:00:00Z" },
+      { id: "r1", accountId: "a1", effectiveAt: "2025-07-01T00:00:00Z", riskMode: "percent" as const, riskPercent: 2, fixedRiskAmount: null, createdAt: "2025-07-01T00:00:00Z" },
+    ];
+    const changedToday = { ...account, riskPercent: 2 };
+    // Balance is flat at 10,000 throughout — only the risk % differs.
+    expect(rValueAsOfDate(changedToday, [], [], history, "2025-03-01")).toBeCloseTo(100, 10); // 1% was in force then
+    expect(rValueAsOfDate(changedToday, [], [], history, "2025-08-01")).toBeCloseTo(200, 10); // 2% by then
   });
 });
 

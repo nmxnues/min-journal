@@ -25,7 +25,7 @@ import { useFormatR } from "@/lib/settings/context";
 import { MAX_ATTACHMENTS_PER_TRADE } from "@/lib/attachments";
 import { INSTRUMENT_PRESETS } from "@/lib/instruments";
 import { HTF_PAIRING_LABELS, HTF_PAIRING_ORDER, SESSION_LABELS, TAG_PRESETS } from "@/lib/labels";
-import type { SweepSide, TradeModel, TradeResult } from "@/lib/domain/types";
+import type { AccountKind, SweepSide, TradeModel, TradeResult } from "@/lib/domain/types";
 import { useT } from "@/lib/i18n/locale-context";
 import type { useDraftAttachments } from "./use-draft-attachments";
 import type { NewTradeInput } from "./schema";
@@ -65,6 +65,7 @@ export interface MobileQuickLogWizardProps {
   derived: WizardDerived;
   models: TradeModel[];
   rValueToday: number;
+  accountKind: AccountKind;
   currency: string;
   attachments: ReturnType<typeof useDraftAttachments>;
   onExitChange: (raw: string) => void;
@@ -128,6 +129,7 @@ export function MobileQuickLogWizard({
   derived,
   models,
   rValueToday,
+  accountKind,
   currency,
   attachments,
   onExitChange,
@@ -328,8 +330,12 @@ export function MobileQuickLogWizard({
           </div>
           <p className="-mt-8 text-11_5 font-medium text-faint">
             {t({
-              en: `1R today · ${formatCurrency(rValueToday, currency)} — frozen onto this trade when you log it.`,
-              ko: `오늘의 1R · ${formatCurrency(rValueToday, currency)} — 기록하는 순간 이 값으로 고정됩니다.`,
+              en: accountKind === "backtest"
+                ? `1R today · ${formatCurrency(rValueToday, currency)} — this account freezes 1R to the balance as of this trade's own date, not today's.`
+                : `1R today · ${formatCurrency(rValueToday, currency)} — frozen onto this trade when you log it.`,
+              ko: accountKind === "backtest"
+                ? `오늘의 1R · ${formatCurrency(rValueToday, currency)} — 이 계좌는 오늘이 아니라 이 트레이드 날짜 시점의 잔고로 1R을 고정합니다.`
+                : `오늘의 1R · ${formatCurrency(rValueToday, currency)} — 기록하는 순간 이 값으로 고정됩니다.`,
             })}
           </p>
 

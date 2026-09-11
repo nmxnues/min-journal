@@ -2,11 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { parseNumberInput } from "@/lib/format";
-import { currentRValue } from "@/lib/domain/capital";
+import { currentRValue, rValueAsOfDate } from "@/lib/domain/capital";
 import { deriveSweepSide } from "@/lib/domain/trade";
-import type { SweepSide } from "@/lib/domain/types";
+import { todayIso } from "@/lib/domain/dates";
+import type { AccountKind, SweepSide } from "@/lib/domain/types";
 import { createClient } from "@/lib/supabase/server";
-import { getAccountLedgerInputs, getPrimaryAccount, toAccount } from "@/lib/supabase/queries";
+import { getAccountLedgerInputs, getCurrentAccount, toAccount } from "@/lib/supabase/queries";
 import { attachDraftFilesToTrade } from "./attachments-actions";
 import { deleteDraft } from "./draft-actions";
 import { createNewTradeSchema, type NewTradeInput } from "./schema";
@@ -17,6 +18,9 @@ export type ActionResult = { ok: true; id: string } | { ok: false; error: string
 export interface AccountSetupInput {
   name: string;
   currency: string;
+  kind: AccountKind;
+  /** Only meaningful (and only shown in the form) for a backtest account — a live account always starts today. */
+  startedAt: string;
   startingCapital: string;
   riskPercent: string;
   drawdownLimitPercent: string;
@@ -50,6 +54,10 @@ export async function createAccount(input: AccountSetupInput): Promise<ActionRes
   if (drawdownLimitPercent === null || drawdownLimitPercent <= 0) {
     return { ok: false, error: "Enter a drawdown limit." };
   }
+  const startedAt = /^\d{4}-\d{2}-\d{2}$/.test(input.startedAt) ? input.startedAt : todayIso();
+  if (input.kind === "backtest" && startedAt > todayIso()) {
+    return { ok: false, error: "A backtest account's start date can't be in the future." };
+  }
 
   const { data, error } = await supabase
     .from("accounts")
@@ -57,8 +65,9 @@ export async function createAccount(input: AccountSetupInput): Promise<ActionRes
       user_id: user.id,
       name: input.name.trim() === "" ? "Main" : input.name.trim(),
       currency: input.currency,
+      kind: input.kind,
       starting_capital: startingCapital,
-      started_at: new Date().toISOString().slice(0, 10),
+      started_at: startedAt,
       risk_mode: "percent",
       risk_percent: riskPercent,
       fixed_risk_amount: null,
@@ -90,7 +99,7 @@ export async function createTrade(
   } = await supabase.auth.getUser();
   if (user === null) return { ok: false, error: "Not signed in." };
 
-  const account = await getPrimaryAccount();
+  const account = await getCurrentAccount();
   if (account === null) return { ok: false, error: "Set up an account first." };
 
   const rangeHigh = parseNumberInput(v.rangeHigh)!;
@@ -109,9 +118,22 @@ export async function createTrade(
    * value frozen onto the row forever, and the whole Capital screen assumes it
    * equals the account's risk against the balance on the day it was logged.
    * The form shows the same number read-only; this is the copy that counts.
+   *
+   * `currentRValue` sums *every currently stored* trade, which is right for a
+   * "live" account (trades are always entered in the order they actually
+   * happened) but wrong for a "backtest" one, which is typically filled in
+   * one instrument's full date range at a time — a later block already in
+   * the table would otherwise inflate an earlier block's 1R the moment it's
+   * logged, even though by date it hadn't "happened" yet. `rValueAsOfDate`
+   * only counts what's on or before this trade's own `v.date`
+   * (docs/decisions.md § Phase 9 backtest follow-up). Live accounts keep the
+   * original rule untouched.
    */
-  const { trades, cashMovements } = await getAccountLedgerInputs(account.id);
-  const rValueAtEntry = currentRValue(account, cashMovements, trades);
+  const { trades, cashMovements, riskChanges } = await getAccountLedgerInputs(account.id);
+  const rValueAtEntry =
+    account.kind === "backtest"
+      ? rValueAsOfDate(account, cashMovements, trades, riskChanges, v.date)
+      : currentRValue(account, cashMovements, trades);
   if (!Number.isFinite(rValueAtEntry) || rValueAtEntry <= 0) {
     return { ok: false, error: "This account's 1R works out to zero — check its risk settings." };
   }

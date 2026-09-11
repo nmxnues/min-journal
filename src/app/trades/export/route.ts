@@ -4,7 +4,7 @@ import { plannedR, realizedR } from "@/lib/domain/trade";
 import { filterTrades, parseTradeLogFilters, parseTradeLogSort, sortTrades } from "@/lib/domain/trade-log";
 import type { Trade } from "@/lib/domain/types";
 import { todayIso } from "@/lib/domain/dates";
-import { getAllTrades, getModels, getPrimaryAccount } from "@/lib/supabase/queries";
+import { getAllTrades, getModels, getCurrentAccount } from "@/lib/supabase/queries";
 import {
   DIRECTION_LABELS,
   HTF_PAIRING_LABELS,
@@ -24,7 +24,7 @@ import { CSV_FIELD_LABELS, CSV_TARGET_FIELDS } from "../import/schema";
  * so a straight export-then-reimport round-trips.
  */
 export async function GET(request: NextRequest) {
-  const account = await getPrimaryAccount();
+  const account = await getCurrentAccount();
   if (account === null) {
     return NextResponse.json({ error: "No account." }, { status: 404 });
   }

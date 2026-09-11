@@ -171,6 +171,51 @@ export function currentRValue(
   return rValueForBalance(account, currentBalance(account, cashMovements, trades));
 }
 
+/**
+ * Balance using only events dated on or before `date` — ignoring anything
+ * dated after it, regardless of when it was actually entered into the app.
+ *
+ * `currentBalance` sums *every currently stored* event, which is exactly
+ * right for a `kind: "live"` account (trades are always entered in the order
+ * they actually happened, so "everything stored so far" already *is* "as of
+ * now"). A `kind: "backtest"` account breaks that assumption on purpose — the
+ * natural way to fill one in is a full date range of one instrument, then a
+ * full date range of another, not true chronological order across
+ * instruments — so `currentBalance` would let a later-dated block already in
+ * the database inflate an earlier-dated trade's `rValueAtEntry` the moment it
+ * gets logged. This is what `createTrade` uses instead for those accounts
+ * (docs/decisions.md § Phase 9 backtest follow-up).
+ *
+ * `series` is already chronological (see `balanceSeries`), so this is a
+ * single forward scan, not a fresh sort.
+ */
+export function balanceAsOfDate(
+  account: Account,
+  cashMovements: readonly CashMovement[],
+  trades: readonly Trade[],
+  date: IsoDate,
+): number {
+  const series = balanceSeries(account, cashMovements, trades);
+  let balance = account.startingCapital;
+  for (const point of series) {
+    if (point.date > date) break;
+    balance = point.balance;
+  }
+  return balance;
+}
+
+/** `rValueForBalance`, but for `balanceAsOfDate` — what a backtest account freezes onto a trade dated `date`. */
+export function rValueAsOfDate(
+  account: Account,
+  cashMovements: readonly CashMovement[],
+  trades: readonly Trade[],
+  riskChanges: readonly RiskChange[],
+  date: IsoDate,
+): number {
+  const balance = balanceAsOfDate(account, cashMovements, trades, date);
+  return rValueForBalance(riskSettingOn(account, riskChanges, date), balance);
+}
+
 export type CapitalMarker = "start" | "deposit" | "withdrawal" | "risk" | "today";
 
 export interface CapitalSeriesPoint {

@@ -82,6 +82,7 @@ export type Database = {
           drawdown_limit_percent: number
           fixed_risk_amount: number | null
           id: string
+          kind: string
           name: string
           risk_mode: string
           risk_percent: number | null
@@ -96,6 +97,7 @@ export type Database = {
           drawdown_limit_percent?: number
           fixed_risk_amount?: number | null
           id?: string
+          kind?: string
           name: string
           risk_mode: string
           risk_percent?: number | null
@@ -110,6 +112,7 @@ export type Database = {
           drawdown_limit_percent?: number
           fixed_risk_amount?: number | null
           id?: string
+          kind?: string
           name?: string
           risk_mode?: string
           risk_percent?: number | null

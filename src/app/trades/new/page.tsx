@@ -5,7 +5,7 @@ import { DEFAULT_INSTRUMENT } from "@/lib/instruments";
 import {
   getAccountLedgerInputs,
   getModels,
-  getPrimaryAccount,
+  getCurrentAccount,
   getSettings,
 } from "@/lib/supabase/queries";
 import { reconcileDraftAttachments } from "./attachments-actions";
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 export default async function NewTradePage() {
-  const account = await getPrimaryAccount();
+  const account = await getCurrentAccount();
 
   if (account === null) {
     // No account yet — the form can't exist without one, since account_id and
@@ -46,6 +46,7 @@ export default async function NewTradePage() {
       formProps={{
         models,
         rValueToday,
+        accountKind: account.kind,
         currency: account.currency,
         accountIsNearDrawdownLimit: drawdown.isNearLimit,
         drawdownPercent: drawdown.drawdownPercent,

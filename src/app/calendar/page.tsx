@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { currentIsoMonth, isValidIsoMonth, monthRange } from "@/lib/domain/dates";
-import { getModels, getPrimaryAccount, getTradesInRange } from "@/lib/supabase/queries";
+import { getModels, getCurrentAccount, getTradesInRange } from "@/lib/supabase/queries";
 import { CalendarView } from "./calendar-view";
 
 export const metadata: Metadata = {
@@ -15,7 +15,7 @@ export default async function CalendarPage({
   const params = await searchParams;
   const month = isValidIsoMonth(params.month) ? params.month : currentIsoMonth();
 
-  const account = await getPrimaryAccount();
+  const account = await getCurrentAccount();
   if (account === null) {
     return <CalendarView month={month} trades={[]} models={[]} hasAccount={false} />;
   }

@@ -15,6 +15,8 @@ import type { Account, CashMovement, IsoDate, RiskChange, Trade, TradeModel } fr
 
 export interface CapitalData {
   account: Account;
+  /** Every account this user has, for the account switcher — includes `account` itself. */
+  allAccounts: Account[];
   trades: Trade[];
   cashMovements: CashMovement[];
   riskChanges: RiskChange[];

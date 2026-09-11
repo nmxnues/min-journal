@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { todayIso } from "@/lib/domain/dates";
-import { getAccountLedgerInputs, getModels, getPrimaryAccount } from "@/lib/supabase/queries";
+import { getAccountLedgerInputs, getAllAccounts, getModels, getCurrentAccount } from "@/lib/supabase/queries";
 import { CapitalView } from "./capital-view";
 
 export const metadata: Metadata = {
@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CapitalPage() {
-  const account = await getPrimaryAccount();
+  const [account, allAccounts] = await Promise.all([getCurrentAccount(), getAllAccounts()]);
   if (account === null) return <CapitalView data={null} />;
 
   const [{ trades, cashMovements, riskChanges }, models] = await Promise.all([
@@ -20,6 +20,7 @@ export default async function CapitalPage() {
     <CapitalView
       data={{
         account,
+        allAccounts,
         trades,
         cashMovements,
         riskChanges,

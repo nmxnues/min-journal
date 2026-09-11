@@ -26,6 +26,7 @@ import { useFormatR } from "@/lib/settings/context";
 import type { Locale, LocaleStrings } from "@/lib/i18n/locale";
 import { useLocale, useT } from "@/lib/i18n/locale-context";
 import { signOut } from "../actions";
+import { AccountSwitcher } from "./account-switcher";
 import { DeleteCashModal } from "./delete-cash-modal";
 import { DrawdownGuardCard } from "./drawdown-guard-card";
 import { describeLedgerEntry, LEDGER_FILTER_LABELS, LEDGER_FILTERS, LEDGER_KIND_LABELS } from "./ledger-copy";
@@ -95,6 +96,7 @@ export function DesktopCapital({ data, summary, onRecordCash }: CapitalScreenPro
         activeHref="/capital"
         right={
           <>
+            <AccountSwitcher accounts={data.allAccounts} currentAccountId={account.id} />
             <Button onClick={onRecordCash}>{t({ en: "Deposit / Withdraw", ko: "입출금" })}</Button>
             <SignOutButton signOutAction={signOut} />
           </>

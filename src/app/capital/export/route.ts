@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { stringifyCsv } from "@/lib/csv";
 import { filterLedger, ledger } from "@/lib/domain/capital";
 import { todayIso } from "@/lib/domain/dates";
-import { getAccountLedgerInputs, getModels, getPrimaryAccount } from "@/lib/supabase/queries";
+import { getAccountLedgerInputs, getModels, getCurrentAccount } from "@/lib/supabase/queries";
 import { describeLedgerEntry, LEDGER_KIND_LABELS, parseLedgerFilter } from "../ledger-copy";
 
 /**
@@ -12,7 +12,7 @@ import { describeLedgerEntry, LEDGER_KIND_LABELS, parseLedgerFilter } from "../l
  * isn't one (docs/README.md § Capital).
  */
 export async function GET(request: NextRequest) {
-  const account = await getPrimaryAccount();
+  const account = await getCurrentAccount();
   if (account === null) {
     return NextResponse.json({ error: "No account." }, { status: 404 });
   }

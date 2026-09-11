@@ -8,7 +8,7 @@ import {
   parseTradeLogSort,
   sortTrades,
 } from "@/lib/domain/trade-log";
-import { getAllTrades, getModels, getPrimaryAccount } from "@/lib/supabase/queries";
+import { getAllTrades, getModels, getCurrentAccount } from "@/lib/supabase/queries";
 import { TradeLogView } from "./trade-log-view";
 
 export const metadata: Metadata = {
@@ -30,7 +30,7 @@ export default async function TradeLogPage({
   const { sort, direction } = parseTradeLogSort(params);
   const page = parseTradeLogPage(params);
 
-  const account = await getPrimaryAccount();
+  const account = await getCurrentAccount();
   if (account === null) {
     return <TradeLogView hasAccount={false} models={[]} matching={[]} summary={null} pagination={null} />;
   }

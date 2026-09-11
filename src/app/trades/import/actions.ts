@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import type { Locale } from "@/lib/i18n/locale";
-import { getModels, getPrimaryAccount } from "@/lib/supabase/queries";
+import { getModels, getCurrentAccount } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
 import { csvRowSchema, toTradeInsert, type RawCsvRow } from "./schema";
 
@@ -23,7 +23,7 @@ export async function importTrades(rows: RawCsvRow[], locale: Locale = "en"): Pr
   } = await supabase.auth.getUser();
   if (user === null) return { ok: false, error: "Not signed in." };
 
-  const account = await getPrimaryAccount();
+  const account = await getCurrentAccount();
   if (account === null) return { ok: false, error: "Set up an account first." };
 
   if (rows.length === 0) return { ok: false, error: "No rows to import." };

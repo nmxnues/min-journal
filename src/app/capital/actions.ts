@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import {
   availableBalanceOn,
   checkCashMovementDeletion,
@@ -9,6 +10,7 @@ import {
 import { todayIso } from "@/lib/domain/dates";
 import type { RiskMode } from "@/lib/domain/types";
 import { parseNumberInput } from "@/lib/format";
+import { CURRENT_ACCOUNT_COOKIE } from "@/lib/current-account";
 import { createClient } from "@/lib/supabase/server";
 import { getAccount, getAccountLedgerInputs, toCashMovement } from "@/lib/supabase/queries";
 
@@ -159,6 +161,36 @@ export async function updateRiskSetting(input: RiskSettingInput): Promise<Capita
   if (error) return { ok: false, error: error.message };
 
   revalidateMoney();
+  return { ok: true };
+}
+
+/**
+ * Switches which account every screen reads/writes against
+ * (docs/decisions.md § Phase 9 multi-account follow-up) — writes the
+ * `current-account-id` cookie `getCurrentAccount()` reads. Re-checks
+ * ownership itself rather than trusting the id blindly (RLS makes a
+ * foreign/deleted id read back null here, not an error), so this can't be
+ * used to switch onto another user's account by guessing an id.
+ */
+export async function setCurrentAccount(accountId: string): Promise<CapitalActionResult> {
+  const account = await getAccount(accountId);
+  if (account === null) return { ok: false, error: "Account not found." };
+
+  const cookieStore = await cookies();
+  cookieStore.set(CURRENT_ACCOUNT_COOKIE, account.id, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+  });
+
+  // Every account-scoped route, not just Capital's own — the whole point of
+  // switching is that Dashboard/Trades/Calendar/Playbook/New trade all pick
+  // up the new account the next time they're visited, not just this screen.
+  for (const path of ["/", "/trades", "/calendar", "/playbook", "/weekly-review", "/trades/new", "/capital"]) {
+    revalidatePath(path);
+  }
   return { ok: true };
 }
 

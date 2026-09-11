@@ -21,6 +21,15 @@ export type CashMovementType = "deposit" | "withdrawal";
 export type ModelStatus = "active" | "retired";
 /** settings.pnl_convention — "kr" (red gain / blue loss) or "west" (green gain / red loss). */
 export type PnlConvention = "kr" | "west";
+/**
+ * accounts.kind — "live" freezes `rValueAtEntry` at the balance *now* (the
+ * original, unchanged rule). "backtest" freezes it at the balance as of the
+ * trade's own date instead, so entering a full year of one instrument and
+ * then a full year of another into the same account doesn't have the second
+ * instrument's early trades pick up 1R inflated by the first instrument's
+ * later ones (docs/decisions.md § Phase 9 backtest follow-up).
+ */
+export type AccountKind = "live" | "backtest";
 
 export interface Settings {
   pnlConvention: PnlConvention;
@@ -88,6 +97,7 @@ export interface Account extends RiskSetting {
   startingCapital: number;
   startedAt: IsoDate;
   drawdownLimitPercent: number;
+  kind: AccountKind;
 }
 
 /**

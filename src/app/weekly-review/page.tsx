@@ -8,7 +8,7 @@ import {
   shiftIsoWeek,
   todayIsoWeek,
 } from "@/lib/domain/weekly-review";
-import { getModels, getPrimaryAccount, getTradesInRange } from "@/lib/supabase/queries";
+import { getModels, getCurrentAccount, getTradesInRange } from "@/lib/supabase/queries";
 import { getOrCreateWeeklyReview } from "./get-or-create";
 import { WeeklyReviewView } from "./weekly-review-view";
 
@@ -24,7 +24,7 @@ export default async function WeeklyReviewPage({
   const params = await searchParams;
   const week = isValidIsoWeek(params.week) ? params.week : todayIsoWeek();
 
-  const account = await getPrimaryAccount();
+  const account = await getCurrentAccount();
   if (account === null) {
     return <WeeklyReviewView week={week} hasAccount={false} />;
   }

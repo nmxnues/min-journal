@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { drawdownState } from "@/lib/domain/capital";
 import {
+  getAccount,
   getAccountLedgerInputs,
   getModels,
-  getPrimaryAccount,
   getTrade,
   getTradeAttachments,
 } from "@/lib/supabase/queries";
@@ -20,10 +20,15 @@ export default async function TradeDetailPage({ params }: { params: Promise<{ id
   const trade = await getTrade(id);
   if (trade === null) notFound();
 
+  // Deliberately the trade's *own* account (`trade.accountId`), not whichever
+  // one is currently selected elsewhere in the app (docs/decisions.md § Phase
+  // 9 multi-account follow-up) — a trade detail page has to reflect the
+  // account it actually belongs to even when you're browsing it from a
+  // different account's trade log or a shared link.
   const [models, attachments, account] = await Promise.all([
     getModels(),
     getTradeAttachments(trade.id),
-    getPrimaryAccount(),
+    getAccount(trade.accountId),
   ]);
 
   // The account trades come from always exists by the time a trade does

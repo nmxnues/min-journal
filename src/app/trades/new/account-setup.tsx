@@ -2,34 +2,40 @@
 
 import { useState, useTransition } from "react";
 import { Button, Field, Input, Modal, Panel, Segmented } from "@/components/ui";
+import type { AccountKind } from "@/lib/domain/types";
 import { formatCurrency } from "@/lib/format";
 import { parseNumberInput } from "@/lib/format";
+import { todayIso } from "@/lib/domain/dates";
 import { useT } from "@/lib/i18n/locale-context";
 import { createAccount } from "./actions";
 
 const RISK_OPTIONS = ["0.5", "1", "2"] as const;
 
 /**
- * Shown when the user opens New trade with no account yet — the current state
- * of a fresh install. Not the Capital screen (that's Phase 8, and it will edit
- * this same row): just the minimum a trade needs to exist, since
- * `trades.account_id` and `trades.r_value_at_entry` are NOT NULL and 1R is
- * meaningless without a balance and a risk setting.
+ * Shown when the user opens New trade with no account yet (the "first-run"
+ * context — the original copy is specific to that moment) and, since Phase
+ * 9's multi-account follow-up, also reachable from Capital to add a second
+ * or third account ("additional") — same form either way, just the intro
+ * line and default name differ.
  */
 export function AccountSetup({
+  context = "first-run",
   onCreated,
   onCancel,
 }: {
-  onCreated: () => void;
+  context?: "first-run" | "additional";
+  onCreated: (accountId: string) => void;
   onCancel: () => void;
 }) {
   const t = useT();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  const [name, setName] = useState("Main");
+  const [name, setName] = useState(context === "first-run" ? "Main" : "");
   const [currency] = useState("USD");
+  const [kind, setKind] = useState<AccountKind>("live");
   const [startingCapital, setStartingCapital] = useState("");
+  const [startedAt, setStartedAt] = useState(todayIso());
   const [riskPercent, setRiskPercent] = useState<string>("1");
   const [drawdownLimitPercent, setDrawdownLimitPercent] = useState("10");
 
@@ -43,11 +49,18 @@ export function AccountSetup({
       const result = await createAccount({
         name,
         currency,
+        kind,
+        // A live account always starts "now" (unchanged behavior) — only a
+        // backtest account's own start date is user-chosen, since it has to
+        // predate the earliest trade you're about to backfill for the
+        // balance/1R timeline to mean anything (docs/decisions.md § Phase 9
+        // backtest follow-up).
+        startedAt: kind === "backtest" ? startedAt : todayIso(),
         startingCapital,
         riskPercent,
         drawdownLimitPercent,
       });
-      if (result.ok) onCreated();
+      if (result.ok) onCreated(result.id);
       else setError(result.error);
     });
   }
@@ -56,26 +69,72 @@ export function AccountSetup({
     <Modal
       open
       onClose={onCancel}
-      title={t({ en: "Set up your account", ko: "계좌 설정" })}
+      title={
+        context === "first-run"
+          ? t({ en: "Set up your account", ko: "계좌 설정" })
+          : t({ en: "New account", ko: "새 계좌" })
+      }
       footer={
         <Button size="lg" className="w-full" disabled={isPending} onClick={submit}>
           {isPending
             ? t({ en: "Saving…", ko: "저장하는 중…" })
-            : t({ en: "Save and continue", ko: "저장하고 계속" })}
+            : context === "first-run"
+              ? t({ en: "Save and continue", ko: "저장하고 계속" })
+              : t({ en: "Create account", ko: "계좌 만들기" })}
         </Button>
       }
     >
       <div className="flex flex-col gap-16 pb-8">
         <p className="text-13_5 leading-[1.6] text-secondary">
-          {t({
-            en: "Every trade stores the cash value of 1R as it stood the day it was logged, so this has to exist before the first one.",
-            ko: "모든 트레이드는 기록 시점의 1R 금액을 함께 저장합니다. 첫 기록 전에 계좌가 필요합니다.",
-          })}
+          {context === "first-run"
+            ? t({
+                en: "Every trade stores the cash value of 1R as it stood the day it was logged, so this has to exist before the first one.",
+                ko: "모든 트레이드는 기록 시점의 1R 금액을 함께 저장합니다. 첫 기록 전에 계좌가 필요합니다.",
+              })
+            : t({
+                en: "A separate balance, ledger, and 1R history — trades logged from now on go to whichever account is switched on.",
+                ko: "잔고·원장·1R 이력이 완전히 분리된 별도 계좌입니다 — 지금부터의 기록은 전환된 계좌에 들어갑니다.",
+              })}
         </p>
 
         <Field label={t({ en: "Account name", ko: "계좌 이름" })} htmlFor="account-name">
-          <Input id="account-name" value={name} onChange={(e) => setName(e.target.value)} />
+          <Input
+            id="account-name"
+            placeholder={context === "additional" ? t({ en: "e.g. EUR backtest", ko: "예: 유로 백테스트" }) : undefined}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
         </Field>
+
+        <Field label={t({ en: "Account type", ko: "계좌 유형" })}>
+          <Segmented
+            name="kind"
+            value={kind}
+            onChange={setKind}
+            options={[
+              { value: "live", label: t({ en: "Live", ko: "실거래" }) },
+              { value: "backtest", label: t({ en: "Backtest", ko: "백테스트" }) },
+            ]}
+          />
+        </Field>
+
+        {kind === "backtest" && (
+          <Field
+            label={t({ en: "Start date", ko: "시작일" })}
+            htmlFor="account-started-at"
+            hint={t({
+              en: "The earliest date you'll log a trade for — 1R for a given date is the balance built from every trade already logged on or before it, not from today's balance.",
+              ko: "기록할 트레이드 중 가장 이른 날짜여야 합니다 — 각 날짜의 1R은 오늘 잔고가 아니라 그 날짜까지 기록된 트레이드로 쌓인 잔고를 기준으로 계산됩니다.",
+            })}
+          >
+            <Input
+              id="account-started-at"
+              type="date"
+              value={startedAt}
+              onChange={(e) => setStartedAt(e.target.value)}
+            />
+          </Field>
+        )}
 
         <Field
           label={t({ en: "Starting capital (USD)", ko: "시작 자본 (USD)" })}

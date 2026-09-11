@@ -35,7 +35,7 @@ import {
   TAG_PRESETS,
 } from "@/lib/labels";
 import { deriveSweepSide, plannedR, rangeSize, realizedR } from "@/lib/domain/trade";
-import type { SweepSide, TradeModel, TradeResult } from "@/lib/domain/types";
+import type { AccountKind, SweepSide, TradeModel, TradeResult } from "@/lib/domain/types";
 import { useLocale, useT } from "@/lib/i18n/locale-context";
 import { createTrade } from "./actions";
 import type { DraftRecord } from "./draft-actions";
@@ -48,8 +48,16 @@ import { MobileQuickLogWizard, WIZARD_STEP_COUNT, WIZARD_STEP_FIELDS } from "./m
 
 export interface NewTradeFormProps {
   models: TradeModel[];
-  /** 1R as it stands right now — frozen onto the row by the server on submit. */
+  /**
+   * 1R as it stands right now — a preview, not a promise: for a "live"
+   * account this is exactly what the server freezes onto the row on submit.
+   * For a "backtest" account the server instead uses the balance as of
+   * whatever date ends up in the form (`rValueAsOfDate`, docs/decisions.md §
+   * Phase 9 backtest follow-up) — this number stays the *today* figure
+   * throughout, so the callout below says so rather than implying it's live.
+   */
   rValueToday: number;
+  accountKind: AccountKind;
   currency: string;
   accountIsNearDrawdownLimit: boolean;
   drawdownPercent: number;
@@ -85,6 +93,7 @@ function SectionCard({
 export function NewTradeForm({
   models,
   rValueToday,
+  accountKind,
   currency,
   accountIsNearDrawdownLimit,
   drawdownPercent,
@@ -325,6 +334,7 @@ export function NewTradeForm({
           derived={derived}
           models={models}
           rValueToday={rValueToday}
+          accountKind={accountKind}
           currency={currency}
           attachments={attachments}
           onExitChange={onExitChange}
@@ -563,10 +573,15 @@ export function NewTradeForm({
           </div>
 
           <p className="mt-8 text-11_5 font-medium text-faint">
-            {t({
-              en: `1R today · ${formatCurrency(rValueToday, currency)} — frozen onto this trade when you log it.`,
-              ko: `오늘의 1R · ${formatCurrency(rValueToday, currency)} — 기록하는 순간 이 값으로 고정됩니다.`,
-            })}
+            {accountKind === "backtest"
+              ? t({
+                  en: `1R today · ${formatCurrency(rValueToday, currency)} — this account freezes 1R to the balance as of this trade's own date, not today's.`,
+                  ko: `오늘의 1R · ${formatCurrency(rValueToday, currency)} — 이 계좌는 오늘이 아니라 이 트레이드 날짜 시점의 잔고로 1R을 고정합니다.`,
+                })
+              : t({
+                  en: `1R today · ${formatCurrency(rValueToday, currency)} — frozen onto this trade when you log it.`,
+                  ko: `오늘의 1R · ${formatCurrency(rValueToday, currency)} — 기록하는 순간 이 값으로 고정됩니다.`,
+                })}
           </p>
 
           <div className="mt-16 grid grid-cols-2 gap-16">

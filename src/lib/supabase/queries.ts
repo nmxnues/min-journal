@@ -1,5 +1,7 @@
 import "server-only";
+import { cookies } from "next/headers";
 import { createClient } from "./server";
+import { CURRENT_ACCOUNT_COOKIE } from "@/lib/current-account";
 import type { Database } from "@/lib/database.types";
 import type {
   Account,
@@ -40,6 +42,7 @@ export function toAccount(row: Row<"accounts">): Account {
     riskPercent: row.risk_percent === null ? null : Number(row.risk_percent),
     fixedRiskAmount: row.fixed_risk_amount === null ? null : Number(row.fixed_risk_amount),
     drawdownLimitPercent: Number(row.drawdown_limit_percent),
+    kind: row.kind === "backtest" ? "backtest" : "live",
   };
 }
 
@@ -162,6 +165,41 @@ export async function getPrimaryAccount(): Promise<Account | null> {
   return data === null ? null : toAccount(data);
 }
 
+/** Every account for the signed-in user, oldest first — the account switcher's own list. */
+export async function getAllAccounts(): Promise<Account[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("accounts")
+    .select("*")
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []).map(toAccount);
+}
+
+/**
+ * The account every screen actually reads/writes against — Phase 9's first
+ * real slice of the multi-account switching README always reserved
+ * `accountId` for but left undesigned. Defaults to `getPrimaryAccount`'s
+ * original behavior (the oldest account) unless a `current-account-id`
+ * cookie names a different one that still exists and is this user's (RLS
+ * makes a foreign or since-deleted id simply read back null, not an error —
+ * so a stale cookie just falls through to the default rather than breaking).
+ */
+export async function getCurrentAccount(): Promise<Account | null> {
+  const cookieStore = await cookies();
+  const selectedId = cookieStore.get(CURRENT_ACCOUNT_COOKIE)?.value;
+
+  if (selectedId !== undefined) {
+    const supabase = await createClient();
+    const { data, error } = await supabase.from("accounts").select("*").eq("id", selectedId).maybeSingle();
+    if (error) throw error;
+    if (data !== null) return toAccount(data);
+  }
+
+  return getPrimaryAccount();
+}
+
 /** RLS scopes this to the signed-in user, so a wrong or someone-else's id just reads back null. */
 export async function getTrade(id: string): Promise<Trade | null> {
   const supabase = await createClient();
@@ -243,6 +281,27 @@ export async function getTradesInRange(
 
   if (error) throw error;
   return (data ?? []).map(toTrade);
+}
+
+/**
+ * The account's single most-recently-dated trade's date, or null with no
+ * trades yet — a targeted one-row query rather than fetching every trade
+ * just to find a max, since a backtest account can hold a year or more of
+ * rows (docs/decisions.md § Phase 9 backtest follow-up: this is what the
+ * Dashboard defaults to instead of always "this calendar month").
+ */
+export async function getMostRecentTradeDate(accountId: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("trades")
+    .select("date")
+    .eq("account_id", accountId)
+    .order("date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.date ?? null;
 }
 
 /**
