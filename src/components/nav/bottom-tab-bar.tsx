@@ -31,16 +31,30 @@ export interface BottomTabBarProps {
  * same height in normal flow so the bar never overlaps the last thing on the
  * page — one place to get this right instead of a bottom-padding value
  * copied into every mobile screen that renders this component.
+ *
+ * `BAR_EXTRA_BOTTOM_PADDING` is a second, separate real-phone finding: with
+ * only `env(safe-area-inset-bottom)` below the tab content, the labels sat
+ * right on top of the iOS home-indicator strip with nothing between them,
+ * cramped enough to mistap. Added *on top of* the safe-area inset, not
+ * instead of it, so the row of tabs sits a real 10px above the indicator on
+ * any device — zero extra padding added on a device with no inset at all
+ * (an older iPhone SE shape), since `env()` resolves to 0 there.
  */
+const BAR_EXTRA_BOTTOM_PADDING = 10;
+
 export function BottomTabBar({ items, activeHref, className }: BottomTabBarProps) {
   return (
     <>
-      <div aria-hidden className="h-[calc(56px+env(safe-area-inset-bottom))]" />
+      <div
+        aria-hidden
+        style={{ height: `calc(56px + env(safe-area-inset-bottom) + ${BAR_EXTRA_BOTTOM_PADDING}px)` }}
+      />
       <nav
         className={cn(
-          "fixed inset-x-0 bottom-0 z-30 flex border-t border-divider bg-surface pb-[env(safe-area-inset-bottom)]",
+          "fixed inset-x-0 bottom-0 z-30 flex border-t border-divider bg-surface",
           className,
         )}
+        style={{ paddingBottom: `calc(env(safe-area-inset-bottom) + ${BAR_EXTRA_BOTTOM_PADDING}px)` }}
       >
       {items.map((item) => {
         const Icon = item.icon;
