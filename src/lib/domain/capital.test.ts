@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  assignBacktestRValues,
   availableBalanceOn,
   balanceAsOfDate,
   balanceSeries,
@@ -12,6 +13,7 @@ import {
   filterLedger,
   ledger,
   netDeposits,
+  type PendingBacktestTrade,
   previewCashMovement,
   riskSettingOn,
   rValueAsOfDate,
@@ -401,6 +403,53 @@ describe("balanceAsOfDate / rValueAsOfDate — the backtest 1R fix", () => {
     // Balance is flat at 10,000 throughout — only the risk % differs.
     expect(rValueAsOfDate(changedToday, [], [], history, "2025-03-01")).toBeCloseTo(100, 10); // 1% was in force then
     expect(rValueAsOfDate(changedToday, [], [], history, "2025-08-01")).toBeCloseTo(200, 10); // 2% by then
+  });
+});
+
+describe("assignBacktestRValues — CSV import's batch version of the same fix", () => {
+  const account = makeAccount({ startingCapital: 10_000, startedAt: "2025-01-01", riskPercent: 1 });
+
+  function pending(date: string, exit: number, overrides: Partial<PendingBacktestTrade> = {}): PendingBacktestTrade {
+    return { date, direction: "long", entry: 100, stop: 90, exit, rValueAtEntry: null, ...overrides };
+  }
+
+  it("processes an unsorted batch in date order, not input order, and returns results in the original order", () => {
+    // Row A (index 0): Feb 1, +1R. Row B (index 1): Jan 1 — earlier, but
+    // listed second — must still be computed and applied first.
+    const rowA = pending("2025-02-01", 110); // +1R
+    const rowB = pending("2025-01-01", 80); // -2R
+    const rowC = pending("2025-02-01", 95); // -0.5R, same date as A, after it by index
+
+    const results = assignBacktestRValues(account, [], [], [], [rowA, rowB, rowC]);
+
+    // B first: balance still 10,000 -> 1% = 100, pnl -200 -> balance 9,800.
+    expect(results[1]).toBeCloseTo(100, 10);
+    // A next: balance is now 9,800 -> 1% = 98, pnl +98 -> balance 9,898.
+    expect(results[0]).toBeCloseTo(98, 10);
+    // C last (same date as A, later by index): balance is now 9,898 -> 1% = 98.98.
+    expect(results[2]).toBeCloseTo(98.98, 10);
+  });
+
+  it("keeps an explicit rValueAtEntry override, but still folds its pnl into the balance for rows after it", () => {
+    const rowD = pending("2025-03-01", 110, { rValueAtEntry: 500 }); // explicit, +1R -> pnl +500
+    const rowE = pending("2025-03-02", 100); // R = 0, computed — only used to read the resulting balance
+
+    const results = assignBacktestRValues(account, [], [], [], [rowD, rowE]);
+
+    expect(results[0]).toBe(500); // untouched
+    // Balance after D: 10,000 + 500 = 10,500 -> 1% = 105.
+    expect(results[1]).toBeCloseTo(105, 10);
+  });
+
+  it("folds in trades and cash movements already stored for the account before the batch starts", () => {
+    const existing = [tradeWorth(500, { date: "2025-01-15" })]; // +$500, unrelated 1,000-fixed rValueAtEntry
+    const deposit = makeCashMovement({ amount: 200, date: "2025-01-20" });
+    const row = pending("2025-02-01", 100); // R = 0 — just probing the balance the rValue was computed from
+
+    const results = assignBacktestRValues(account, [deposit], existing, [], [row]);
+
+    // 10,000 + 500 (existing trade) + 200 (deposit) = 10,700 -> 1% = 107.
+    expect(results[0]).toBeCloseTo(107, 10);
   });
 });
 

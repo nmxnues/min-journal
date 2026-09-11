@@ -23,7 +23,7 @@ import {
   type SortDirection,
   type TradeLogFilters,
 } from "@/lib/domain/trade-log";
-import type { Trade, TradeModel } from "@/lib/domain/types";
+import type { AccountKind, Trade, TradeModel } from "@/lib/domain/types";
 import { formatCompactDate, formatHoldMinutes, formatPercent } from "@/lib/format";
 import { useFormatR } from "@/lib/settings/context";
 import { useLocale, useT } from "@/lib/i18n/locale-context";
@@ -74,6 +74,8 @@ export interface TradeLogPagination {
 
 export interface TradeLogViewProps {
   hasAccount: boolean;
+  /** Only meaningful when `hasAccount` — Import needs it to know whether `rValueAtEntry` can be left blank. */
+  accountKind: AccountKind | null;
   models: TradeModel[];
   /** The current page's trades only — summary/export reflect the full filtered set server-side. */
   matching: Trade[];
@@ -81,7 +83,7 @@ export interface TradeLogViewProps {
   pagination: TradeLogPagination | null;
 }
 
-export function TradeLogView({ hasAccount, models, matching, summary, pagination }: TradeLogViewProps) {
+export function TradeLogView({ hasAccount, accountKind, models, matching, summary, pagination }: TradeLogViewProps) {
   const formatR = useFormatR();
   const t = useT();
   const locale = useLocale();
@@ -360,6 +362,8 @@ export function TradeLogView({ hasAccount, models, matching, summary, pagination
 
       <ImportModal
         open={importOpen}
+        // Safe past this point — the `!hasAccount` branch above already returned.
+        accountKind={accountKind!}
         onClose={() => setImportOpen(false)}
         onImported={() => {
           setImportOpen(false);

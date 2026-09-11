@@ -3,12 +3,22 @@
 import { useState, useTransition } from "react";
 import { Button, Field, Modal, Select } from "@/components/ui";
 import { parseCsv } from "@/lib/csv";
+import type { AccountKind } from "@/lib/domain/types";
 import { useLocale, useT } from "@/lib/i18n/locale-context";
 import { importTrades } from "./actions";
-import { CSV_FIELD_LABELS, CSV_REQUIRED_FIELDS, CSV_TARGET_FIELDS, csvRowSchema, emptyCsvRow, type CsvTargetField, type RawCsvRow } from "./schema";
+import {
+  CSV_FIELD_LABELS,
+  CSV_TARGET_FIELDS,
+  csvRequiredFields,
+  csvRowSchema,
+  emptyCsvRow,
+  type CsvTargetField,
+  type RawCsvRow,
+} from "./schema";
 
 export interface ImportModalProps {
   open: boolean;
+  accountKind: AccountKind;
   onClose: () => void;
   onImported: () => void;
 }
@@ -47,10 +57,11 @@ function applyMapping(row: string[], mapping: Mapping): RawCsvRow {
   return out;
 }
 
-export function ImportModal({ open, onClose, onImported }: ImportModalProps) {
+export function ImportModal({ open, accountKind, onClose, onImported }: ImportModalProps) {
   const t = useT();
   const locale = useLocale();
   const [isPending, startTransition] = useTransition();
+  const requiredFields = csvRequiredFields(accountKind);
 
   const [step, setStep] = useState<Step>("pick");
   const [header, setHeader] = useState<string[]>([]);
@@ -92,7 +103,7 @@ export function ImportModal({ open, onClose, onImported }: ImportModalProps) {
   }
 
   function confirmMapping() {
-    const missing = CSV_REQUIRED_FIELDS.filter((f) => mapping[f] === null);
+    const missing = requiredFields.filter((f) => mapping[f] === null);
     if (missing.length > 0) {
       setMappingError(
         t({
@@ -107,7 +118,7 @@ export function ImportModal({ open, onClose, onImported }: ImportModalProps) {
   }
 
   const mappedRows = dataRows.map((row) => applyMapping(row, mapping));
-  const schema = csvRowSchema(locale);
+  const schema = csvRowSchema(locale, accountKind);
   const results = mappedRows.map((row, i) => ({ index: i, row, parsed: schema.safeParse(row) }));
   const validRows = results.filter((r) => r.parsed.success).map((r) => r.row);
   const rejectedRows = results.filter((r) => !r.parsed.success);
@@ -186,9 +197,17 @@ export function ImportModal({ open, onClose, onImported }: ImportModalProps) {
                 ko: `데이터 ${dataRows.length}행을 찾았습니다. 아래에서 각 필드를 컬럼에 매핑하세요 (선택 항목은 비워둘 수 있습니다).`,
               })}
             </p>
+            {accountKind === "backtest" && (
+              <p className="rounded-8 bg-accent-tint px-12 py-10 text-12_5 leading-[1.6] text-accent">
+                {t({
+                  en: "This is a backtest account — 1R value is optional. Leave it unmapped (or blank on a row) and it's computed from the balance as of that trade's own date.",
+                  ko: "백테스트 계좌입니다 — 1R 금액은 선택 항목입니다. 매핑하지 않거나 행별로 비워두면 그 트레이드 날짜 시점 잔고 기준으로 자동 계산됩니다.",
+                })}
+              </p>
+            )}
             <div className="grid grid-cols-2 gap-14">
               {CSV_TARGET_FIELDS.map((field) => {
-                const required = CSV_REQUIRED_FIELDS.includes(field);
+                const required = requiredFields.includes(field);
                 const label = `${t(CSV_FIELD_LABELS[field])}${required ? " *" : ""}`;
                 return (
                   <Field key={field} label={label} htmlFor={`map-${field}`}>

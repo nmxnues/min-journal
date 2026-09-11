@@ -13,7 +13,7 @@
 import { DRAWDOWN_WARNING_MARGIN_PCT } from "./constants";
 import { memoize } from "./memoize";
 import { pnlAmount, realizedR } from "./trade";
-import type { Account, CashMovement, IsoDate, RiskChange, RiskSetting, Trade } from "./types";
+import type { Account, CashMovement, Direction, IsoDate, RiskChange, RiskSetting, Trade } from "./types";
 
 /**
  * One balance-changing event.
@@ -214,6 +214,63 @@ export function rValueAsOfDate(
 ): number {
   const balance = balanceAsOfDate(account, cashMovements, trades, date);
   return rValueForBalance(riskSettingOn(account, riskChanges, date), balance);
+}
+
+export interface PendingBacktestTrade {
+  date: IsoDate;
+  direction: Direction;
+  entry: number;
+  stop: number;
+  exit: number | null;
+  /** An explicit value from the CSV row; `null` means "compute from the balance as of this row's own date." */
+  rValueAtEntry: number | null;
+}
+
+/**
+ * Batch form of what `createTrade` does for one backtest trade at a time
+ * (`rValueAsOfDate`) — assigns every row in `rows` its 1R by walking one
+ * merged chronological pass over the account's *existing* events plus the
+ * batch itself, so a row earlier in the batch is already "on the books" for
+ * a later one, exactly as if it had already been saved to the database.
+ * `rows` need not be date-sorted — a hand-authored backtest CSV commonly
+ * isn't; same-date rows within the batch net together in the order given
+ * (`rows`' own index), matching the same "entry order" rule same-day trades
+ * already follow via `createdAt` once they're real rows (docs/decisions.md §
+ * Backtest data entry). A row that already carries an explicit
+ * `rValueAtEntry` is left untouched but still folds into the running
+ * balance for whatever comes after it, so a CSV can freely mix rows that
+ * already know their own 1R with rows that don't.
+ */
+export function assignBacktestRValues(
+  account: Account,
+  cashMovements: readonly CashMovement[],
+  existingTrades: readonly Trade[],
+  riskChanges: readonly RiskChange[],
+  rows: readonly PendingBacktestTrade[],
+): number[] {
+  const existingEvents = timeline(cashMovements, existingTrades);
+  const order = rows
+    .map((row, index) => ({ row, index }))
+    .sort((a, b) => a.row.date.localeCompare(b.row.date) || a.index - b.index);
+
+  let balance = account.startingCapital;
+  let eventPointer = 0;
+  const results = new Array<number>(rows.length);
+
+  for (const { row, index } of order) {
+    while (eventPointer < existingEvents.length && existingEvents[eventPointer]!.date <= row.date) {
+      balance += existingEvents[eventPointer]!.delta;
+      eventPointer += 1;
+    }
+
+    const rValue = row.rValueAtEntry ?? rValueForBalance(riskSettingOn(account, riskChanges, row.date), balance);
+    results[index] = rValue;
+
+    const realized = realizedR(row);
+    if (realized !== null) balance += realized * rValue;
+  }
+
+  return results;
 }
 
 export type CapitalMarker = "start" | "deposit" | "withdrawal" | "risk" | "today";

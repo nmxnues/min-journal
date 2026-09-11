@@ -32,7 +32,9 @@ export default async function TradeLogPage({
 
   const account = await getCurrentAccount();
   if (account === null) {
-    return <TradeLogView hasAccount={false} models={[]} matching={[]} summary={null} pagination={null} />;
+    return (
+      <TradeLogView hasAccount={false} accountKind={null} models={[]} matching={[]} summary={null} pagination={null} />
+    );
   }
 
   const [allTrades, models] = await Promise.all([getAllTrades(account.id), getModels()]);
@@ -44,6 +46,7 @@ export default async function TradeLogPage({
   return (
     <TradeLogView
       hasAccount
+      accountKind={account.kind}
       models={models}
       matching={pagination.pageTrades}
       summary={{

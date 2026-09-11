@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { refineTradeNumerics, tradeMessage } from "@/lib/domain/trade-schema";
-import type { Direction, HtfPairing, Session, SweepSide, TradeResult } from "@/lib/domain/types";
+import type { AccountKind, Direction, HtfPairing, Session, SweepSide, TradeResult } from "@/lib/domain/types";
 import { parseNumberInput } from "@/lib/format";
 import type { Locale } from "@/lib/i18n/locale";
 import {
@@ -13,11 +13,16 @@ import {
 } from "@/lib/labels";
 
 /**
- * The columns a CSV row can supply. `rValueAtEntry` is required — unlike the
- * New trade form, which recomputes it from the account's current balance,
- * a historical import can't do that: today's balance says nothing about
- * what 1R was worth on a trade logged months ago (docs/decisions.md § Phase
- * 4a, flagged there for exactly this phase).
+ * The columns a CSV row can supply. `rValueAtEntry` is required for a `live`
+ * account — unlike the New trade form, which recomputes it from the
+ * account's *current* balance, a historical import can't do that: today's
+ * balance says nothing about what 1R was worth on a trade logged months ago
+ * (docs/decisions.md § Phase 4a, flagged there for exactly this phase). A
+ * `backtest` account doesn't have that problem — it freezes 1R to the
+ * balance *as of the trade's own date* (`rValueAsOfDate`), which an import
+ * can compute the same as `createTrade` does — so for those accounts the
+ * column is optional: leave a row's cell blank and it's computed instead of
+ * rejected (docs/decisions.md § CSV import backtest 1R).
  */
 export const CSV_TARGET_FIELDS = [
   "date",
@@ -44,7 +49,7 @@ export const CSV_TARGET_FIELDS = [
 ] as const;
 export type CsvTargetField = (typeof CSV_TARGET_FIELDS)[number];
 
-export const CSV_REQUIRED_FIELDS: readonly CsvTargetField[] = [
+const CSV_REQUIRED_FIELDS_BASE: readonly CsvTargetField[] = [
   "date",
   "instrument",
   "direction",
@@ -56,8 +61,12 @@ export const CSV_REQUIRED_FIELDS: readonly CsvTargetField[] = [
   "entry",
   "stop",
   "size",
-  "rValueAtEntry",
 ];
+
+/** A `live` account still must map/fill `rValueAtEntry`; a `backtest` account may leave it blank (computed on import). */
+export function csvRequiredFields(accountKind: AccountKind): readonly CsvTargetField[] {
+  return accountKind === "backtest" ? CSV_REQUIRED_FIELDS_BASE : [...CSV_REQUIRED_FIELDS_BASE, "rValueAtEntry"];
+}
 
 export const CSV_FIELD_LABELS: Record<CsvTargetField, { en: string; ko: string }> = {
   date: { en: "Date", ko: "날짜" },
@@ -98,7 +107,7 @@ export function emptyCsvRow(): RawCsvRow {
  * label (`resolveLabel`), since a hand-authored CSV is as likely to say
  * "Long" as `long`.
  */
-export function csvRowSchema(locale: Locale) {
+export function csvRowSchema(locale: Locale, accountKind: AccountKind) {
   return z
     .object({
       date: z.string().trim().min(1, tradeMessage(locale, "date")),
@@ -114,7 +123,8 @@ export function csvRowSchema(locale: Locale) {
       target: z.string().trim(),
       exit: z.string().trim(),
       size: z.string().trim().min(1),
-      rValueAtEntry: z.string().trim().min(1),
+      // Required only for a `live` account — see csvRequiredFields above.
+      rValueAtEntry: z.string().trim(),
       model: z.string().trim(),
       confirmation: z.string().trim(),
       result: z.string().trim(),
@@ -144,12 +154,22 @@ export function csvRowSchema(locale: Locale) {
         enumIssue("result", locale === "ko" ? "결과는 win/loss/be 중 하나여야 합니다." : "Result must be win, loss, or be.");
       }
 
-      const rValue = parseNumberInput(v.rValueAtEntry);
-      if (rValue === null || rValue <= 0) {
+      // A `backtest` account may leave this blank (computed from the balance
+      // as of the row's own date on import) — but if a value is given at
+      // all, live or backtest, it still has to be a real positive number.
+      if (accountKind === "live" && v.rValueAtEntry === "") {
         enumIssue(
           "rValueAtEntry",
-          locale === "ko" ? "1R 금액은 0보다 큰 숫자여야 합니다." : "1R value must be a positive number.",
+          locale === "ko" ? "1R 금액을 입력하세요." : "Enter a 1R value.",
         );
+      } else if (v.rValueAtEntry !== "") {
+        const rValue = parseNumberInput(v.rValueAtEntry);
+        if (rValue === null || rValue <= 0) {
+          enumIssue(
+            "rValueAtEntry",
+            locale === "ko" ? "1R 금액은 0보다 큰 숫자여야 합니다." : "1R value must be a positive number.",
+          );
+        }
       }
 
       if (v.holdMinutes !== "") {
@@ -183,7 +203,8 @@ export interface TradeInsertFromCsv {
   result: TradeResult | null;
   exit_reason: string | null;
   hold_minutes: number | null;
-  r_value_at_entry: number;
+  /** `null` means the CSV left it blank — only ever valid for a `backtest` account, resolved before insert (see `importTrades`). */
+  r_value_at_entry: number | null;
   tags: string[];
   notes: string | null;
 }
@@ -211,7 +232,7 @@ export function toTradeInsert(row: RawCsvRow, modelIdByName: ReadonlyMap<string,
     result: row.result === "" ? null : resolveLabel(RESULT_LABELS, row.result),
     exit_reason: row.exitReason === "" ? null : row.exitReason,
     hold_minutes: row.holdMinutes === "" ? null : parseNumberInput(row.holdMinutes),
-    r_value_at_entry: parseNumberInput(row.rValueAtEntry)!,
+    r_value_at_entry: row.rValueAtEntry === "" ? null : parseNumberInput(row.rValueAtEntry)!,
     // Semicolon-separated within the one CSV cell — a comma is already the
     // file's own column delimiter, so reusing it inside a field just for tags
     // would force every tag list to be quoted for no real benefit.

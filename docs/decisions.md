@@ -627,3 +627,46 @@ All four recomputation targets (hero R, equity curve, the 4 stat cards, model/se
 - **Mobile (420px, Korean)**: same default-month landing, opened the preset popover and confirmed all six Korean labels render (이번 달/지난 달/최근 3개월/올해/전체/직접 지정), and clicked "최근 3개월" — URL became `?range=3m`, hero showed "+2.3R"/"+$230"/"3건"/"67% 승률" with both arrows disabled, matching the desktop YTD/all-time runs' underlying data exactly.
 
 `npx tsc --noEmit`, `pnpm lint`, `pnpm test` (251 passed, new coverage in `dashboard-period.test.ts`), and `pnpm build` all clean. The test user, its account, and all 6 trades were deleted afterward and confirmed gone.
+
+## Deployed-app performance — region mismatch, plus a real duplicate query
+
+Raised by the user: the deployed app felt noticeably slower than `pnpm dev`. Two real causes, found and fixed.
+
+### Vercel function region vs. Supabase region
+
+Confirmed via the deployed URL's `x-vercel-id` response header before touching anything: `icn1::iad1::...` — the edge entry point was Seoul, but the actual serverless function (where every Supabase query runs) executed in `iad1` (US East, Vercel's default), while Supabase itself is `ap-northeast-2` (Seoul, per Phase 1's setup). Every DB round trip was paying a trans-Pacific hop each way, and a single page load makes several of them in sequence (middleware's `auth.getUser()`, RootLayout's `getSettings()`, the page's own account/data fetches) — so the latency compounds per page, not just once.
+
+Fixed with a `vercel.json` at the repo root: `{ "regions": ["icn1"] }`, pinning the function region to Seoul, colocating it with Supabase. Confirmed on the live production URL after redeploy: `x-vercel-id` now reads `icn1::icn1::...`, and `/login`'s round trip (middleware + RootLayout's `getSettings()` — the smallest page in the app, and the only one testable without a real session) dropped from a consistent ~1.24s to ~450–840ms warm.
+
+### `getSettings()` queried twice in the same request
+
+Audited every server page for sequential-queries-that-could-parallelize and repeated queries. Every page already used `Promise.all` for its independent fetches (Phase 5 onward's own convention), and the remaining sequential chains (`getCurrentAccount()` → a query that needs `account.id`) are genuinely sequential — nothing to parallelize there. The one real duplicate: `RootLayout` calls `getSettings()` on every route (for `data-pnl`/`r_precision`), and `/trades/new` separately calls it again in its own `Promise.all` (for `default_instrument`/`default_session`) — two round trips to the same `settings` row in one request.
+
+Wrapped `getSettings()` in React's `cache()` (`src/lib/supabase/queries.ts`) — request-scoped memoization, not a module-level singleton, so it stays consistent with `createClient()`'s own "fresh client per request" rule. No other duplicate call sites found across the app (only one layout, and every other query is called at most once per page).
+
+**Not done, deliberately**: no cross-request caching (`unstable_cache`/ISR) was added. Every route already goes dynamic from `cookies()`-based auth (Supabase SSR's own required pattern), so route-level caching isn't available without restructuring auth, and for a single-user app the win would be marginal next to the region fix. Flagged rather than silently pursued.
+
+**Verified**: `npx tsc --noEmit`, `pnpm lint`, `pnpm test` (251 passed) clean. Deployed via `git push`, confirmed on the live `x-vercel-id` header and with repeated `curl` timing against `/login` before and after.
+
+## CSV import — backtest accounts can leave `rValueAtEntry` blank
+
+Follow-up to the backtest 1R fix above: importing a full year of backtest data by hand means computing every row's `rValueAtEntry` manually, in date order, threading the running balance through — exactly the kind of arithmetic one wrong row silently corrupts for every row after it. Extended CSV import to do this automatically for `backtest` accounts, on the same `rValueAsOfDate` rule `createTrade` already uses for one trade at a time. `live` accounts are untouched — the column is still required and still goes straight from the row onto the trade, since a historical live trade's 1R genuinely can't be derived from anything the app can compute after the fact.
+
+- **`assignBacktestRValues`** (`src/lib/domain/capital.ts`) is the batch form of `rValueAsOfDate`: given the account's *existing* events (from `timeline()`) plus a batch of not-yet-inserted rows, it walks one merged chronological pass — existing events and batch rows interleaved by date — assigning each row its 1R from the running balance as it goes, then folding that row's own P&L into the balance for whatever comes after it (its own or existing). A row that already carries an explicit `rValueAtEntry` (a CSV that already knows some of its own history) is left untouched but still counts toward the balance for later rows, so a file can freely mix computed and explicit rows.
+- **Batch order is not insertion order.** `rows` need not be date-sorted — a hand-authored backtest CSV commonly isn't — so the function sorts by `(date, row index)` internally before walking, and returns results indexed back to the caller's original order. Same-date rows net together in the order given, the same "entry order" rule same-day trades already followed via `createdAt` once they're real rows, applied here to import order instead.
+- **A batch resolves every row's value from the *whole* batch's true chronological order, not just what was already in the database when it was entered** — a genuine improvement over the single-trade-at-a-time path's own accepted limitation (a trade backfilled earlier than ones already entered doesn't retroactively correct them). Within one CSV import, order in the file simply doesn't matter; only date does.
+- **`csvRowSchema`/`csvRequiredFields`** (`src/app/trades/import/schema.ts`) now take `accountKind`: `rValueAtEntry` drops out of the required-fields list and its own field validation for `backtest` (blank is valid; a value, if given, still has to be a positive number), unchanged for `live`. `ImportModal` threads `accountKind` down from `TradeLogView` (itself from `trades/page.tsx`'s already-fetched `account.kind`) and shows a one-line hint in the mapping step for backtest accounts explaining the column is optional.
+- **`importTrades`** (`src/app/trades/import/actions.ts`) fetches the account's existing ledger once (`getAccountLedgerInputs`, already the pattern `createTrade` uses) and calls `assignBacktestRValues` once for the whole batch when the account is `backtest` — one extra query regardless of file size, not one per row. A defensive check before insert (`some(v => v === null)`) catches the theoretical case of an unresolved value with a real error message instead of letting it hit the database's own `NOT NULL` constraint.
+- **3 new unit tests** in `capital.test.ts`: unsorted-batch processing (a row appearing earlier in the array but dated later is computed second, and results still come back in the original array's order), an explicit-override row still feeding the running balance for rows after it, and existing trades/cash movements already in the account folding in before the batch starts.
+
+**Verified live**, with a disposable test user: created a `backtest` account (starting capital $10,000, 1% risk, start date 2025-01-01), then imported a 3-row CSV in the exact adversarial shape the original bug report used — two EUR rows (2025-10-05, 2026-08-20) listed *first* in the file, a GBP row dated *before both* (2025-09-05) listed *last* — every row's `rValueAtEntry` cell left blank. The mapping step correctly showed "1R value ($)" as optional with the backtest hint banner; the preview step accepted all 3 rows ("3 ready to import") with no value in that column. After import, queried `trades` directly (service-role, ordered by date):
+
+| date | instrument | `r_value_at_entry` |
+| --- | --- | --- |
+| 2025-09-05 (GBP) | GBPUSD | `100` |
+| 2025-10-05 (EUR #1) | EURUSD | `114.00000000000159` |
+| 2026-08-20 (EUR #2) | EURUSD | `129.96000000000362` |
+
+Matches hand computation exactly (float noise aside): GBP first by date, nothing precedes it → 1% of $10,000. EUR #1 next, with GBP's own +$1,400 already folded in → 1% of $11,400. EUR #2 last, with both prior trades folded in → 1% of $12,996 = $14,815 → 1% = $148.15 ≈ the $148/R Capital's own "Risk per trade" card showed live. Capital's ledger view corroborated the same three balances independently. Then created a second, `live` account and re-imported the identical file (still blank `rValueAtEntry` cells): the mapping step marked the column required again, and the preview step rejected all 3 rows with "Enter a 1R value." — confirming the `live` path is completely unchanged.
+
+`npx tsc --noEmit`, `pnpm lint`, `pnpm test` (254 passed), and `pnpm build` all clean. The test user and both its accounts (and all imported trades) were deleted afterward and confirmed gone.
