@@ -21,7 +21,8 @@ import {
   tagFrequency,
   type IsoWeek,
 } from "@/lib/domain/weekly-review";
-import { formatPercent, formatR } from "@/lib/format";
+import { formatPercent } from "@/lib/format";
+import { useFormatR } from "@/lib/settings/context";
 import { useLocale, useT } from "@/lib/i18n/locale-context";
 import { DIRECTION_LABELS, SESSION_LABELS } from "@/lib/labels";
 import { signOut } from "../actions";
@@ -56,6 +57,7 @@ export interface WeeklyReviewViewProps {
 const em = "—";
 
 export function WeeklyReviewView({ week, hasAccount, review, previous, trades = [], models = [], summary }: WeeklyReviewViewProps) {
+  const formatR = useFormatR();
   const t = useT();
   const locale = useLocale();
   const isMobile = locale === "ko";
@@ -403,6 +405,7 @@ function Panel({
   info: { trade: Trade; model: TradeModel | null } | null;
   t: (s: { en: string; ko: string }) => string;
 }) {
+  const formatR = useFormatR();
   const r = info === null ? null : realizedR(info.trade);
   return (
     <div className="rounded-16 bg-surface-subtle px-20 py-18">

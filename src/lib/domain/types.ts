@@ -19,6 +19,16 @@ export type HtfPairing = "m_w_2d" | "w_2d" | "d_h1" | "h1_m5";
 export type RiskMode = "percent" | "fixed";
 export type CashMovementType = "deposit" | "withdrawal";
 export type ModelStatus = "active" | "retired";
+/** settings.pnl_convention — "kr" (red gain / blue loss) or "west" (green gain / red loss). */
+export type PnlConvention = "kr" | "west";
+
+export interface Settings {
+  pnlConvention: PnlConvention;
+  defaultInstrument: string;
+  defaultSession: Session;
+  /** Decimal places on a displayed R value, e.g. 1 for "+18.4R". */
+  rPrecision: number;
+}
 
 /** ISO date, `YYYY-MM-DD` (Postgres `date`). Sorts correctly as a string. */
 export type IsoDate = string;

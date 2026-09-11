@@ -12,10 +12,10 @@ import {
   formatCompactDate,
   formatCurrency,
   formatMonthShort,
-  formatR,
   formatSignedCurrency,
   formatSignedPercent,
 } from "@/lib/format";
+import { useFormatR } from "@/lib/settings/context";
 import { useLocale, useT } from "@/lib/i18n/locale-context";
 import { DeleteCashModal } from "./delete-cash-modal";
 import { DrawdownGuardCard } from "./drawdown-guard-card";
@@ -183,6 +183,7 @@ function ActivityRow({
   summary,
   onCashClick,
 }: Pick<CapitalScreenProps, "data" | "summary"> & { entry: LedgerEntry; onCashClick: () => void }) {
+  const formatR = useFormatR();
   const t = useT();
   const currency = data.account.currency;
   const isTrade = entry.kind === "trade";

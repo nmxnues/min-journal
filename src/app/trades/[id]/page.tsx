@@ -45,6 +45,7 @@ export default async function TradeDetailPage({ params }: { params: Promise<{ id
       accountIsNearDrawdownLimit={drawdown.isNearLimit}
       drawdownPercent={drawdown.drawdownPercent}
       drawdownLimitPercent={drawdown.limitPercent}
+      currency={account?.currency ?? "USD"}
     />
   );
 }

@@ -9,8 +9,9 @@ import {
   formatLoggedAt,
   formatPips,
   formatPrice,
-  formatR,
+  formatSignedCurrency,
 } from "@/lib/format";
+import { useFormatR } from "@/lib/settings/context";
 import { MAX_ATTACHMENTS_PER_TRADE } from "@/lib/attachments";
 import {
   HTF_PAIRING_LABELS,
@@ -21,6 +22,7 @@ import {
   captureRate,
   offPlan,
   plannedR,
+  pnlAmount,
   rangePosition,
   rangeSize,
   realizedR,
@@ -34,6 +36,7 @@ import { useTradeAttachments } from "./use-trade-attachments";
 export interface TradeViewProps {
   trade: Trade;
   attachments: readonly { path: string }[];
+  currency: string;
 }
 
 function InfoTile({ label, value }: { label: string; value: string }) {
@@ -45,7 +48,8 @@ function InfoTile({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function TradeView({ trade, attachments }: TradeViewProps) {
+export function TradeView({ trade, attachments, currency }: TradeViewProps) {
+  const formatR = useFormatR();
   const t = useT();
   const locale = useLocale();
 
@@ -56,6 +60,7 @@ export function TradeView({ trade, attachments }: TradeViewProps) {
   );
 
   const realized = realizedR(trade);
+  const pnl = pnlAmount(trade);
   const planned = plannedR(trade);
   const capture = captureRate(trade);
   const size = rangeSize(trade);
@@ -93,6 +98,9 @@ export function TradeView({ trade, attachments }: TradeViewProps) {
           >
             {realized === null ? em : formatR(realized)}
           </div>
+          {pnl !== null && (
+            <div className="mt-4 text-15 font-bold text-muted">{formatSignedCurrency(pnl, currency)}</div>
+          )}
           {planned !== null && (
             <div className="mt-6 text-12_5 font-medium text-faint">
               {t({ en: "Planned", ko: "계획" })} {planned.toFixed(1)}R

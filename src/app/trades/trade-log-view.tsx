@@ -24,7 +24,8 @@ import {
   type TradeLogFilters,
 } from "@/lib/domain/trade-log";
 import type { Trade, TradeModel } from "@/lib/domain/types";
-import { formatCompactDate, formatHoldMinutes, formatPercent, formatR } from "@/lib/format";
+import { formatCompactDate, formatHoldMinutes, formatPercent } from "@/lib/format";
+import { useFormatR } from "@/lib/settings/context";
 import { useLocale, useT } from "@/lib/i18n/locale-context";
 import { INSTRUMENT_PRESETS } from "@/lib/instruments";
 import {
@@ -81,6 +82,7 @@ export interface TradeLogViewProps {
 }
 
 export function TradeLogView({ hasAccount, models, matching, summary, pagination }: TradeLogViewProps) {
+  const formatR = useFormatR();
   const t = useT();
   const locale = useLocale();
   const isMobile = locale === "ko";
@@ -427,6 +429,7 @@ function TableHeader({
 }
 
 function DesktopTradeRow({ trade, model }: { trade: Trade; model: TradeModel | null }) {
+  const formatR = useFormatR();
   const t = useT();
   const isOffPlan = offPlan(trade);
   const r = realizedR(trade);
@@ -462,6 +465,7 @@ function DesktopTradeRow({ trade, model }: { trade: Trade; model: TradeModel | n
 }
 
 function MobileTradeRow({ trade, model, bordered }: { trade: Trade; model: TradeModel | null; bordered: boolean }) {
+  const formatR = useFormatR();
   const t = useT();
   const isOffPlan = offPlan(trade);
   const r = realizedR(trade);

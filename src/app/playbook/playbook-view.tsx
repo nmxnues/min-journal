@@ -11,7 +11,8 @@ import { Button, Card, Chip, EmptyState } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import type { ModelStats } from "@/lib/domain/stats";
 import type { TradeModel } from "@/lib/domain/types";
-import { formatPercent, formatR } from "@/lib/format";
+import { formatPercent } from "@/lib/format";
+import { useFormatR } from "@/lib/settings/context";
 import { useLocale, useT } from "@/lib/i18n/locale-context";
 import { signOut } from "../actions";
 import { createModel, setModelStatus, updateModel } from "./actions";
@@ -167,6 +168,7 @@ function ExpandedModelCard({
   isMobile: boolean;
   onCollapse: () => void;
 }) {
+  const formatR = useFormatR();
   const t = useT();
   const [name, setName] = useState(model.name);
   const [description, setDescription] = useState(model.description ?? "");
@@ -324,6 +326,7 @@ function CollapsedModelRow({
   isMobile: boolean;
   onExpand: () => void;
 }) {
+  const formatR = useFormatR();
   const t = useT();
   const isRetired = model.status === "retired";
 

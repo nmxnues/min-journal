@@ -11,6 +11,7 @@ import type {
   RiskChange,
   RiskMode,
   Session,
+  Settings,
   SweepSide,
   Trade,
   TradeModel,
@@ -212,6 +213,16 @@ export async function getSettings() {
   const { data, error } = await supabase.from("settings").select("*").maybeSingle();
   if (error) throw error;
   return data;
+}
+
+/** Row -> domain mapper for the Settings screen, which wants typed fields rather than `getSettings()`'s raw row. */
+export function toSettings(row: Row<"settings">): Settings {
+  return {
+    pnlConvention: row.pnl_convention === "west" ? "west" : "kr",
+    defaultInstrument: row.default_instrument,
+    defaultSession: row.default_session as Session,
+    rPrecision: row.r_precision,
+  };
 }
 
 /** Trades within an inclusive date range, most recent first — the Dashboard and Calendar's own query. */

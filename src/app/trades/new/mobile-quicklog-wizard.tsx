@@ -20,7 +20,8 @@ import {
 import { RangeDiagram } from "@/components/range-diagram";
 import { AttachmentThumbnails } from "@/components/attachment-thumbnails";
 import { cn } from "@/lib/cn";
-import { formatCurrency, formatPrice, formatR } from "@/lib/format";
+import { formatCurrency, formatPrice } from "@/lib/format";
+import { useFormatR } from "@/lib/settings/context";
 import { MAX_ATTACHMENTS_PER_TRADE } from "@/lib/attachments";
 import { INSTRUMENT_PRESETS } from "@/lib/instruments";
 import { HTF_PAIRING_LABELS, HTF_PAIRING_ORDER, SESSION_LABELS, TAG_PRESETS } from "@/lib/labels";
@@ -136,6 +137,7 @@ export function MobileQuickLogWizard({
   serverError,
   isPending,
 }: MobileQuickLogWizardProps) {
+  const formatR = useFormatR();
   const t = useT();
 
   // Each step is a fresh screen — without this, advancing/going back keeps

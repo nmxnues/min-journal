@@ -18,11 +18,11 @@ import {
   formatCompactDate,
   formatCurrency,
   formatMonthShort,
-  formatR,
   formatSignedCurrency,
   formatSignedPercent,
   formatTradeDate,
 } from "@/lib/format";
+import { useFormatR } from "@/lib/settings/context";
 import type { Locale, LocaleStrings } from "@/lib/i18n/locale";
 import { useLocale, useT } from "@/lib/i18n/locale-context";
 import { signOut } from "../actions";
@@ -79,6 +79,7 @@ function toChart(series: readonly CapitalSeriesPoint[], locale: Locale, t: (s: L
 }
 
 export function DesktopCapital({ data, summary, onRecordCash }: CapitalScreenProps) {
+  const formatR = useFormatR();
   const t = useT();
   const locale = useLocale();
   const { account } = data;
@@ -171,6 +172,7 @@ export function DesktopCapital({ data, summary, onRecordCash }: CapitalScreenPro
 }
 
 function LedgerCard({ data, summary }: Pick<CapitalScreenProps, "data" | "summary">) {
+  const formatR = useFormatR();
   const t = useT();
   const [filter, setFilter] = useState<LedgerFilter>("all");
   const [showAll, setShowAll] = useState(false);

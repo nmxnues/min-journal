@@ -22,7 +22,8 @@ import {
 import { RangeDiagram } from "@/components/range-diagram";
 import { AttachmentThumbnails } from "@/components/attachment-thumbnails";
 import { cn } from "@/lib/cn";
-import { formatCurrency, formatPips, formatPrice, formatR, formatTime, parseNumberInput } from "@/lib/format";
+import { formatCurrency, formatPips, formatPrice, formatTime, parseNumberInput } from "@/lib/format";
+import { useFormatR } from "@/lib/settings/context";
 import { MAX_ATTACHMENTS_PER_TRADE } from "@/lib/attachments";
 import { INSTRUMENT_PRESETS } from "@/lib/instruments";
 import {
@@ -93,6 +94,7 @@ export function NewTradeForm({
   today,
   draft,
 }: NewTradeFormProps) {
+  const formatR = useFormatR();
   const t = useT();
   const locale = useLocale();
   const router = useRouter();

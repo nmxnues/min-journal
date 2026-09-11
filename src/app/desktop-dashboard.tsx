@@ -10,12 +10,14 @@ import { SignOutButton } from "@/components/nav/sign-out-button";
 import { TopBar } from "@/components/nav/top-bar";
 import { BarRow, Button, Card, CardHeader, Chip, EmptyState, Panel, StatCard } from "@/components/ui";
 import { cn } from "@/lib/cn";
+import { tradingPnL } from "@/lib/domain/capital";
 import { formatMonthLabel, monthRange, type IsoMonth } from "@/lib/domain/dates";
 import { byModel, bySession, equityCurve, periodStats, sweepAlignment } from "@/lib/domain/stats";
 import { buildTradeLogSearchParams, EMPTY_TRADE_LOG_FILTERS } from "@/lib/domain/trade-log";
 import { offPlan, plannedR, realizedR } from "@/lib/domain/trade";
 import type { Trade, TradeModel } from "@/lib/domain/types";
-import { formatCompactDate, formatPercent, formatR, formatTradeDate } from "@/lib/format";
+import { formatCompactDate, formatPercent, formatSignedCurrency, formatTradeDate } from "@/lib/format";
+import { useFormatR } from "@/lib/settings/context";
 import { useLocale, useT } from "@/lib/i18n/locale-context";
 import { DIRECTION_LABELS, HTF_PAIRING_LABELS, SESSION_LABELS, SWEEP_SIDE_LABELS, tradeCountLabel } from "@/lib/labels";
 import { signOut } from "./actions";
@@ -32,17 +34,31 @@ export interface DesktopDashboardProps {
   models: TradeModel[];
   hasAccount: boolean;
   drawdownAlert?: DrawdownAlertInfo | null;
+  currency: string;
 }
 
 const em = "—";
 
-export function DesktopDashboard({ month, trades, models, hasAccount, drawdownAlert }: DesktopDashboardProps) {
+export function DesktopDashboard({
+  month,
+  trades,
+  models,
+  hasAccount,
+  drawdownAlert,
+  currency,
+}: DesktopDashboardProps) {
+  const formatR = useFormatR();
   const t = useT();
   const locale = useLocale();
   const router = useRouter();
 
   const stats = useMemo(() => periodStats(trades), [trades]);
   const equity = useMemo(() => equityCurve(trades), [trades]);
+  // docs/README.md § Capital: "every surface that shows money also shows R,
+  // and vice versa" — R stays the primary figure here (this screen's whole
+  // vocabulary is R-first), so the dollar total rides underneath as a small
+  // caption rather than displacing it.
+  const monthPnl = useMemo(() => tradingPnL(trades), [trades]);
   const modelRows = useMemo(
     () => byModel(trades, models).filter((r) => r.tradeCount > 0),
     [trades, models],
@@ -66,6 +82,9 @@ export function DesktopDashboard({ month, trades, models, hasAccount, drawdownAl
           <span className="text-13 font-semibold text-muted">{formatMonthLabel(month, locale)}</span>
           <Link href="/weekly-review" className="text-13 font-semibold text-accent hover:text-accent-pressed">
             {t({ en: "Weekly review", ko: "주간 리뷰" })}
+          </Link>
+          <Link href="/settings" className="text-13 font-semibold text-accent hover:text-accent-pressed">
+            {t({ en: "Settings", ko: "설정" })}
           </Link>
           <Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "New trade" })}</Button>
           <SignOutButton signOutAction={signOut} />
@@ -117,6 +136,9 @@ export function DesktopDashboard({ month, trades, models, hasAccount, drawdownAl
             >
               {formatR(stats.netR)}
             </div>
+            {stats.tradeCount > 0 && (
+              <div className="mt-4 text-15 font-bold text-muted">{formatSignedCurrency(monthPnl, currency)}</div>
+            )}
             <div className="mt-14 flex gap-8">
               <Chip shape="stat">{t(tradeCountLabel(stats.tradeCount))}</Chip>
               <Chip shape="stat">

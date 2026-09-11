@@ -19,6 +19,7 @@ export interface TradeDetailProps {
   accountIsNearDrawdownLimit: boolean;
   drawdownPercent: number;
   drawdownLimitPercent: number;
+  currency: string;
 }
 
 export function TradeDetail({
@@ -28,6 +29,7 @@ export function TradeDetail({
   accountIsNearDrawdownLimit,
   drawdownPercent,
   drawdownLimitPercent,
+  currency,
 }: TradeDetailProps) {
   const t = useT();
   const locale = useLocale();
@@ -92,7 +94,7 @@ export function TradeDetail({
       </header>
 
       {mode === "view" ? (
-        <TradeView trade={trade} attachments={attachmentPaths} />
+        <TradeView trade={trade} attachments={attachmentPaths} currency={currency} />
       ) : (
         <TradeEditForm
           trade={trade}

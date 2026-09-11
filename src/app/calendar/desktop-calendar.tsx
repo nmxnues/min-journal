@@ -7,13 +7,14 @@ import { useEffect, useMemo, useState } from "react";
 import { toNavItems } from "@/components/nav/routes";
 import { SignOutButton } from "@/components/nav/sign-out-button";
 import { TopBar } from "@/components/nav/top-bar";
-import { Button, Card, Chip, Modal, StatCard } from "@/components/ui";
+import { Button, Card, Chip, EmptyState, Modal, StatCard } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { buildMonthGrid, formatMonthLabel, shiftMonth, todayIso, type IsoMonth } from "@/lib/domain/dates";
 import { dailyNetR } from "@/lib/domain/stats";
 import { offPlan, realizedR } from "@/lib/domain/trade";
 import type { IsoDate, Trade, TradeModel } from "@/lib/domain/types";
-import { formatR, formatTradeDate } from "@/lib/format";
+import { formatTradeDate } from "@/lib/format";
+import { useFormatR } from "@/lib/settings/context";
 import { useLocale, useT } from "@/lib/i18n/locale-context";
 import { DIRECTION_LABELS, SESSION_LABELS, tradeCountLabel } from "@/lib/labels";
 import { signOut } from "../actions";
@@ -30,7 +31,8 @@ export interface DesktopCalendarProps {
 
 const em = "—";
 
-export function DesktopCalendar({ month, trades, models }: DesktopCalendarProps) {
+export function DesktopCalendar({ month, trades, models, hasAccount }: DesktopCalendarProps) {
+  const formatR = useFormatR();
   const t = useT();
   const locale = useLocale();
   const router = useRouter();
@@ -111,6 +113,19 @@ export function DesktopCalendar({ month, trades, models }: DesktopCalendarProps)
           more to gain from extra horizontal room than it loses to a bigger
           cap, so this one screen goes wider than Dashboard's 1200px on purpose
           (docs/decisions.md § Phase 6). */}
+      {!hasAccount ? (
+        <div className="mx-auto flex max-w-[1600px] items-center justify-center p-28">
+          <EmptyState
+            title={t({ en: "Log your first trade", ko: "첫 트레이드를 기록하세요" })}
+            description={t({
+              en: "Once you record a trade, this calendar fills in with your daily results.",
+              ko: "트레이드를 기록하면 이 캘린더에 일별 결과가 채워집니다.",
+            })}
+            action={<Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "New trade" })}</Button>}
+            className="w-full max-w-[440px]"
+          />
+        </div>
+      ) : (
       <div className="mx-auto flex max-w-[1600px] flex-col gap-16 p-28">
         <Card className="px-28 py-26">
           <div className="mb-10 grid grid-cols-7 gap-8 text-center text-12 font-semibold text-faint">
@@ -200,6 +215,7 @@ export function DesktopCalendar({ month, trades, models }: DesktopCalendarProps)
           />
         </div>
       </div>
+      )}
 
       <Modal
         open={selectedDate !== null}

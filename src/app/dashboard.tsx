@@ -14,6 +14,8 @@ export interface DashboardProps {
   hasAccount: boolean;
   /** Set only once the account has crossed its drawdown limit. */
   drawdownAlert?: DrawdownAlertInfo | null;
+  /** For the hero's dollar sub-line — docs/README.md's "every surface that shows R also shows money". */
+  currency: string;
 }
 
 /**

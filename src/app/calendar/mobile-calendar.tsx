@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { BottomTabBar } from "@/components/nav/bottom-tab-bar";
 import { toTabItems } from "@/components/nav/routes";
-import { Card } from "@/components/ui";
+import { Button, Card, EmptyState } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import {
   buildMonthGrid,
@@ -19,7 +19,8 @@ import {
 import { dailyNetR } from "@/lib/domain/stats";
 import { offPlan, realizedR } from "@/lib/domain/trade";
 import type { IsoDate, Trade, TradeModel } from "@/lib/domain/types";
-import { formatR, formatTradeDate } from "@/lib/format";
+import { formatTradeDate } from "@/lib/format";
+import { useFormatR } from "@/lib/settings/context";
 import { useT } from "@/lib/i18n/locale-context";
 import { DIRECTION_LABELS, tradeCountLabel } from "@/lib/labels";
 import { heatStyle } from "./heat-scale";
@@ -31,7 +32,8 @@ export interface MobileCalendarProps {
   hasAccount: boolean;
 }
 
-export function MobileCalendar({ month, trades, models }: MobileCalendarProps) {
+export function MobileCalendar({ month, trades, models, hasAccount }: MobileCalendarProps) {
+  const formatR = useFormatR();
   const t = useT();
   const router = useRouter();
   const today = todayIso();
@@ -87,6 +89,18 @@ export function MobileCalendar({ month, trades, models }: MobileCalendarProps) {
         </span>
       </div>
 
+      {!hasAccount ? (
+        <div className="flex flex-1 flex-col justify-center px-20 py-20">
+          <EmptyState
+            title={t({ en: "Log your first trade", ko: "첫 트레이드를 기록하세요" })}
+            description={t({
+              en: "Once you record a trade, this calendar fills in with your daily results.",
+              ko: "트레이드를 기록하면 이 캘린더에 일별 결과가 채워집니다.",
+            })}
+            action={<Button onClick={() => router.push("/trades/new")}>{t({ en: "Log trade", ko: "기록하기" })}</Button>}
+          />
+        </div>
+      ) : (
       <div className="flex flex-1 flex-col gap-14 px-20 py-12">
         <Card className="px-18 py-20">
           <div className="mb-8 grid grid-cols-7 gap-6 text-center text-11 font-semibold text-faint">
@@ -175,6 +189,7 @@ export function MobileCalendar({ month, trades, models }: MobileCalendarProps) {
           )}
         </Card>
       </div>
+      )}
 
       <BottomTabBar items={toTabItems(t)} activeHref="/calendar" />
     </div>

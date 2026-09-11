@@ -20,7 +20,8 @@ import {
 import { RangeDiagram } from "@/components/range-diagram";
 import { AttachmentThumbnails } from "@/components/attachment-thumbnails";
 import { cn } from "@/lib/cn";
-import { formatPips, formatPrice, formatR, parseNumberInput } from "@/lib/format";
+import { formatPips, formatPrice, parseNumberInput } from "@/lib/format";
+import { useFormatR } from "@/lib/settings/context";
 import { MAX_ATTACHMENTS_PER_TRADE } from "@/lib/attachments";
 import { INSTRUMENT_PRESETS } from "@/lib/instruments";
 import {
@@ -92,6 +93,7 @@ export function TradeEditForm({
   onCancel,
   onSaved,
 }: TradeEditFormProps) {
+  const formatR = useFormatR();
   const t = useT();
   const locale = useLocale();
   // Same signal/rationale as trade-view.tsx: no mock exists for this screen

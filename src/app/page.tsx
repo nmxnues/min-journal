@@ -13,7 +13,7 @@ export default async function Home() {
   const month = currentIsoMonth();
 
   if (account === null) {
-    return <Dashboard month={month} trades={[]} models={[]} hasAccount={false} />;
+    return <Dashboard month={month} trades={[]} models={[]} hasAccount={false} currency="USD" />;
   }
 
   const { from, to } = monthRange(month);
@@ -31,6 +31,13 @@ export default async function Home() {
     : null;
 
   return (
-    <Dashboard month={month} trades={trades} models={models} hasAccount drawdownAlert={drawdownAlert} />
+    <Dashboard
+      month={month}
+      trades={trades}
+      models={models}
+      hasAccount
+      drawdownAlert={drawdownAlert}
+      currency={account.currency}
+    />
   );
 }
