@@ -145,3 +145,25 @@ export function formatLoggedAt(date: Date, locale: Locale): string {
     hourCycle: "h23",
   }).format(date);
 }
+
+/** "+$901" / "−$322" — the ledger's signed amounts, with the mocks' real minus sign. */
+export function formatSignedCurrency(value: number, currency = "USD"): string {
+  const rounded = Math.round(value);
+  const sign = rounded > 0 ? "+" : rounded < 0 ? "−" : "";
+  return `${sign}${formatCurrency(Math.abs(value), currency)}`;
+}
+
+/** "+43.0%" — a signed ratio, e.g. Capital's time-weighted return. */
+export function formatSignedPercent(ratio: number, decimals = 1): string {
+  const rounded = Number((ratio * 100).toFixed(decimals));
+  const sign = rounded > 0 ? "+" : rounded < 0 ? "−" : "";
+  return `${sign}${Math.abs(rounded).toFixed(decimals)}%`;
+}
+
+/** "Mar" / "3월" — the Capital chart's caption row. UTC for the same reason as `formatTradeDate`. */
+export function formatMonthShort(isoDate: string, locale: Locale): string {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return new Intl.DateTimeFormat(locale === "ko" ? "ko-KR" : "en-US", { month: "short", timeZone: "UTC" }).format(
+    new Date(Date.UTC(year, month - 1, day)),
+  );
+}

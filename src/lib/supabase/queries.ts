@@ -8,6 +8,7 @@ import type {
   Direction,
   FocusItem,
   HtfPairing,
+  RiskChange,
   RiskMode,
   Session,
   SweepSide,
@@ -121,6 +122,27 @@ export function toCashMovement(row: Row<"cash_movements">): CashMovement {
   };
 }
 
+export function toRiskChange(row: Row<"account_risk_changes">): RiskChange {
+  return {
+    id: row.id,
+    accountId: row.account_id,
+    effectiveAt: row.effective_at,
+    riskMode: row.risk_mode as RiskMode,
+    riskPercent: row.risk_percent === null ? null : Number(row.risk_percent),
+    fixedRiskAmount: row.fixed_risk_amount === null ? null : Number(row.fixed_risk_amount),
+    createdAt: row.created_at,
+  };
+}
+
+/** RLS scopes this to the signed-in user — a wrong id reads back null. */
+export async function getAccount(id: string): Promise<Account | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("accounts").select("*").eq("id", id).maybeSingle();
+
+  if (error) throw error;
+  return data === null ? null : toAccount(data);
+}
+
 /**
  * The account this app writes to. Multi-account is reserved in the schema but
  * not designed (docs/README.md § Capital), so "the account" is simply the
@@ -212,24 +234,35 @@ export async function getTradesInRange(
   return (data ?? []).map(toTrade);
 }
 
-/** Everything `currentRValue` and the drawdown guard need for one account. */
+/**
+ * Everything the money selectors need for one account: `currentRValue`, the
+ * drawdown guard, and the Capital screen's balance/1R series and ledger.
+ */
 export async function getAccountLedgerInputs(accountId: string): Promise<{
   trades: Trade[];
   cashMovements: CashMovement[];
+  riskChanges: RiskChange[];
 }> {
   const supabase = await createClient();
 
-  const [tradesResult, cashResult] = await Promise.all([
+  const [tradesResult, cashResult, riskResult] = await Promise.all([
     supabase.from("trades").select("*").eq("account_id", accountId),
     supabase.from("cash_movements").select("*").eq("account_id", accountId),
+    supabase
+      .from("account_risk_changes")
+      .select("*")
+      .eq("account_id", accountId)
+      .order("effective_at", { ascending: true }),
   ]);
 
   if (tradesResult.error) throw tradesResult.error;
   if (cashResult.error) throw cashResult.error;
+  if (riskResult.error) throw riskResult.error;
 
   return {
     trades: (tradesResult.data ?? []).map(toTrade),
     cashMovements: (cashResult.data ?? []).map(toCashMovement),
+    riskChanges: (riskResult.data ?? []).map(toRiskChange),
   };
 }
 

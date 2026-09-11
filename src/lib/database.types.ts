@@ -34,6 +34,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_risk_changes: {
+        Row: {
+          account_id: string
+          created_at: string
+          effective_at: string
+          fixed_risk_amount: number | null
+          id: string
+          risk_mode: string
+          risk_percent: number | null
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          effective_at?: string
+          fixed_risk_amount?: number | null
+          id?: string
+          risk_mode: string
+          risk_percent?: number | null
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          effective_at?: string
+          fixed_risk_amount?: number | null
+          id?: string
+          risk_mode?: string
+          risk_percent?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_risk_changes_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accounts: {
         Row: {
           created_at: string

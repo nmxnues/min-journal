@@ -1,12 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
+  availableBalanceOn,
   balanceSeries,
+  capitalSeries,
+  cashTotals,
+  checkCashMovementDeletion,
   currentBalance,
   currentRValue,
   drawdownState,
+  filterLedger,
   ledger,
   netDeposits,
   previewCashMovement,
+  riskSettingOn,
   rValueForBalance,
   timeWeightedReturn,
   timeline,
@@ -14,7 +20,7 @@ import {
   validateWithdrawal,
 } from "./capital";
 import { makeAccount, makeCashMovement, makeTrade } from "./fixtures";
-import type { Trade } from "./types";
+import type { RiskChange, Trade } from "./types";
 
 /**
  * A closed trade worth exactly `pnl` in currency: 1R is fixed at $1,000 and
@@ -267,9 +273,11 @@ describe("ledger", () => {
 
     const rows = ledger(account, [deposit], [trade]);
 
-    expect(rows.map((r) => r.id)).toEqual(["t", "d"]);
+    expect(rows.map((r) => r.id)).toEqual(["t", "d", "opening:a1"]);
     expect(rows[0]).toMatchObject({ kind: "trade", amount: 1_000, r: 1, balanceAfter: 16_000 });
     expect(rows[1]).toMatchObject({ kind: "deposit", amount: 5_000, r: null, balanceAfter: 15_000 });
+    // Mock 3a's oldest row: "Deposit · Starting capital", synthesised from the account.
+    expect(rows[2]).toMatchObject({ kind: "opening", date: "2026-01-01", amount: 10_000, r: null, balanceAfter: 10_000 });
   });
 
   it("signs withdrawals negative and leaves their R empty", () => {
@@ -280,5 +288,237 @@ describe("ledger", () => {
     expect(row.amount).toBe(-2_500);
     expect(row.r).toBeNull();
     expect(row.balanceAfter).toBe(7_500);
+  });
+});
+
+function riskChange(effectiveAt: string, overrides: Partial<RiskChange> = {}): RiskChange {
+  return {
+    id: `r-${effectiveAt}`,
+    accountId: "a1",
+    effectiveAt: `${effectiveAt}T00:00:00+00:00`,
+    riskMode: "percent",
+    riskPercent: 1,
+    fixedRiskAmount: null,
+    createdAt: `${effectiveAt}T00:00:00+00:00`,
+    ...overrides,
+  };
+}
+
+/**
+ * Mock 3a's account, rebuilt so its printed milestones reconcile:
+ * "Mar · $15,000 · $150 / R", "May · $21,400 · $214 / R",
+ * "Jul · $23,940 · $239 / R", "Sep · $32,180 · $322 / R", and the modal's
+ * Sep 1 deposit moving 1R "to $316 from $266".
+ */
+function mockCapital() {
+  const account = makeAccount({ startingCapital: 15_000, startedAt: "2026-03-03", riskPercent: 1 });
+  const cash = [
+    makeCashMovement({ id: "may", type: "deposit", amount: 5_000, date: "2026-05-01" }),
+    makeCashMovement({ id: "jul", type: "withdrawal", amount: 2_500, date: "2026-07-15" }),
+    makeCashMovement({ id: "sep", type: "deposit", amount: 5_000, date: "2026-09-01" }),
+  ];
+  const trades = [
+    tradeWorth(1_400, { id: "apr", date: "2026-04-10" }),
+    tradeWorth(5_040, { id: "jun", date: "2026-06-10" }),
+    tradeWorth(2_661, { id: "aug", date: "2026-08-28" }),
+    tradeWorth(579, { id: "sep9", date: "2026-09-09" }),
+  ];
+  return { account, cash, trades, riskChanges: [riskChange("2026-03-03")] };
+}
+
+describe("riskSettingOn", () => {
+  const account = makeAccount({ riskPercent: 2 });
+  const history = [
+    riskChange("2026-03-03", { riskPercent: 1 }),
+    riskChange("2026-10-01", { riskPercent: 2 }),
+  ];
+
+  it("reads the change in force on the date", () => {
+    expect(riskSettingOn(account, history, "2026-05-01").riskPercent).toBe(1);
+    expect(riskSettingOn(account, history, "2026-10-01").riskPercent).toBe(2);
+    expect(riskSettingOn(account, history, "2026-12-01").riskPercent).toBe(2);
+  });
+
+  it("falls back to the opening setting before the first change", () => {
+    expect(riskSettingOn(account, history, "2026-01-01").riskPercent).toBe(1);
+  });
+
+  it("uses the account's own setting when there is no history", () => {
+    expect(riskSettingOn(account, [], "2026-05-01").riskPercent).toBe(2);
+  });
+});
+
+describe("changing the risk setting applies to future trades only", () => {
+  it("leaves past 1R points, past trade P&L and rValueAtEntry untouched", () => {
+    const { account, cash, trades, riskChanges } = mockCapital();
+    const before = ledger(account, cash, trades, riskChanges);
+
+    // October: 1% -> 2%. The account row now carries 2%; history keeps both.
+    const changedAccount = { ...account, riskPercent: 2 };
+    const changedHistory = [...riskChanges, riskChange("2026-10-01", { riskPercent: 2 })];
+    const after = ledger(changedAccount, cash, trades, changedHistory);
+
+    expect(after.map((e) => [e.amount, e.balanceAfter, e.rValueAfter])).toEqual(
+      before.map((e) => [e.amount, e.balanceAfter, e.rValueAfter]),
+    );
+    expect(trades.map((t) => t.rValueAtEntry)).toEqual([1_000, 1_000, 1_000, 1_000]);
+
+    const series = balanceSeries(changedAccount, cash, trades, changedHistory);
+    expect(series[0]).toMatchObject({ date: "2026-03-03", balance: 15_000, rValue: 150 });
+
+    // The next trade logged is the one that picks up 2%.
+    expect(currentRValue(changedAccount, cash, trades)).toBeCloseTo(643.6, 2);
+  });
+});
+
+describe("capitalSeries", () => {
+  it("reconciles with mock 3a's 1R history", () => {
+    const { account, cash, trades, riskChanges } = mockCapital();
+    const milestones = capitalSeries(account, cash, trades, riskChanges, "2026-09-11")
+      .filter((p) => p.marker !== null)
+      .map((p) => [p.marker, p.date, Math.round(p.balance), Math.round(p.rValue)]);
+
+    expect(milestones).toEqual([
+      ["start", "2026-03-03", 15_000, 150],
+      ["deposit", "2026-05-01", 21_400, 214],
+      ["withdrawal", "2026-07-15", 23_940, 239],
+      ["deposit", "2026-09-01", 31_601, 316],
+      ["today", "2026-09-11", 32_180, 322],
+    ]);
+  });
+
+  it("doesn't repeat a milestone that already falls on today", () => {
+    const { account, cash, trades, riskChanges } = mockCapital();
+    const todayDeposit = makeCashMovement({ id: "today", amount: 1_000, date: "2026-09-11" });
+    const markers = capitalSeries(account, [...cash, todayDeposit], trades, riskChanges, "2026-09-11")
+      .filter((p) => p.date === "2026-09-11" && p.marker !== null)
+      .map((p) => p.marker);
+    expect(markers).toEqual(["deposit"]);
+  });
+
+  it("draws each cash movement as a step: two points on the same date", () => {
+    const { account, cash, trades, riskChanges } = mockCapital();
+    const may = capitalSeries(account, cash, trades, riskChanges, "2026-09-11").filter(
+      (p) => p.date === "2026-05-01",
+    );
+    expect(may.map((p) => [Math.round(p.balance), p.marker])).toEqual([
+      [16_400, null],
+      [21_400, "deposit"],
+    ]);
+  });
+
+  it("steps the 1R line at a risk change without moving the balance", () => {
+    const { account, cash, trades } = mockCapital();
+    const history = [riskChange("2026-03-03"), riskChange("2026-06-01", { riskPercent: 2 })];
+    const june = capitalSeries({ ...account, riskPercent: 2 }, cash, trades, history, "2026-09-11").filter(
+      (p) => p.date === "2026-06-01",
+    );
+    expect(june.map((p) => [p.balance, p.rValue, p.marker])).toEqual([
+      [21_400, 214, null],
+      [21_400, 428, "risk"],
+    ]);
+  });
+});
+
+describe("drawdownState moves its peak with cash", () => {
+  const account = makeAccount({ startingCapital: 10_000, drawdownLimitPercent: 10 });
+
+  it("does not read a withdrawal of profit as a drawdown", () => {
+    const trades = [tradeWorth(2_000, { id: "up", date: "2026-01-10" })];
+    const withdrawal = makeCashMovement({ type: "withdrawal", amount: 2_000, date: "2026-02-01" });
+    const state = drawdownState(account, [withdrawal], trades);
+
+    expect(state.currentBalance).toBe(10_000);
+    expect(state.peakBalance).toBe(10_000);
+    expect(state.drawdownAmount).toBe(0);
+    expect(state.isNearLimit).toBe(false);
+  });
+
+  it("keeps a loss already taken when a deposit lands mid-drawdown", () => {
+    const trades = [tradeWorth(-900, { id: "down", date: "2026-01-10" })];
+    const deposit = makeCashMovement({ amount: 5_000, date: "2026-02-01" });
+    const state = drawdownState(account, [deposit], trades);
+
+    expect(state.peakBalance).toBe(15_000);
+    expect(state.currentBalance).toBe(14_100);
+    expect(state.drawdownAmount).toBe(900);
+    expect(state.drawdownPercent).toBeCloseTo(6, 10);
+  });
+
+  it("still reaches the limit on trading losses after a withdrawal", () => {
+    const withdrawal = makeCashMovement({ type: "withdrawal", amount: 5_000, date: "2026-01-05" });
+    const trades = [tradeWorth(-500, { date: "2026-01-10" })];
+    const state = drawdownState(account, [withdrawal], trades);
+
+    expect(state.peakBalance).toBe(5_000);
+    expect(state.drawdownPercent).toBeCloseTo(10, 10);
+    expect(state.hasReachedLimit).toBe(true);
+  });
+});
+
+describe("availableBalanceOn", () => {
+  const account = makeAccount({ startingCapital: 10_000, startedAt: "2026-01-01" });
+
+  it("is today's balance for a withdrawal dated today", () => {
+    const trades = [tradeWorth(1_000, { date: "2026-02-01" })];
+    expect(availableBalanceOn(account, [], trades, "2026-09-11")).toBe(11_000);
+  });
+
+  it("stops a backdated withdrawal from overdrawing a later point", () => {
+    // 10,000 -> withdraw 9,000 in March -> 1,000. A 5,000 withdrawal dated
+    // February would leave March at −4,000, even though February itself had 10,000.
+    const march = makeCashMovement({ id: "m", type: "withdrawal", amount: 9_000, date: "2026-03-01" });
+    const available = availableBalanceOn(account, [march], [], "2026-02-01");
+
+    expect(available).toBe(1_000);
+    expect(validateWithdrawal(5_000, available).reason).toBe("exceeds_balance");
+    expect(validateWithdrawal(1_000, available).ok).toBe(true);
+  });
+
+  it("slots before that day's trades, which a same-day withdrawal must also survive", () => {
+    const loss = tradeWorth(-4_000, { date: "2026-02-01" });
+    expect(availableBalanceOn(account, [], [loss], "2026-02-01")).toBe(6_000);
+  });
+});
+
+describe("checkCashMovementDeletion", () => {
+  const account = makeAccount({ startingCapital: 1_000, startedAt: "2026-01-01" });
+  const deposit = makeCashMovement({ id: "d", type: "deposit", amount: 5_000, date: "2026-02-01" });
+  const withdrawal = makeCashMovement({ id: "w", type: "withdrawal", amount: 4_000, date: "2026-03-01" });
+
+  it("refuses to delete a deposit a later withdrawal depends on", () => {
+    expect(checkCashMovementDeletion(account, [deposit, withdrawal], [], "d")).toEqual({
+      ok: false,
+      reason: "would_overdraw",
+    });
+  });
+
+  it("allows deleting a deposit nothing depends on, and any withdrawal", () => {
+    const small = makeCashMovement({ id: "w", type: "withdrawal", amount: 500, date: "2026-03-01" });
+    expect(checkCashMovementDeletion(account, [deposit, small], [], "d").ok).toBe(true);
+    expect(checkCashMovementDeletion(account, [deposit, withdrawal], [], "w").ok).toBe(true);
+    expect(checkCashMovementDeletion(account, [deposit], [], "missing").reason).toBe("not_found");
+  });
+});
+
+describe("ledger 1R shift and filters", () => {
+  it("carries the modal's '1R moves to $316 from $266' on the Sep 1 deposit", () => {
+    const { account, cash, trades, riskChanges } = mockCapital();
+    const row = ledger(account, cash, trades, riskChanges).find((e) => e.id === "sep")!;
+    expect(Math.round(row.rValueBefore)).toBe(266);
+    expect(Math.round(row.rValueAfter)).toBe(316);
+  });
+
+  it("counts the opening balance as cash", () => {
+    const { account, cash, trades } = mockCapital();
+    const rows = ledger(account, cash, trades);
+    expect(filterLedger(rows, "all")).toHaveLength(8);
+    expect(filterLedger(rows, "cash").map((e) => e.kind)).toEqual(["deposit", "withdrawal", "deposit", "opening"]);
+    expect(filterLedger(rows, "trades")).toHaveLength(4);
+  });
+
+  it("totals money in and out the way mock 3a's chips and sub-line read", () => {
+    const { account, cash } = mockCapital();
+    expect(cashTotals(account, cash)).toEqual({ deposited: 25_000, withdrawn: 2_500, inCount: 3, outCount: 1 });
   });
 });

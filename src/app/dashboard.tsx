@@ -1,5 +1,6 @@
 "use client";
 
+import type { DrawdownAlertInfo } from "@/components/drawdown-alert";
 import type { IsoMonth } from "@/lib/domain/dates";
 import type { Trade, TradeModel } from "@/lib/domain/types";
 import { useLocale } from "@/lib/i18n/locale-context";
@@ -11,6 +12,8 @@ export interface DashboardProps {
   trades: Trade[];
   models: TradeModel[];
   hasAccount: boolean;
+  /** Set only once the account has crossed its drawdown limit. */
+  drawdownAlert?: DrawdownAlertInfo | null;
 }
 
 /**

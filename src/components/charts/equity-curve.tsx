@@ -81,18 +81,23 @@ export function EquityCurve({
   );
 }
 
-/** Mobile home hero: 300x70, 3px stroke, no fill (docs/README.md § Mobile). */
+/**
+ * Mobile home hero: 300x70, 3px stroke, no fill (docs/README.md § Mobile).
+ * `ink` is the mobile Capital balance sparkline — balance is neutral, not P&L.
+ */
 export function Sparkline({
   values,
   tone,
   className,
 }: {
   values: readonly number[];
-  tone?: "gain" | "loss";
+  tone?: "gain" | "loss" | "ink";
   className?: string;
 }) {
   const last = values.length > 0 ? values[values.length - 1] : 0;
-  const color = (tone ?? (last < 0 ? "loss" : "gain")) === "loss" ? "var(--pnl-loss)" : "var(--pnl-gain)";
+  const resolved = tone ?? (last < 0 ? "loss" : "gain");
+  const color =
+    resolved === "ink" ? "var(--color-ink)" : resolved === "loss" ? "var(--pnl-loss)" : "var(--pnl-gain)";
   const extent = extentOf(values);
 
   return (

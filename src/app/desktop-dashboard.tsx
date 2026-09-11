@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
+import { DrawdownAlert, type DrawdownAlertInfo } from "@/components/drawdown-alert";
 import { EquityCurve } from "@/components/charts/equity-curve";
 import { toNavItems } from "@/components/nav/routes";
 import { SignOutButton } from "@/components/nav/sign-out-button";
@@ -30,11 +31,12 @@ export interface DesktopDashboardProps {
   trades: Trade[];
   models: TradeModel[];
   hasAccount: boolean;
+  drawdownAlert?: DrawdownAlertInfo | null;
 }
 
 const em = "—";
 
-export function DesktopDashboard({ month, trades, models, hasAccount }: DesktopDashboardProps) {
+export function DesktopDashboard({ month, trades, models, hasAccount, drawdownAlert }: DesktopDashboardProps) {
   const t = useT();
   const locale = useLocale();
   const router = useRouter();
@@ -76,7 +78,8 @@ export function DesktopDashboard({ month, trades, models, hasAccount }: DesktopD
     return (
       <div className="flex min-h-full flex-col bg-page">
         {topBar}
-        <div className="mx-auto flex w-full max-w-[1200px] flex-1 items-center justify-center p-32">
+        <div className="mx-auto flex w-full max-w-[1200px] flex-1 flex-col items-center justify-center gap-16 p-32">
+          {drawdownAlert != null && <DrawdownAlert {...drawdownAlert} />}
           <EmptyState
             title={
               hasAccount
@@ -100,6 +103,8 @@ export function DesktopDashboard({ month, trades, models, hasAccount }: DesktopD
       {topBar}
 
       <div className="mx-auto flex max-w-[1200px] flex-col gap-16 p-32">
+        {drawdownAlert != null && <DrawdownAlert {...drawdownAlert} />}
+
         {/* Hero */}
         <Card className="grid grid-cols-[340px_1fr] items-center gap-40 px-36 py-32">
           <div>

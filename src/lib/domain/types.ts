@@ -62,18 +62,36 @@ export interface TradeModel {
   referenceImagePath: string | null;
 }
 
-export interface Account {
-  id: string;
-  name: string;
-  currency: string;
-  startingCapital: number;
-  startedAt: IsoDate;
+/** How 1R is sized. The account carries today's; `RiskChange` carries every past one. */
+export interface RiskSetting {
   riskMode: RiskMode;
   /** Percent of balance risked per trade, e.g. 1 for 1%. Null when riskMode is 'fixed'. */
   riskPercent: number | null;
   /** Currency amount risked per trade. Null when riskMode is 'percent'. */
   fixedRiskAmount: number | null;
+}
+
+export interface Account extends RiskSetting {
+  id: string;
+  name: string;
+  currency: string;
+  startingCapital: number;
+  startedAt: IsoDate;
   drawdownLimitPercent: number;
+}
+
+/**
+ * One value the account's risk setting has had, written by a database trigger
+ * whenever it changes (docs/decisions.md § Phase 8). Lets the Capital screen
+ * show what 1R was worth at each point in the past rather than re-projecting
+ * the whole history under today's setting.
+ */
+export interface RiskChange extends RiskSetting {
+  id: string;
+  accountId: string;
+  /** ISO timestamp; applies to every balance point dated on or after its UTC date. */
+  effectiveAt: string;
+  createdAt: string;
 }
 
 export interface Attachment {

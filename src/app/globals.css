@@ -155,7 +155,14 @@
   --text-24: 24px;
   --text-26: 26px;
   --text-30: 30px;
+  /* 34 / 40 / 52 are outside the summary scale above, but docs/README.md
+     § Capital gives each one explicitly for that screen ("$322" 800 34px,
+     mobile balance 800 40px, "$32,180" 800 52px) — per-screen px values the
+     README calls intentional, not canvas-only values to round away. */
+  --text-34: 34px;
+  --text-40: 40px;
   --text-44: 44px;
+  --text-52: 52px;
   --text-56: 56px;
 
   /* Radius — docs/README.md § Design Tokens > Radius (px-named; "pill" for

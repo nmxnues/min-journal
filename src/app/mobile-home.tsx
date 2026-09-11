@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
+import { DrawdownAlert, type DrawdownAlertInfo } from "@/components/drawdown-alert";
 import { Sparkline } from "@/components/charts/equity-curve";
 import { BottomTabBar } from "@/components/nav/bottom-tab-bar";
 import { toTabItems } from "@/components/nav/routes";
@@ -23,6 +24,7 @@ export interface MobileHomeProps {
   trades: Trade[];
   models: TradeModel[];
   hasAccount: boolean;
+  drawdownAlert?: DrawdownAlertInfo | null;
 }
 
 /**
@@ -37,7 +39,7 @@ function topAndBottomModels<T extends { netR: number }>(rows: readonly T[]): T[]
   return [sorted[0], sorted[1], sorted[sorted.length - 1]];
 }
 
-export function MobileHome({ month, trades, models, hasAccount }: MobileHomeProps) {
+export function MobileHome({ month, trades, models, hasAccount, drawdownAlert }: MobileHomeProps) {
   const t = useT();
   const locale = useLocale();
   const router = useRouter();
@@ -73,7 +75,8 @@ export function MobileHome({ month, trades, models, hasAccount }: MobileHomeProp
     return (
       <div className="flex min-h-full flex-col bg-page">
         {header}
-        <div className="flex flex-1 flex-col justify-center px-20 py-20">
+        <div className="flex flex-1 flex-col justify-center gap-14 px-20 py-20">
+          {drawdownAlert != null && <DrawdownAlert {...drawdownAlert} compact />}
           <EmptyState
             title={
               hasAccount
@@ -101,6 +104,7 @@ export function MobileHome({ month, trades, models, hasAccount }: MobileHomeProp
       {header}
 
       <div className="flex flex-1 flex-col gap-14 px-20 py-12">
+        {drawdownAlert != null && <DrawdownAlert {...drawdownAlert} compact />}
         <Link href="/weekly-review" className="self-start text-12_5 font-semibold text-accent">
           {t({ en: "Weekly review", ko: "주간 리뷰" })} →
         </Link>

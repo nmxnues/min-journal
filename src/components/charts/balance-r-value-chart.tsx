@@ -1,4 +1,5 @@
-import { extentOf, toAreaPath, toPoints, toPointsInBand, toX, toY } from "./geometry";
+import type { ReactNode } from "react";
+import { extentOf, toX, toY, type Extent } from "./geometry";
 
 /**
  * Capital hero — docs/README.md § Capital: "a dual-line chart, 720x170
@@ -9,8 +10,9 @@ import { extentOf, toAreaPath, toPoints, toPointsInBand, toX, toY } from "./geom
  * #b0b8c1). Legend top-right: 14x3 radius-99 swatches with 600 11.5px #4e5968
  * labels."
  *
- * The step discontinuity falls out of the data: a cash movement produces two
- * points at the same x, so the polyline jumps vertically.
+ * The step discontinuity falls out of the data: a cash movement contributes
+ * two points at the same `x` (balance before, balance after), so the polyline
+ * jumps vertically. Points without an `x` are spaced evenly by index.
  */
 const WIDTH = 720;
 const HEIGHT = 170;
@@ -29,20 +31,43 @@ export interface CapitalPoint {
   rValue: number;
   /** Marks a cash movement — drawn as an ink dot on the balance line. */
   isCashEvent?: boolean;
+  /** Position on the time axis, 0..1. */
+  x?: number;
+}
+
+/** A caption pinned under its own point on the time axis. */
+export interface PositionedCaption {
+  label: string;
+  x: number;
 }
 
 export interface BalanceAndRValueChartProps {
   points: readonly CapitalPoint[];
-  captions?: readonly string[];
+  /** Plain strings spread edge to edge, or captions placed at their `x`. */
+  captions?: readonly string[] | readonly PositionedCaption[];
   legend?: { balance: string; rValue: string };
+  /** Mock 3a's "Balance & 1R value" (700 15px), left of the legend. */
+  title?: ReactNode;
   gradientId?: string;
   className?: string;
+}
+
+function toBandY(value: number, extent: Extent): number {
+  const ratio = (value - extent.min) / (extent.max - extent.min);
+  return R_BAND_TOP + (1 - ratio) * (R_BAND_BOTTOM - R_BAND_TOP);
+}
+
+function isPositioned(
+  captions: readonly string[] | readonly PositionedCaption[],
+): captions is readonly PositionedCaption[] {
+  return typeof captions[0] === "object";
 }
 
 export function BalanceAndRValueChart({
   points,
   captions,
   legend,
+  title,
   gradientId = "capital-fill",
   className,
 }: BalanceAndRValueChartProps) {
@@ -55,18 +80,36 @@ export function BalanceAndRValueChart({
   const balanceExtent = extentOf(balances);
   const rValueExtent = extentOf(rValues);
 
+  const xs = points.map((p, i) => (p.x !== undefined ? p.x * WIDTH : toX(i, points.length, WIDTH)));
+  const balanceYs = balances.map((b) => toY(b, balanceExtent, HEIGHT, PADDING));
+  const rValueYs = rValues.map((r) => toBandY(r, rValueExtent));
+
+  const balanceLine = xs.map((x, i) => `${x},${balanceYs[i]}`).join(" ");
+  const rValueLine = xs.map((x, i) => `${x},${rValueYs[i]}`).join(" ");
+  const area =
+    points.length > 0
+      ? `${xs.map((x, i) => `${i === 0 ? "M" : "L"}${x},${balanceYs[i]}`).join(" ")} L${xs[xs.length - 1]},${HEIGHT} L${xs[0]},${HEIGHT} Z`
+      : "";
+
   return (
     <div className={className}>
-      {legend !== undefined && (
-        <div className="mb-8 flex justify-end gap-14 text-11_5 font-semibold text-secondary">
-          <span className="flex items-center gap-6">
-            <span className="h-3 w-14 rounded-pill bg-ink" />
-            {legend.balance}
-          </span>
-          <span className="flex items-center gap-6">
-            <span className="h-3 w-14 rounded-pill bg-accent" />
-            {legend.rValue}
-          </span>
+      {(title !== undefined || legend !== undefined) && (
+        <div className="mb-12 flex items-baseline justify-between gap-16">
+          {title !== undefined && (
+            <span className="text-15 font-bold tracking-[-.02em] text-ink">{title}</span>
+          )}
+          {legend !== undefined && (
+            <div className="ml-auto flex gap-14 text-11_5 font-semibold text-secondary">
+              <span className="flex items-center gap-6">
+                <span className="h-3 w-14 rounded-pill bg-ink" />
+                {legend.balance}
+              </span>
+              <span className="flex items-center gap-6">
+                <span className="h-3 w-14 rounded-pill bg-accent" />
+                {legend.rValue}
+              </span>
+            </div>
+          )}
         </div>
       )}
 
@@ -86,12 +129,9 @@ export function BalanceAndRValueChart({
 
         {points.length > 1 && (
           <>
-            <path
-              d={toAreaPath(balances, WIDTH, HEIGHT, balanceExtent, PADDING)}
-              fill={`url(#${gradientId})`}
-            />
+            <path d={area} fill={`url(#${gradientId})`} />
             <polyline
-              points={toPoints(balances, WIDTH, HEIGHT, balanceExtent, PADDING)}
+              points={balanceLine}
               fill="none"
               stroke="var(--color-ink)"
               strokeWidth={3}
@@ -99,7 +139,7 @@ export function BalanceAndRValueChart({
               strokeLinecap="round"
             />
             <polyline
-              points={toPointsInBand(rValues, WIDTH, rValueExtent, R_BAND_TOP, R_BAND_BOTTOM)}
+              points={rValueLine}
               fill="none"
               stroke="var(--color-accent)"
               strokeWidth={2.5}
@@ -108,26 +148,38 @@ export function BalanceAndRValueChart({
             />
             {points.map((point, i) =>
               point.isCashEvent ? (
-                <circle
-                  key={i}
-                  cx={toX(i, points.length, WIDTH)}
-                  cy={toY(point.balance, balanceExtent, HEIGHT, PADDING)}
-                  r={4}
-                  fill="var(--color-ink)"
-                />
+                <circle key={i} cx={xs[i]} cy={balanceYs[i]} r={4} fill="var(--color-ink)" />
               ) : null,
             )}
           </>
         )}
       </svg>
 
-      {captions !== undefined && captions.length > 0 && (
-        <div className="mt-8 flex justify-between text-11 font-medium text-faint">
-          {captions.map((caption, i) => (
-            <span key={i}>{caption}</span>
-          ))}
-        </div>
-      )}
+      {captions !== undefined &&
+        captions.length > 0 &&
+        (isPositioned(captions) ? (
+          <div className="relative mt-8 h-16 text-11 font-medium text-faint">
+            {captions.map((caption, i) => {
+              // Edge captions align to their edge so they never hang off the card.
+              const shift = caption.x < 0.08 ? "0%" : caption.x > 0.92 ? "-100%" : "-50%";
+              return (
+                <span
+                  key={i}
+                  className="absolute top-0 whitespace-nowrap"
+                  style={{ left: `${caption.x * 100}%`, transform: `translateX(${shift})` }}
+                >
+                  {caption.label}
+                </span>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="mt-8 flex justify-between text-11 font-medium text-faint">
+            {captions.map((caption, i) => (
+              <span key={i}>{caption}</span>
+            ))}
+          </div>
+        ))}
     </div>
   );
 }

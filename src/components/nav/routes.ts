@@ -5,8 +5,7 @@ import type { LocaleStrings } from "@/lib/i18n/locale";
 /**
  * The app's five top-level destinations, in one place so TopBar (desktop) and
  * BottomTabBar (mobile) can never drift on labels, icons, or order. `enabled`
- * tracks which routes actually exist yet — Dashboard, Calendar, Trades, and
- * Playbook as of Phase 7; Capital not built. Korean sides are natural
+ * tracks which routes actually exist yet — all five as of Phase 8. Korean sides are natural
  * equivalents, not literal translations (docs/README.md §9's own example
  * pairs "Month to date" with "이번 달 누적"): "홈" for the dashboard/home tab,
  * and "자산" for Capital is lifted directly from the 3b-mobile mock's own
@@ -24,7 +23,7 @@ export const NAV_ROUTES: readonly NavRoute[] = [
   { href: "/trades", strings: { en: "Trades", ko: "기록" }, icon: NotebookPen, enabled: true },
   { href: "/calendar", strings: { en: "Calendar", ko: "캘린더" }, icon: CalendarDays, enabled: true },
   { href: "/playbook", strings: { en: "Playbook", ko: "플레이북" }, icon: LineChart, enabled: true },
-  { href: "/capital", strings: { en: "Capital", ko: "자산" }, icon: Wallet, enabled: false },
+  { href: "/capital", strings: { en: "Capital", ko: "자산" }, icon: Wallet, enabled: true },
 ];
 
 /** `NavRoute[]` -> `TopBar`'s item shape, resolving copy through the caller's own `useT()`. */
