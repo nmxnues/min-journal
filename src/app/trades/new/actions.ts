@@ -172,6 +172,16 @@ export async function createTrade(
   await attachDraftFilesToTrade(user.id, data.id, draftAttachmentPaths);
   await deleteDraft();
 
+  // Keeps New trade's Instrument field remembering whatever was logged last
+  // (docs/decisions.md § Phase 6) by writing straight through the same
+  // `settings.default_instrument` column the Settings screen itself edits —
+  // not a separate "last used" query, which would silently shadow a value
+  // the trader had just set in Settings the moment any trade was logged.
+  await supabase
+    .from("settings")
+    .update({ default_instrument: v.instrument.trim() })
+    .eq("user_id", user.id);
+
   revalidatePath("/");
   revalidatePath("/trades");
   return { ok: true, id: data.id };

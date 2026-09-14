@@ -31,6 +31,7 @@ import {
   SWEEP_SIDE_LABELS,
   SWEEP_SIDE_ORDER,
 } from "@/lib/labels";
+import { MAX_TRADE_DATE, MIN_TRADE_DATE } from "@/lib/domain/dates";
 import { deriveSweepSide, plannedR, rangeSize, realizedR } from "@/lib/domain/trade";
 import { collectWarnings, type WarningCode } from "@/lib/domain/warnings";
 import type { SweepSide, Trade, TradeModel, TradeResult } from "@/lib/domain/types";
@@ -263,7 +264,7 @@ export function TradeEditForm({
             />
           </Field>
           <Field label={t({ en: "Date", ko: "날짜" })} htmlFor="date" error={errors.date?.message}>
-            <Input id="date" type="date" {...register("date")} />
+            <Input id="date" type="date" min={MIN_TRADE_DATE} max={MAX_TRADE_DATE} {...register("date")} />
           </Field>
         </div>
 

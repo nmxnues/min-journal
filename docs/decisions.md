@@ -769,3 +769,33 @@ Moved from a hardcoded `LocaleStrings[]` constant to a per-user `settings.tag_pr
 - Afterward, deleted the disposable user via the Admin API and confirmed via `psql`: `auth.users` back to exactly 1 row, the real account's 15 trades all still `m_w_d`/`w_d` with correct counts (12/3, unchanged from the migration verification above), and the real user's own `settings.tag_presets` still the untouched original four — the test session never wrote to real data.
 
 `npx tsc --noEmit`, `pnpm lint`, `pnpm exec vitest run` (255 passed, one rewritten for the win-rate flip), and `pnpm build` all clean.
+
+## Phase 6 — Instrument default bug fix, date input digit overflow, date memory
+
+Three follow-ups from actual use of Phase 5's changes.
+
+### 1. Bug: Settings' default Instrument had no effect — root cause was Phase 5's own instrument-memory feature
+
+The user reported that changing the default ticker in Settings did nothing; the New trade form kept defaulting to `AUDUSD` regardless. Root cause: Phase 5's `getMostRecentTradeInstrument(accountId)` query unconditionally took priority over `settings.default_instrument` (`mostRecentInstrument ?? settings?.default_instrument ?? DEFAULT_INSTRUMENT`) — once at least one trade existed, the Settings field was permanently shadowed and dead, which is exactly what happened on the real account (its most recent trade happened to be AUDUSD). Confirmed directly: `select default_instrument from settings` on the live database showed whatever the user had actually set (`NZDUSD`), completely disconnected from what the form was showing.
+
+**Fixed by making `settings.default_instrument` the single source of truth again, kept in sync automatically instead of being queried around**: `createTrade` (`src/app/trades/new/actions.ts`) now writes the trade's own instrument straight into `settings.default_instrument` right after a successful save (best-effort, same as the existing draft-cleanup calls below it). This keeps both halves of the original ask working at once — the field still "remembers what you logged last" (every save updates it), but explicitly changing it in Settings now sticks until the next trade is logged, rather than being invisibly overridden. `getMostRecentTradeInstrument` (the Phase 5 query) is deleted outright — there's no longer a second source of truth to reconcile. `src/app/trades/new/page.tsx` goes back to the simpler `settings?.default_instrument ?? DEFAULT_INSTRUMENT`.
+
+Editing an existing trade's instrument (Trade detail's edit form) deliberately does **not** re-sync this — only newly logging a trade counts as "using" an instrument, matching the original request's own framing ("New trade 폼의 Instrument가 마지막에 입력한 값을 기억하게 해라").
+
+### 2. Bug: the Date field's year segment accepted up to 6 digits
+
+Reported directly: typing quickly into a plain `<input type="date">`'s year segment let it run past 4 digits. Root cause is a genuine native-input footgun, not app logic — without a `max` attribute, Chromium's date input accepts any year the `date` type's own spec allows (up to 275760, i.e. 6 digits), and none of this app's three trade-date inputs (New trade, the mobile quick-log wizard, Trade detail's edit form) had ever set `min`/`max`.
+
+Added `MIN_TRADE_DATE = "1970-01-01"` / `MAX_TRADE_DATE = "2099-12-31"` (`src/lib/domain/dates.ts`) and applied both to all three inputs. Setting any 4-digit-year `max` is what actually caps the segment's own typing to 4 digits (a well-known trick for this exact native-input quirk) — the specific bound chosen is generous on both ends for a personal FX journal that may log old backtest history, not a tight business constraint. **Verified live**: typed `209999` into the year segment on a real form — it filled the year to `2099` (the configured max) and rolled the remaining digits into the day segment instead of accepting `209999` as a 6-digit year, confirming the cap actually holds rather than just trusting the attribute exists in the DOM.
+
+Other `<input type="date">` fields in the app (account setup's start date, cash-movement date, the dashboard period-picker's custom range, the Trade log's date-range filter) were left untouched — they weren't part of the report, and two of them (cash-movement, period-picker) already cross-constrain their own min/max against each other or a real account/today bound, which is a different and already-adequate mitigation.
+
+### 3. New trade's Date field now remembers the last-used date too, the same way Instrument does
+
+Previously always defaulted to the real calendar "today" (`new Date().toISOString().slice(0, 10)`). Changed to the account's most-recently-logged trade's date, falling back to today only when the account has no trades yet — reusing `getMostRecentTradeDate`, a query that already existed for the Dashboard's own default period (docs/decisions.md § Phase 9 backtest follow-up), rather than adding a new one. Unlike Instrument, there's no Settings field for this (the user didn't ask for one), so there's no competing source of truth to shadow — a direct query is the whole fix, no write-through sync needed.
+
+`NewTradeFormProps.today` renamed to `defaultDate` for clarity (it's genuinely not "today" once an account has trades) — confirmed safe to rename by checking every other reference to the old `today` prop name first; the "1R today" copy elsewhere in the same form is a separate, hardcoded UI string tied to `rValueToday` (the account's real current balance), not this prop.
+
+**Verified live**, all three fixes together, with a fresh disposable test user (Admin API create/delete again; the browser again had the real user's login autofilled and was swapped out before submitting, same as every prior live-verification pass): set up a new account, logged one EURUSD trade dated 2026-09-10 (typed via the date input, not just passed as a value). Reopening `/trades/new` afterward showed the Date field pre-filled to `2026. 09. 10.` (not the real current date) and the Instrument field still `EURUSD`. Changed Settings' default instrument to `USDJPY` and saved; a fresh `/trades/new` immediately showed `USDJPY`, confirming the Settings field is no longer shadowed even with a trade already logged. Deleted the test user afterward and confirmed via `psql`: back to exactly 1 real user, and the real account's own `settings.default_instrument` (`NZDUSD`, whatever the user had actually set) was never touched by the test session — matching, and explaining, their original bug report.
+
+`npx tsc --noEmit`, `pnpm lint`, `pnpm exec vitest run` (255 passed, no behavior change to any tested selector), and `pnpm build` all clean.

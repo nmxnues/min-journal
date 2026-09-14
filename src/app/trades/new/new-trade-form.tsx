@@ -33,6 +33,7 @@ import {
   SWEEP_SIDE_LABELS,
   SWEEP_SIDE_ORDER,
 } from "@/lib/labels";
+import { MAX_TRADE_DATE, MIN_TRADE_DATE } from "@/lib/domain/dates";
 import { deriveSweepSide, plannedR, rangeSize, realizedR } from "@/lib/domain/trade";
 import type { AccountKind, SweepSide, TradeModel, TradeResult } from "@/lib/domain/types";
 import { useLocale, useT } from "@/lib/i18n/locale-context";
@@ -63,7 +64,8 @@ export interface NewTradeFormProps {
   drawdownLimitPercent: number;
   defaultInstrument: string;
   defaultSession: NewTradeInput["session"];
-  today: string;
+  /** The freshly-opened form's starting Date value — the account's most recently logged trade's date, or today with none yet (docs/decisions.md § Phase 6). */
+  defaultDate: string;
   draft: DraftRecord | null;
   tagPresets: string[];
 }
@@ -100,7 +102,7 @@ export function NewTradeForm({
   drawdownLimitPercent,
   defaultInstrument,
   defaultSession,
-  today,
+  defaultDate,
   draft,
   tagPresets,
 }: NewTradeFormProps) {
@@ -131,7 +133,7 @@ export function NewTradeForm({
         ...NEW_TRADE_DEFAULTS,
         instrument: defaultInstrument,
         session: defaultSession,
-        date: today,
+        date: defaultDate,
       },
   });
 
@@ -405,7 +407,7 @@ export function NewTradeForm({
               />
             </Field>
             <Field label={t({ en: "Date", ko: "날짜" })} htmlFor="date" error={errors.date?.message}>
-              <Input id="date" type="date" {...register("date")} />
+              <Input id="date" type="date" min={MIN_TRADE_DATE} max={MAX_TRADE_DATE} {...register("date")} />
             </Field>
           </div>
 

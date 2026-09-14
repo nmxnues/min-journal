@@ -23,6 +23,7 @@ import { cn } from "@/lib/cn";
 import { formatCurrency, formatPrice } from "@/lib/format";
 import { useFormatR } from "@/lib/settings/context";
 import { MAX_ATTACHMENTS_PER_TRADE } from "@/lib/attachments";
+import { MAX_TRADE_DATE, MIN_TRADE_DATE } from "@/lib/domain/dates";
 import { INSTRUMENT_PRESETS } from "@/lib/instruments";
 import { HTF_PAIRING_LABELS, HTF_PAIRING_ORDER, SESSION_LABELS } from "@/lib/labels";
 import type { AccountKind, SweepSide, TradeModel, TradeResult } from "@/lib/domain/types";
@@ -180,7 +181,7 @@ export function MobileQuickLogWizard({
             />
           </Field>
           <Field label={t({ en: "Date", ko: "날짜" })} htmlFor="date" error={errors.date?.message}>
-            <Input id="date" type="date" {...register("date")} />
+            <Input id="date" type="date" min={MIN_TRADE_DATE} max={MAX_TRADE_DATE} {...register("date")} />
           </Field>
           <Field label={t({ en: "Session", ko: "세션" })}>
             <Controller

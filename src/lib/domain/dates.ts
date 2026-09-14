@@ -20,6 +20,17 @@ export function todayIso(): IsoDate {
   return new Date().toISOString().slice(0, 10);
 }
 
+/**
+ * Bounds for a plain `<input type="date">`'s `min`/`max`. Without a `max`,
+ * Chrome's native date input accepts up to 6 digits in the year segment
+ * (the spec's own upper bound is year 275760) — setting any 4-digit-year
+ * `max` caps typing to 4 digits, which is the actual fix; the range itself
+ * is generous on both ends for a personal journal that may log old backtest
+ * history (docs/decisions.md § Phase 6).
+ */
+export const MIN_TRADE_DATE: IsoDate = "1970-01-01";
+export const MAX_TRADE_DATE: IsoDate = "2099-12-31";
+
 export function currentIsoMonth(): IsoMonth {
   return todayIso().slice(0, 7);
 }

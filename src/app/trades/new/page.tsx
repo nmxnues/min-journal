@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { currentRValue, drawdownState } from "@/lib/domain/capital";
+import { todayIso } from "@/lib/domain/dates";
 import type { Session } from "@/lib/domain/types";
 import { DEFAULT_INSTRUMENT } from "@/lib/instruments";
 import { DEFAULT_TAG_PRESETS } from "@/lib/labels";
@@ -7,7 +8,7 @@ import {
   getAccountLedgerInputs,
   getModels,
   getCurrentAccount,
-  getMostRecentTradeInstrument,
+  getMostRecentTradeDate,
   getSettings,
 } from "@/lib/supabase/queries";
 import { reconcileDraftAttachments } from "./attachments-actions";
@@ -27,12 +28,12 @@ export default async function NewTradePage() {
     return <NewTradeGate />;
   }
 
-  const [models, settings, ledger, draft, mostRecentInstrument] = await Promise.all([
+  const [models, settings, ledger, draft, mostRecentDate] = await Promise.all([
     getModels(),
     getSettings(),
     getAccountLedgerInputs(account.id),
     getDraft(),
-    getMostRecentTradeInstrument(account.id),
+    getMostRecentTradeDate(account.id),
   ]);
 
   // Best-effort, once per visit: anything in the draft folder the current
@@ -54,9 +55,9 @@ export default async function NewTradePage() {
         accountIsNearDrawdownLimit: drawdown.isNearLimit,
         drawdownPercent: drawdown.drawdownPercent,
         drawdownLimitPercent: drawdown.limitPercent,
-        defaultInstrument: mostRecentInstrument ?? settings?.default_instrument ?? DEFAULT_INSTRUMENT,
+        defaultInstrument: settings?.default_instrument ?? DEFAULT_INSTRUMENT,
         defaultSession: (settings?.default_session ?? "asia") as Session,
-        today: new Date().toISOString().slice(0, 10),
+        defaultDate: mostRecentDate ?? todayIso(),
         draft,
         tagPresets: settings?.tag_presets ?? DEFAULT_TAG_PRESETS.slice(),
       }}

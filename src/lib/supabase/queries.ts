@@ -316,30 +316,6 @@ export async function getMostRecentTradeDate(accountId: string): Promise<string 
 }
 
 /**
- * The account's single most-recently-logged trade's instrument, or null with
- * no trades yet. New Trade defaults its Instrument field to this rather than
- * always `settings.default_instrument` — a trader working a pair over several
- * sessions shouldn't have to re-pick it every time (docs/decisions.md § Phase
- * 5). Same targeted single-row shape as `getMostRecentTradeDate`, with
- * `created_at` as the tiebreak to match the rest of the app's same-date
- * ordering convention.
- */
-export async function getMostRecentTradeInstrument(accountId: string): Promise<string | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("trades")
-    .select("instrument")
-    .eq("account_id", accountId)
-    .order("date", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data?.instrument ?? null;
-}
-
-/**
  * Everything the money selectors need for one account: `currentRValue`, the
  * drawdown guard, and the Capital screen's balance/1R series and ledger.
  */
