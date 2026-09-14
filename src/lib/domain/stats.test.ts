@@ -46,8 +46,9 @@ describe("netR", () => {
 });
 
 describe("winRate", () => {
-  it("puts break-even in the denominator but not the numerator", () => {
-    // Mock 2c: "67%" with the sub-line "6 / 9".
+  it("excludes break-even from both the numerator and the denominator", () => {
+    // docs/decisions.md § Phase 5: BE trades sit outside win rate entirely —
+    // 6 wins, 2 losses, 1 BE is 6/8, not 6/9.
     const trades = [
       ...Array.from({ length: 6 }, () => tradeWithR(1)),
       tradeWithR(-1),
@@ -55,8 +56,8 @@ describe("winRate", () => {
       tradeWithR(0),
     ];
     expect(trades).toHaveLength(9);
-    expect(winRate(trades)).toBeCloseTo(6 / 9, 10);
-    expect(Math.round(winRate(trades)! * 100)).toBe(67);
+    expect(winRate(trades)).toBeCloseTo(6 / 8, 10);
+    expect(Math.round(winRate(trades)! * 100)).toBe(75);
   });
 
   it("ignores trades with no result yet", () => {
@@ -65,6 +66,10 @@ describe("winRate", () => {
 
   it("is null with nothing decided", () => {
     expect(winRate([])).toBeNull();
+  });
+
+  it("is null when every decided trade is a break-even", () => {
+    expect(winRate([tradeWithR(0), tradeWithR(0)])).toBeNull();
   });
 });
 

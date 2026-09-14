@@ -30,7 +30,6 @@ import {
   SESSION_LABELS,
   SWEEP_SIDE_LABELS,
   SWEEP_SIDE_ORDER,
-  TAG_PRESETS,
 } from "@/lib/labels";
 import { deriveSweepSide, plannedR, rangeSize, realizedR } from "@/lib/domain/trade";
 import { collectWarnings, type WarningCode } from "@/lib/domain/warnings";
@@ -50,6 +49,7 @@ export interface TradeEditFormProps {
   drawdownLimitPercent: number;
   onCancel: () => void;
   onSaved: () => void;
+  tagPresets: string[];
 }
 
 function SectionCard({
@@ -92,6 +92,7 @@ export function TradeEditForm({
   drawdownLimitPercent,
   onCancel,
   onSaved,
+  tagPresets,
 }: TradeEditFormProps) {
   const formatR = useFormatR();
   const t = useT();
@@ -543,27 +544,34 @@ export function TradeEditForm({
             <Controller
               control={control}
               name="tags"
-              render={({ field }) => (
-                <div className="mt-12 flex flex-wrap gap-8">
-                  {TAG_PRESETS.map((preset) => {
-                    const label = t(preset);
-                    const selected = field.value.includes(label);
-                    return (
-                      <ToggleChip
-                        key={preset.en}
-                        selected={selected}
-                        onToggle={() =>
-                          field.onChange(
-                            selected ? field.value.filter((tag) => tag !== label) : [...field.value, label],
-                          )
-                        }
-                      >
-                        {label}
-                      </ToggleChip>
-                    );
-                  })}
-                </div>
-              )}
+              render={({ field }) => {
+                // A trade edited after a preset was renamed/deleted can still
+                // carry the old tag string in its own `tags` array (editing a
+                // preset never rewrites past trades — docs/decisions.md §
+                // Phase 5) — shown here too, trailing the current presets, so
+                // it stays visible and removable instead of silently stuck on.
+                const options = [...tagPresets, ...field.value.filter((tag) => !tagPresets.includes(tag))];
+                return (
+                  <div className="mt-12 flex flex-wrap gap-8">
+                    {options.map((label) => {
+                      const selected = field.value.includes(label);
+                      return (
+                        <ToggleChip
+                          key={label}
+                          selected={selected}
+                          onToggle={() =>
+                            field.onChange(
+                              selected ? field.value.filter((tag) => tag !== label) : [...field.value, label],
+                            )
+                          }
+                        >
+                          {label}
+                        </ToggleChip>
+                      );
+                    })}
+                  </div>
+                );
+              }}
             />
           </div>
         </div>

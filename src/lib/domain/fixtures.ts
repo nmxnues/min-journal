@@ -9,7 +9,7 @@ export function makeTrade(overrides: Partial<Trade> = {}): Trade {
     instrument: "NQ",
     direction: "long",
     session: "ny_am",
-    htfPairing: "w_2d",
+    htfPairing: "w_d",
     rangeHigh: 100,
     rangeLow: 0,
     sweepSide: "low",

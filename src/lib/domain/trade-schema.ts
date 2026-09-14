@@ -47,7 +47,7 @@ export function tradeFieldsShape(locale: Locale) {
     date: z.string().trim().min(1, m("date")),
     direction: z.enum(["long", "short"]),
     session: z.enum(["asia", "london", "ny_am"]),
-    htfPairing: z.enum(["m_w_2d", "w_2d", "d_h1", "h1_m5"]),
+    htfPairing: z.enum(["m_w_d", "w_d"]),
 
     rangeHigh: requiredNumber(m("number")),
     rangeLow: requiredNumber(m("number")),

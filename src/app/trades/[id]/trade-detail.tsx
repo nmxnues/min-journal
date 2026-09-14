@@ -20,6 +20,7 @@ export interface TradeDetailProps {
   drawdownPercent: number;
   drawdownLimitPercent: number;
   currency: string;
+  tagPresets: string[];
 }
 
 export function TradeDetail({
@@ -30,6 +31,7 @@ export function TradeDetail({
   drawdownPercent,
   drawdownLimitPercent,
   currency,
+  tagPresets,
 }: TradeDetailProps) {
   const t = useT();
   const locale = useLocale();
@@ -103,6 +105,7 @@ export function TradeDetail({
           accountIsNearDrawdownLimit={accountIsNearDrawdownLimit}
           drawdownPercent={drawdownPercent}
           drawdownLimitPercent={drawdownLimitPercent}
+          tagPresets={tagPresets}
           onCancel={() => setMode("view")}
           onSaved={() => {
             router.refresh();

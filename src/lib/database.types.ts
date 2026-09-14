@@ -272,6 +272,7 @@ export type Database = {
           default_session: string
           pnl_convention: string
           r_precision: number
+          tag_presets: string[]
           updated_at: string
           user_id: string
         }
@@ -281,6 +282,7 @@ export type Database = {
           default_session?: string
           pnl_convention?: string
           r_precision?: number
+          tag_presets?: string[]
           updated_at?: string
           user_id: string
         }
@@ -290,6 +292,7 @@ export type Database = {
           default_session?: string
           pnl_convention?: string
           r_precision?: number
+          tag_presets?: string[]
           updated_at?: string
           user_id?: string
         }

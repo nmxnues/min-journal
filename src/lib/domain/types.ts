@@ -15,7 +15,7 @@ export type Direction = "long" | "short";
 export type Session = "asia" | "london" | "ny_am";
 export type SweepSide = "low" | "high" | "both" | "none";
 export type TradeResult = "win" | "loss" | "be";
-export type HtfPairing = "m_w_2d" | "w_2d" | "d_h1" | "h1_m5";
+export type HtfPairing = "m_w_d" | "w_d";
 export type RiskMode = "percent" | "fixed";
 export type CashMovementType = "deposit" | "withdrawal";
 export type ModelStatus = "active" | "retired";
@@ -37,6 +37,8 @@ export interface Settings {
   defaultSession: Session;
   /** Decimal places on a displayed R value, e.g. 1 for "+18.4R". */
   rPrecision: number;
+  /** User-editable behaviour tags offered on the trade form. Order is display order. */
+  tagPresets: string[];
 }
 
 /** ISO date, `YYYY-MM-DD` (Postgres `date`). Sorts correctly as a string. */

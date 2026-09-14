@@ -165,11 +165,9 @@ export function ComponentGallery() {
               <Input id="date" type="date" defaultValue="2026-09-09" />
             </Field>
             <Field label="HTF pairing" htmlFor="htf">
-              <Select id="htf" defaultValue="w_2d">
-                <option value="m_w_2d">M → W → 2D</option>
-                <option value="w_2d">W → 2D</option>
-                <option value="d_h1">D → H1</option>
-                <option value="h1_m5">H1 → M5</option>
+              <Select id="htf" defaultValue="w_d">
+                <option value="m_w_d">M → W → D</option>
+                <option value="w_d">W → D</option>
               </Select>
             </Field>
             <Field label="Entry" htmlFor="entry" error="Stop must differ from entry.">

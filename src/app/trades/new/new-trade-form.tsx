@@ -32,7 +32,6 @@ import {
   SESSION_LABELS,
   SWEEP_SIDE_LABELS,
   SWEEP_SIDE_ORDER,
-  TAG_PRESETS,
 } from "@/lib/labels";
 import { deriveSweepSide, plannedR, rangeSize, realizedR } from "@/lib/domain/trade";
 import type { AccountKind, SweepSide, TradeModel, TradeResult } from "@/lib/domain/types";
@@ -66,6 +65,7 @@ export interface NewTradeFormProps {
   defaultSession: NewTradeInput["session"];
   today: string;
   draft: DraftRecord | null;
+  tagPresets: string[];
 }
 
 function SectionCard({
@@ -102,6 +102,7 @@ export function NewTradeForm({
   defaultSession,
   today,
   draft,
+  tagPresets,
 }: NewTradeFormProps) {
   const formatR = useFormatR();
   const t = useT();
@@ -343,6 +344,7 @@ export function NewTradeForm({
           warningText={warningText}
           serverError={serverError}
           isPending={isPending}
+          tagPresets={tagPresets}
         />
       </form>
     );
@@ -707,12 +709,11 @@ export function NewTradeForm({
                 name="tags"
                 render={({ field }) => (
                   <div className="mt-12 flex flex-wrap gap-8">
-                    {TAG_PRESETS.map((preset) => {
-                      const label = t(preset);
+                    {tagPresets.map((label) => {
                       const selected = field.value.includes(label);
                       return (
                         <ToggleChip
-                          key={preset.en}
+                          key={label}
                           selected={selected}
                           onToggle={() =>
                             field.onChange(

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { Settings } from "@/lib/domain/types";
+import { DEFAULT_TAG_PRESETS } from "@/lib/labels";
 import { getSettings, toSettings } from "@/lib/supabase/queries";
 import { SettingsView } from "./settings-view";
 
@@ -12,6 +13,7 @@ const FALLBACK_SETTINGS: Settings = {
   defaultInstrument: "EURUSD",
   defaultSession: "asia",
   rPrecision: 1,
+  tagPresets: DEFAULT_TAG_PRESETS.slice(),
 };
 
 export default async function SettingsPage() {

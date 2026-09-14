@@ -41,12 +41,17 @@ export default async function WeeklyReviewPage({
     getTradesInRange(account.id, priorFrom, priorTo),
   ]);
 
+  const winCount = trades.filter((t) => t.result === "win").length;
+  const lossCount = trades.filter((t) => t.result === "loss").length;
+  const beCount = trades.filter((t) => t.result === "be").length;
+
   const summary = {
     netR: netR(trades),
     tradeCount: trades.length,
     winRate: winRate(trades),
-    decidedCount: trades.filter((t) => t.result !== null).length,
-    winCount: trades.filter((t) => t.result === "win").length,
+    winCount,
+    lossCount,
+    beCount,
     ruleAdherence: ruleAdherence(trades),
     offPlanCount: trades.filter(offPlan).length,
     avgOfPriorWeeks: averageWeeklyNetR(priorTrades, priorWeeks),

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { avgHoldMinutes, netR, winRate } from "@/lib/domain/stats";
+import { netR, winRate } from "@/lib/domain/stats";
 import {
   filterTrades,
   paginateTrades,
@@ -53,7 +53,6 @@ export default async function TradeLogPage({
         tradeCount: filtered.length,
         netR: netR(filtered),
         winRate: winRate(filtered),
-        avgHoldMinutes: avgHoldMinutes(filtered),
       }}
       pagination={{
         currentPage: pagination.currentPage,

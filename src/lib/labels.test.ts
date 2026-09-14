@@ -13,9 +13,9 @@ describe("resolveLabel", () => {
   });
 
   it("treats a hand-typed ASCII arrow as the real arrow glyph", () => {
-    expect(resolveLabel(HTF_PAIRING_LABELS, "W -> 2D")).toBe("w_2d");
-    expect(resolveLabel(HTF_PAIRING_LABELS, "w->2d")).toBe("w_2d");
-    expect(resolveLabel(HTF_PAIRING_LABELS, "H1 -> M5")).toBe("h1_m5");
+    expect(resolveLabel(HTF_PAIRING_LABELS, "W -> D")).toBe("w_d");
+    expect(resolveLabel(HTF_PAIRING_LABELS, "w->d")).toBe("w_d");
+    expect(resolveLabel(HTF_PAIRING_LABELS, "M -> W -> D")).toBe("m_w_d");
   });
 
   it("returns null for something unrecognized", () => {

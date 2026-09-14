@@ -1,5 +1,6 @@
 "use client";
 
+import { Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { BottomTabBar } from "@/components/nav/bottom-tab-bar";
@@ -42,6 +43,7 @@ export function SettingsView({ settings }: SettingsViewProps) {
   const [defaultInstrument, setDefaultInstrument] = useState(settings.defaultInstrument);
   const [defaultSession, setDefaultSession] = useState<Session>(settings.defaultSession);
   const [rPrecision, setRPrecision] = useState(settings.rPrecision);
+  const [tagPresets, setTagPresets] = useState(settings.tagPresets);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
@@ -49,7 +51,9 @@ export function SettingsView({ settings }: SettingsViewProps) {
     pnlConvention !== settings.pnlConvention ||
     defaultInstrument !== settings.defaultInstrument ||
     defaultSession !== settings.defaultSession ||
-    rPrecision !== settings.rPrecision;
+    rPrecision !== settings.rPrecision ||
+    tagPresets.length !== settings.tagPresets.length ||
+    tagPresets.some((tag, i) => tag !== settings.tagPresets[i]);
 
   function onSave() {
     setError(null);
@@ -60,6 +64,7 @@ export function SettingsView({ settings }: SettingsViewProps) {
         defaultInstrument,
         defaultSession,
         rPrecision: String(rPrecision),
+        tagPresets,
       });
       if (result.ok) {
         setSaved(true);
@@ -175,6 +180,22 @@ export function SettingsView({ settings }: SettingsViewProps) {
           </div>
         </Card>
 
+        {/* Emotion / behaviour tags */}
+        <Card className={cn(isMobile ? "px-20 py-24" : "px-28 py-26")}>
+          <h2 className="text-16 font-bold tracking-[-.02em] text-ink">
+            {t({ en: "Emotion tags", ko: "감정 태그" })}
+          </h2>
+          <p className="mt-6 text-13_5 leading-[1.6] text-secondary">
+            {t({
+              en: "The behaviour tags offered on the trade form. Renaming or removing one never changes tags already saved on a trade.",
+              ko: "New trade 폼에서 선택할 수 있는 태그입니다. 이름을 바꾸거나 삭제해도 이미 저장된 트레이드의 태그는 바뀌지 않습니다.",
+            })}
+          </p>
+          <div className="mt-16">
+            <TagPresetsEditor tags={tagPresets} onChange={setTagPresets} />
+          </div>
+        </Card>
+
         <div className="flex items-center gap-16">
           <Button size="lg" disabled={!dirty || isPending} onClick={onSave}>
             {isPending ? t({ en: "Saving…", ko: "저장하는 중…" }) : t({ en: "Save settings", ko: "설정 저장" })}
@@ -220,5 +241,79 @@ function PreviewChip({ convention, sign }: { convention: PnlConvention; sign: "g
     >
       {sign === "gain" ? "+2.8R" : "−1.0R"}
     </span>
+  );
+}
+
+/**
+ * Add/rename/delete for `settings.tagPresets` (docs/decisions.md § Phase 5).
+ * Each existing tag is an inline-editable pill (its own text input, sized to
+ * its content via the native `size` attribute) with a remove button; a
+ * dashed "add a tag" pill appends a new one. Nothing here writes to the
+ * database directly — like every other field on this screen, edits only take
+ * effect once "Save settings" runs, so a typo can be fixed before it sticks.
+ */
+function TagPresetsEditor({ tags, onChange }: { tags: string[]; onChange: (tags: string[]) => void }) {
+  const t = useT();
+  const [draft, setDraft] = useState("");
+
+  function addDraft() {
+    const trimmed = draft.trim();
+    if (trimmed === "" || tags.includes(trimmed)) return;
+    onChange([...tags, trimmed]);
+    setDraft("");
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-8">
+      {tags.map((tag, index) => (
+        <span
+          // Index-keyed: these rows are reordered only by insertion/removal
+          // at this same position, never shuffled, so identity-by-position is
+          // stable and avoids fighting the input's own focus/cursor state.
+          key={index}
+          className="inline-flex items-center gap-4 rounded-pill bg-divider py-8 pr-8 pl-14"
+        >
+          <input
+            value={tag}
+            onChange={(e) => onChange(tags.map((existing, i) => (i === index ? e.target.value : existing)))}
+            size={Math.max(tag.length, 2)}
+            aria-label={t({ en: "Tag name", ko: "태그 이름" })}
+            className="bg-transparent text-12_5 font-semibold text-secondary outline-none"
+          />
+          <button
+            type="button"
+            onClick={() => onChange(tags.filter((_, i) => i !== index))}
+            aria-label={t({ en: "Remove tag", ko: "태그 삭제" })}
+            className="flex h-18 w-18 shrink-0 items-center justify-center rounded-pill text-faint transition-colors duration-150 ease-out hover:bg-divider-hover hover:text-secondary"
+          >
+            <X aria-hidden size={12} />
+          </button>
+        </span>
+      ))}
+      <span className="inline-flex items-center gap-4 rounded-pill border border-dashed border-divider py-7 pr-6 pl-12">
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addDraft();
+            }
+          }}
+          placeholder={t({ en: "Add a tag", ko: "태그 추가" })}
+          size={Math.max(draft.length, 8)}
+          className="bg-transparent text-12_5 font-semibold text-secondary outline-none placeholder:text-faint"
+        />
+        <button
+          type="button"
+          onClick={addDraft}
+          disabled={draft.trim() === ""}
+          aria-label={t({ en: "Add tag", ko: "태그 추가" })}
+          className="flex h-18 w-18 shrink-0 items-center justify-center rounded-pill text-accent transition-colors duration-150 ease-out hover:bg-accent-tint disabled:opacity-40"
+        >
+          <Plus aria-hidden size={12} />
+        </button>
+      </span>
+    </div>
   );
 }

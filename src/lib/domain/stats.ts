@@ -43,14 +43,17 @@ export const netR = memoize((trades: readonly Trade[]): number =>
 );
 
 /**
- * wins / trades that have a result. Break-even trades sit in the denominator
- * but not the numerator — mock 2c shows "67%" with the sub-line "6 / 9", i.e.
- * the denominator is the period's trade count, not wins+losses.
+ * wins / (wins + losses). Break-even trades are excluded from both the
+ * numerator and denominator — see docs/decisions.md § Phase 5, which
+ * reverses the original Phase 2 call (BE in the denominator only, matching
+ * mock 2c's "67%" / "6 / 9"). A BE-heavy period no longer drags this number
+ * down for a reason that has nothing to do with actual win/loss skill;
+ * `periodStats`/weekly-review separately report a BE count alongside it.
  */
 export const winRate = memoize((trades: readonly Trade[]): number | null => {
-  const decided = trades.filter((t) => t.result !== null);
-  if (decided.length === 0) return null;
-  return decided.filter((t) => t.result === "win").length / decided.length;
+  const decisive = trades.filter((t) => t.result === "win" || t.result === "loss");
+  if (decisive.length === 0) return null;
+  return decisive.filter((t) => t.result === "win").length / decisive.length;
 });
 
 /** Mean R per trade, break-even included — a scratch genuinely dilutes expectancy. */
@@ -68,7 +71,12 @@ export const avgLoss = memoize((trades: readonly Trade[]): number | null =>
   mean(realizedRs(trades.filter((t) => t.result === "loss"))),
 );
 
-/** Mean hold time in minutes, over trades that recorded one — the Trade log summary row's "Avg hold". */
+/**
+ * Mean hold time in minutes, over trades that recorded one. No longer shown
+ * on the Trade log summary row (docs/decisions.md § Phase 5 — dropped as
+ * unused; the per-trade Hold field/column stays) but kept as a selector in
+ * case a future screen wants it.
+ */
 export const avgHoldMinutes = memoize((trades: readonly Trade[]): number | null =>
   mean(trades.map((t) => t.holdMinutes).filter((m): m is number => m !== null)),
 );

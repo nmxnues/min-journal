@@ -24,7 +24,7 @@ import {
   type TradeLogFilters,
 } from "@/lib/domain/trade-log";
 import type { AccountKind, Trade, TradeModel } from "@/lib/domain/types";
-import { formatCompactDate, formatHoldMinutes, formatPercent } from "@/lib/format";
+import { formatCompactDate, formatPercent } from "@/lib/format";
 import { useFormatR } from "@/lib/settings/context";
 import { useLocale, useT } from "@/lib/i18n/locale-context";
 import { INSTRUMENT_PRESETS } from "@/lib/instruments";
@@ -63,7 +63,6 @@ export interface TradeLogSummary {
   tradeCount: number;
   netR: number;
   winRate: number | null;
-  avgHoldMinutes: number | null;
 }
 
 export interface TradeLogPagination {
@@ -298,10 +297,6 @@ export function TradeLogView({ hasAccount, accountKind, models, matching, summar
               <SummaryStat
                 label={t({ en: "Win rate", ko: "승률" })}
                 value={summary.winRate === null ? em : formatPercent(summary.winRate)}
-              />
-              <SummaryStat
-                label={t({ en: "Avg hold", ko: "평균 보유" })}
-                value={summary.avgHoldMinutes === null ? em : formatHoldMinutes(Math.round(summary.avgHoldMinutes))}
               />
             </div>
           )}

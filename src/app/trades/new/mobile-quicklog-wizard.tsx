@@ -24,7 +24,7 @@ import { formatCurrency, formatPrice } from "@/lib/format";
 import { useFormatR } from "@/lib/settings/context";
 import { MAX_ATTACHMENTS_PER_TRADE } from "@/lib/attachments";
 import { INSTRUMENT_PRESETS } from "@/lib/instruments";
-import { HTF_PAIRING_LABELS, HTF_PAIRING_ORDER, SESSION_LABELS, TAG_PRESETS } from "@/lib/labels";
+import { HTF_PAIRING_LABELS, HTF_PAIRING_ORDER, SESSION_LABELS } from "@/lib/labels";
 import type { AccountKind, SweepSide, TradeModel, TradeResult } from "@/lib/domain/types";
 import { useT } from "@/lib/i18n/locale-context";
 import type { useDraftAttachments } from "./use-draft-attachments";
@@ -74,6 +74,7 @@ export interface MobileQuickLogWizardProps {
   warningText: Record<WarningCode, string>;
   serverError: string | null;
   isPending: boolean;
+  tagPresets: string[];
 }
 
 function StepHeading({ children }: { children: React.ReactNode }) {
@@ -138,6 +139,7 @@ export function MobileQuickLogWizard({
   warningText,
   serverError,
   isPending,
+  tagPresets,
 }: MobileQuickLogWizardProps) {
   const formatR = useFormatR();
   const t = useT();
@@ -450,12 +452,11 @@ export function MobileQuickLogWizard({
             name="tags"
             render={({ field }) => (
               <div className="flex flex-wrap gap-8">
-                {TAG_PRESETS.map((preset) => {
-                  const label = t(preset);
+                {tagPresets.map((label) => {
                   const selected = field.value.includes(label);
                   return (
                     <ToggleChip
-                      key={preset.en}
+                      key={label}
                       selected={selected}
                       onToggle={() =>
                         field.onChange(

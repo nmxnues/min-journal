@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { drawdownState } from "@/lib/domain/capital";
+import { DEFAULT_TAG_PRESETS } from "@/lib/labels";
 import {
   getAccount,
   getAccountLedgerInputs,
   getModels,
+  getSettings,
   getTrade,
   getTradeAttachments,
 } from "@/lib/supabase/queries";
@@ -25,10 +27,11 @@ export default async function TradeDetailPage({ params }: { params: Promise<{ id
   // 9 multi-account follow-up) — a trade detail page has to reflect the
   // account it actually belongs to even when you're browsing it from a
   // different account's trade log or a shared link.
-  const [models, attachments, account] = await Promise.all([
+  const [models, attachments, account, settings] = await Promise.all([
     getModels(),
     getTradeAttachments(trade.id),
     getAccount(trade.accountId),
+    getSettings(),
   ]);
 
   // The account trades come from always exists by the time a trade does
@@ -51,6 +54,7 @@ export default async function TradeDetailPage({ params }: { params: Promise<{ id
       drawdownPercent={drawdown.drawdownPercent}
       drawdownLimitPercent={drawdown.limitPercent}
       currency={account?.currency ?? "USD"}
+      tagPresets={settings?.tag_presets ?? DEFAULT_TAG_PRESETS.slice()}
     />
   );
 }

@@ -31,7 +31,7 @@ export const NEW_TRADE_DEFAULTS: NewTradeInput = {
   date: "",
   direction: "long",
   session: "asia",
-  htfPairing: "w_2d",
+  htfPairing: "w_d",
   rangeHigh: "",
   rangeLow: "",
   sweepSideOverride: null,

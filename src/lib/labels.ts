@@ -19,15 +19,13 @@ export const SESSION_LABELS: Record<Session, LocaleStrings> = {
 
 export const SESSION_ORDER: readonly Session[] = ["asia", "london", "ny_am"];
 
-/** The four options and their order are fixed; default is W → 2D. */
+/** The two options and their order are fixed; default is W → D (docs/decisions.md § Phase 5). */
 export const HTF_PAIRING_LABELS: Record<HtfPairing, LocaleStrings> = {
-  m_w_2d: { en: "M → W → 2D", ko: "M → W → 2D" },
-  w_2d: { en: "W → 2D", ko: "W → 2D" },
-  d_h1: { en: "D → H1", ko: "D → H1" },
-  h1_m5: { en: "H1 → M5", ko: "H1 → M5" },
+  m_w_d: { en: "M → W → D", ko: "M → W → D" },
+  w_d: { en: "W → D", ko: "W → D" },
 };
 
-export const HTF_PAIRING_ORDER: readonly HtfPairing[] = ["m_w_2d", "w_2d", "d_h1", "h1_m5"];
+export const HTF_PAIRING_ORDER: readonly HtfPairing[] = ["m_w_d", "w_d"];
 
 export const SWEEP_SIDE_LABELS: Record<SweepSide, LocaleStrings> = {
   low: { en: "Low purged", ko: "저점 퍼지" },
@@ -86,14 +84,13 @@ export function resolveLabel<T extends string>(labels: Record<T, LocaleStrings>,
 }
 
 /**
- * The behaviour tags offered on the trade form (docs/README.md § New trade).
- * Kept in English for both locales at the user's own request — these four
- * are terms he types/reads in English regardless of viewport, unlike every
- * other label in the app.
+ * The behaviour tags offered on the trade form (docs/README.md § New trade)
+ * are user-editable per `settings.tag_presets` (docs/decisions.md § Phase 5)
+ * — this is only the seed value a fresh `settings` row gets (matching the
+ * column's own DB default), used as a fallback if that row is ever missing.
+ * Kept in English at the user's own original request — these are terms he
+ * types/reads in English regardless of viewport, unlike every other label in
+ * the app — but since the list is now his to edit, nothing enforces that
+ * going forward.
  */
-export const TAG_PRESETS: readonly LocaleStrings[] = [
-  { en: "On plan", ko: "On plan" },
-  { en: "Impatient", ko: "Impatient" },
-  { en: "Chased entry", ko: "Chased entry" },
-  { en: "Early exit", ko: "Early exit" },
-];
+export const DEFAULT_TAG_PRESETS: readonly string[] = ["On plan", "Impatient", "Chased entry", "Early exit"];

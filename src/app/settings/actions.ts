@@ -12,6 +12,7 @@ export interface SettingsInput {
   defaultInstrument: string;
   defaultSession: Session;
   rPrecision: string;
+  tagPresets: string[];
 }
 
 const VALID_PNL_CONVENTIONS: readonly PnlConvention[] = ["kr", "west"];
@@ -46,6 +47,12 @@ export async function updateSettings(input: SettingsInput): Promise<SettingsActi
     return { ok: false, error: "R precision must be a whole number of decimal places, 0 to 4." };
   }
 
+  // Trimmed, non-empty, de-duplicated — same re-validation stance as every
+  // other field here (the client's own trim/dedupe is a display nicety, not
+  // the source of truth).
+  const tagPresets = [...new Set(input.tagPresets.map((tag) => tag.trim()).filter((tag) => tag !== ""))];
+  if (tagPresets.length === 0) return { ok: false, error: "Add at least one tag." };
+
   // upsert, not update: settings.user_id is the PK, always seeded by
   // handle_new_user (docs/decisions.md § Phase 1) — but if that row is
   // somehow missing, an update would silently match zero rows rather than
@@ -56,6 +63,7 @@ export async function updateSettings(input: SettingsInput): Promise<SettingsActi
     default_instrument: instrument,
     default_session: input.defaultSession,
     r_precision: rPrecision,
+    tag_presets: tagPresets,
   });
 
   if (error) return { ok: false, error: error.message };

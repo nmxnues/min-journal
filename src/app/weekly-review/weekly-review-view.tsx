@@ -37,8 +37,10 @@ export interface WeeklyReviewSummary {
   netR: number;
   tradeCount: number;
   winRate: number | null;
-  decidedCount: number;
   winCount: number;
+  lossCount: number;
+  /** Break-even trades sit outside win rate's numerator and denominator (docs/decisions.md § Phase 5) — shown separately instead. */
+  beCount: number;
   ruleAdherence: number | null;
   offPlanCount: number;
   avgOfPriorWeeks: number;
@@ -232,7 +234,13 @@ export function WeeklyReviewView({ week, hasAccount, review, previous, trades = 
               <StatCard
                 label={t({ en: "Win rate", ko: "승률" })}
                 value={summary.winRate === null ? em : formatPercent(summary.winRate)}
-                sub={`${summary.winCount} / ${summary.decidedCount}`}
+                sub={
+                  <>
+                    {summary.winCount} / {summary.winCount + summary.lossCount}
+                    {summary.beCount > 0 &&
+                      ` · ${t({ en: `${summary.beCount} BE`, ko: `BE ${summary.beCount}건` })}`}
+                  </>
+                }
               />
               <StatCard
                 label={t({ en: "Rule adherence", ko: "규칙 준수율" })}
