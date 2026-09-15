@@ -1,10 +1,12 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 /**
- * docs/README.md § Dashboard > Components: white bar, 20/32 padding; wordmark
- * 800 17px letter-spacing -.03em; nav items 600 14px, the active one on a
+ * docs/README.md § Dashboard > Components: white bar, 20/32 padding; logo
+ * mark (public/logo.png) at 26px — the line-box height of the 800 17px
+ * wordmark it replaced; nav items 600 14px, the active one on a
  * #f2f4f6 radius-10 pill at 8/14 with ink text, inactive #8b95a1 with no fill.
  */
 export interface NavItem {
@@ -19,6 +21,7 @@ export interface TopBarProps {
   activeHref: string;
   /** Month label, primary button, etc. */
   right?: ReactNode;
+  /** Alt text for the logo mark. */
   wordmark?: string;
   className?: string;
 }
@@ -34,9 +37,9 @@ export function TopBar({
     <header className={cn("flex items-center gap-24 bg-surface px-32 py-20", className)}>
       <Link
         href="/"
-        className="text-17 font-extrabold tracking-[-.03em] text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+        className="shrink-0 rounded-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
       >
-        {wordmark}
+        <Image src="/logo.png" alt={wordmark} width={26} height={26} priority className="block h-26 w-26" />
       </Link>
 
       <nav className="flex items-center gap-4">

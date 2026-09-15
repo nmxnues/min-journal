@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useT } from "@/lib/i18n/locale-context";
 import { LoginForm } from "./login-form";
 
@@ -16,7 +17,7 @@ export function LoginScreen({ next }: { next?: string }) {
   return (
     <main className="flex flex-1 items-center justify-center bg-page px-16">
       <div className="w-full max-w-[380px] rounded-24 bg-surface p-32">
-        <p className="text-17 font-extrabold tracking-[-.03em] text-ink">Min Journal</p>
+        <Image src="/logo.png" alt="Min Journal" width={26} height={26} priority className="block h-26 w-26" />
         <p className="mt-6 mb-32 text-13_5 text-secondary">
           {t({ en: "Log in to continue.", ko: "로그인하고 계속하세요." })}
         </p>

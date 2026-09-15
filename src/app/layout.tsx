@@ -6,12 +6,20 @@ import { SettingsProvider } from "@/lib/settings/context";
 import { getSettings } from "@/lib/supabase/queries";
 import "./globals.css";
 
-// The manifest itself (app/manifest.ts) and the icon/apple-icon routes are
-// Next's own file conventions — both auto-detected and auto-linked into
-// <head>, so nothing about them belongs in this metadata object.
+// The manifest (app/manifest.ts) is a Next file convention and auto-linked
+// into <head>. The favicons and apple-touch-icon are static files in public/,
+// so they're declared here.
 export const metadata: Metadata = {
   title: "Min Journal",
   description: "A single-user CRT trading journal.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

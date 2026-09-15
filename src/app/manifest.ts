@@ -14,10 +14,12 @@ export default function manifest(): MetadataRoute.Manifest {
     // background while the app loads, and the OS chrome around it.
     background_color: "#f4f5f7",
     theme_color: "#191f28",
+    // Static files in public/. No "maskable" entry: the artwork already has
+    // its own rounded corners and bars close to the edge, so Android's
+    // circular mask would clip it.
     icons: [
       { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
       { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
-      { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   };
 }
