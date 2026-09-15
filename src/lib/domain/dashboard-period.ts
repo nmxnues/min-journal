@@ -36,7 +36,7 @@ function isRangeKind(value: string | undefined): value is DashboardRangeKind {
   return value !== undefined && (RANGE_KINDS as readonly string[]).includes(value);
 }
 
-/** The parsed `?range=&month=&from=&to=` — null means "no explicit choice", i.e. the smart default. */
+/** The parsed `?range=&month=&from=&to=` — null means "no explicit choice", i.e. the "all" default. */
 export interface DashboardPeriod {
   kind: DashboardRangeKind;
   /** Set only for `kind: "month"`. */
@@ -76,17 +76,16 @@ export interface ResolvedDashboardPeriod {
 
 /**
  * `period` from `parseDashboardPeriod` (or `null` for "no explicit choice")
- * into a concrete `[from, to]` plus what `‹`/`›` should step. `defaultMonth`
- * is the caller's already-computed smart default (the most recent trade's
- * month, or today's with no trades at all — docs/decisions.md § Dashboard's
- * default month).
+ * into a concrete `[from, to]` plus what `‹`/`›` should step. No explicit
+ * choice resolves to "all" (All time). `defaultMonth` is only the fallback
+ * for a `month` period that carries no month of its own.
  */
 export function resolveDashboardPeriod(
   period: DashboardPeriod | null,
   defaultMonth: IsoMonth,
   today: IsoDate = todayIso(),
 ): ResolvedDashboardPeriod {
-  const kind = period?.kind ?? "month";
+  const kind = period?.kind ?? "all";
   const todaysMonth = isoMonthOf(today);
 
   if (kind === "this-month") {
@@ -99,9 +98,9 @@ export function resolveDashboardPeriod(
   if (kind === "month") {
     const month = period?.month ?? defaultMonth;
     // A specific month that happens to be the real current one reads (and
-    // behaves) exactly like "this-month" — whether it got here as the
-    // unset default or by `‹`/`›` landing back on today's month, "Month to
-    // date" is simply the accurate label for what's on screen.
+    // behaves) exactly like "this-month" — when `‹`/`›` lands back on
+    // today's month, "Month to date" is simply the accurate label for what's
+    // on screen.
     return month === todaysMonth
       ? { kind: "this-month", ...monthRange(month), stepMonth: month }
       : { kind, ...monthRange(month), stepMonth: month };

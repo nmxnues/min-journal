@@ -41,9 +41,9 @@ describe("parseDashboardPeriod", () => {
 describe("resolveDashboardPeriod", () => {
   const today = "2026-09-11";
 
-  it("defaults to the caller's default month when no period is given", () => {
+  it("defaults to all time when no period is given, ignoring the default month", () => {
     const resolved = resolveDashboardPeriod(null, "2026-02", today);
-    expect(resolved).toEqual({ kind: "month", from: "2026-02-01", to: "2026-02-28", stepMonth: "2026-02" });
+    expect(resolved).toEqual({ kind: "all", from: "1970-01-01", to: today, stepMonth: null });
   });
 
   it("this-month and last-month resolve against today, ignoring the default month", () => {
@@ -59,10 +59,7 @@ describe("resolveDashboardPeriod", () => {
     expect(resolved).toEqual({ kind: "month", from: "2025-09-01", to: "2025-09-30", stepMonth: "2025-09" });
   });
 
-  it("relabels month as this-month once it lands back on today's real month — same data, same wording either way it got there", () => {
-    const viaDefault = resolveDashboardPeriod(null, "2026-09", today);
-    expect(viaDefault.kind).toBe("this-month");
-
+  it("relabels month as this-month once it lands back on today's real month", () => {
     const viaStep = resolveDashboardPeriod({ kind: "month", month: "2026-09", from: null, to: null }, "2020-01", today);
     expect(viaStep.kind).toBe("this-month");
   });
