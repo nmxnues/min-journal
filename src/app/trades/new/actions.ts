@@ -109,6 +109,10 @@ export async function createTrade(
   const size = parseNumberInput(v.size)!;
   const target = v.target === "" ? null : parseNumberInput(v.target);
   const exit = v.exit === "" ? null : parseNumberInput(v.exit);
+  // Blank stays null ("not recorded"), never 0 — see Trade.swap. A number
+  // typed here is stored as given, negative included: a swap cost lowers
+  // the balance and a carry credit raises it.
+  const swap = v.swap === "" ? null : parseNumberInput(v.swap);
 
   const sweepSide: SweepSide =
     v.sweepSideOverride ?? deriveSweepSide({ stop, rangeHigh, rangeLow }) ?? "none";
@@ -156,6 +160,7 @@ export async function createTrade(
       target,
       exit,
       size,
+      swap,
       model_id: v.modelId,
       confirmation: v.confirmation.trim() === "" ? null : v.confirmation.trim(),
       result: v.result,

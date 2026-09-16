@@ -8,11 +8,19 @@
  * trades." Nothing here ever writes back to `trade.rValueAtEntry`.
  *
  * The ledger is a selector over cash movements + trades, never a stored table.
+ *
+ * Swap rides in on `pnlAmount`, so every figure on this money axis — balance,
+ * 1R-at-balance, TWR, drawdown, withdrawal headroom, the ledger — already
+ * nets it out. It is a trade delta and never a cash movement: financing is a
+ * cost of the position, so TWR must feel it (booking it as a cash flow would
+ * chain-link it away and overstate the return) and the drawdown peak must not
+ * step for it (only real deposits and withdrawals move the peak — Phase 8 §2).
+ * The R axis in stats.ts stays swap-free (docs/decisions.md § Swap).
  */
 
 import { DRAWDOWN_WARNING_MARGIN_PCT } from "./constants";
 import { memoize } from "./memoize";
-import { pnlAmount, realizedR } from "./trade";
+import { pnlAmount, pricePnlAmount, realizedR, swapAmount } from "./trade";
 import type { Account, CashMovement, Direction, IsoDate, RiskChange, RiskSetting, Trade } from "./types";
 
 /**
@@ -224,6 +232,8 @@ export interface PendingBacktestTrade {
   exit: number | null;
   /** An explicit value from the CSV row; `null` means "compute from the balance as of this row's own date." */
   rValueAtEntry: number | null;
+  /** Swap from the CSV row, `null` when it left the column blank. Folds into the running balance like a real row's would. */
+  swap: number | null;
 }
 
 /**
@@ -266,8 +276,11 @@ export function assignBacktestRValues(
     const rValue = row.rValueAtEntry ?? rValueForBalance(riskSettingOn(account, riskChanges, row.date), balance);
     results[index] = rValue;
 
+    // Mirrors `pnlAmount` exactly — price term plus swap — so a row later in
+    // the batch sees the same balance it would have seen had the earlier rows
+    // already been saved and read back through the timeline.
     const realized = realizedR(row);
-    if (realized !== null) balance += realized * rValue;
+    if (realized !== null) balance += realized * rValue + swapAmount(row);
   }
 
   return results;
@@ -391,9 +404,23 @@ export function cashTotals(account: Account, cashMovements: readonly CashMovemen
   return totals;
 }
 
-/** Total currency P&L from trading alone. */
+/**
+ * Total currency P&L from trading alone — price movement *and* the swap paid
+ * or earned holding those positions, i.e. everything trading did to the
+ * balance as against everything cash movements did.
+ */
 export const tradingPnL = memoize((trades: readonly Trade[]): number =>
   trades.reduce((sum, t) => sum + (pnlAmount(t) ?? 0), 0),
+);
+
+/**
+ * The swap half of `tradingPnL`, so a screen showing the net figure can say
+ * where it came from. Open trades contribute nothing (their swap isn't
+ * confirmed until the close), keeping this a strict decomposition of
+ * `tradingPnL` rather than a separate total that wouldn't add up.
+ */
+export const tradingSwap = memoize((trades: readonly Trade[]): number =>
+  trades.reduce((sum, t) => sum + (pnlAmount(t) === null ? 0 : swapAmount(t)), 0),
 );
 
 /**
@@ -610,10 +637,17 @@ export interface LedgerEntry {
   kind: "opening" | "deposit" | "withdrawal" | "trade";
   id: string;
   date: IsoDate;
-  /** Signed currency amount. */
+  /** Signed currency amount. On a trade row this is price P&L plus swap — what the balance actually did. */
   amount: number;
-  /** R for trade rows; null for cash rows (the UI shows an em-dash). */
+  /**
+   * R for trade rows; null for cash rows (the UI shows an em-dash).
+   * Price R, matching every other R in the app — a trade row's `amount` and
+   * `r` therefore differ by its swap rather than by `rValueAtEntry` alone.
+   */
   r: number | null;
+  /** The `amount` split into its two terms, so a row can caption its swap. Both null on cash rows. */
+  pricePnl: number | null;
+  swap: number | null;
   /** Running balance after this row. */
   balanceAfter: number;
   /** 1R under the setting in force on this row's date, before and after it moved the balance. */
@@ -653,6 +687,8 @@ export const ledger = memoize(
         date: account.startedAt,
         amount: account.startingCapital,
         r: null,
+        pricePnl: null,
+        swap: null,
         balanceAfter: balance,
         rValueBefore: 0,
         rValueAfter: rValue(account.startedAt, balance),
@@ -671,6 +707,8 @@ export const ledger = memoize(
         date: event.date,
         amount: event.delta,
         r: source.kind === "trade" ? realizedR(source.trade) : null,
+        pricePnl: source.kind === "trade" ? pricePnlAmount(source.trade) : null,
+        swap: source.kind === "trade" ? source.trade.swap : null,
         balanceAfter: balance,
         rValueBefore: rValue(event.date, before),
         rValueAfter: rValue(event.date, balance),

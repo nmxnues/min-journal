@@ -61,6 +61,10 @@ export async function importTrades(rows: RawCsvRow[], locale: Locale = "en"): Pr
       stop: t.stop,
       exit: t.exit,
       rValueAtEntry: t.r_value_at_entry,
+      // Folded into the running balance exactly as a saved row's would be, so
+      // a batch of swing trades assigns the same 1R sequence it would have if
+      // the rows had been imported one file at a time.
+      swap: t.swap,
     }));
     rValues = assignBacktestRValues(account, cashMovements, existingTrades, riskChanges, pending);
   }
@@ -89,6 +93,7 @@ export async function importTrades(rows: RawCsvRow[], locale: Locale = "en"): Pr
     stop: trade.stop,
     target: trade.target,
     exit: trade.exit,
+    swap: trade.swap,
     size: trade.size,
     model_id: trade.model_id,
     confirmation: trade.confirmation,

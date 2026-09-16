@@ -9,8 +9,9 @@ import {
   netDeposits,
   timeWeightedReturn,
   tradingPnL,
+  tradingSwap,
 } from "@/lib/domain/capital";
-import { netR } from "@/lib/domain/stats";
+import { netR, netSwapR } from "@/lib/domain/stats";
 import type { Account, CashMovement, IsoDate, RiskChange, Trade, TradeModel } from "@/lib/domain/types";
 
 export interface CapitalData {
@@ -40,6 +41,9 @@ export function useCapitalSummary(data: CapitalData) {
       totals: cashTotals(account, cashMovements),
       netDeposits: netDeposits(account, cashMovements),
       tradingPnL: tradingPnL(trades),
+      /** The swap already inside `tradingPnL`, broken out so the screen can say where the figure came from. */
+      tradingSwap: tradingSwap(trades),
+      tradingSwapR: netSwapR(trades),
       lifetimeR: netR(trades),
       timeWeightedReturn: timeWeightedReturn(account, cashMovements, trades),
       drawdown: drawdownState(account, cashMovements, trades),

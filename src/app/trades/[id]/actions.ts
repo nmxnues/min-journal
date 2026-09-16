@@ -18,6 +18,12 @@ export type ActionResult = { ok: true } | { ok: false; error: string };
  * is not part of `EditTradeInput` at all — this action never reads or writes
  * that column, so the frozen 1R value can't be touched from this path no
  * matter what the client sends.
+ *
+ * That freeze is why filling a swap in after the fact is safe but also
+ * one-directional: the balance, ledger and drawdown pick the new figure up on
+ * the next read, while every `r_value_at_entry` already on the books — this
+ * trade's and, on a backtest account, those of the trades dated after it —
+ * stays exactly as frozen (docs/decisions.md § Swap).
  */
 export async function updateTrade(
   id: string,
@@ -43,6 +49,9 @@ export async function updateTrade(
   const size = parseNumberInput(v.size)!;
   const target = v.target === "" ? null : parseNumberInput(v.target);
   const exit = v.exit === "" ? null : parseNumberInput(v.exit);
+  // Clearing the field puts the row back to null ("not recorded"), which is
+  // how a wrongly-entered swap gets retracted rather than zeroed out.
+  const swap = v.swap === "" ? null : parseNumberInput(v.swap);
   const holdMinutes = v.holdMinutes === "" ? null : parseNumberInput(v.holdMinutes);
 
   const sweepSide: SweepSide =
@@ -64,6 +73,7 @@ export async function updateTrade(
       target,
       exit,
       size,
+      swap,
       model_id: v.modelId,
       confirmation: v.confirmation.trim() === "" ? null : v.confirmation.trim(),
       result: v.result,

@@ -67,6 +67,18 @@ export interface Trade {
   holdMinutes: number | null;
   /** Currency value of 1R frozen at log time. Never recomputed. */
   rValueAtEntry: number;
+  /**
+   * Overnight swap/financing in the account's currency, negative for a cost.
+   * `null` means not recorded, which is deliberately not the same as a
+   * recorded `0` (an intraday close genuinely paid none) — trades from before
+   * the column existed stay null so they can be filled in later.
+   *
+   * Money axis only: it lands in `pnlAmount`, and from there in the balance,
+   * ledger, TWR and drawdown. It never touches `realizedR` or any R-based
+   * statistic, so a setup held for a week still compares against the same
+   * setup closed same-day (docs/decisions.md § Swap).
+   */
+  swap: number | null;
   tags: string[];
   notes: string | null;
   createdAt: string;

@@ -321,6 +321,7 @@ export type Database = {
           session: string
           size: number
           stop: number
+          swap: number | null
           sweep_side: string
           tags: string[]
           target: number | null
@@ -349,6 +350,7 @@ export type Database = {
           session: string
           size: number
           stop: number
+          swap?: number | null
           sweep_side: string
           tags?: string[]
           target?: number | null
@@ -377,6 +379,7 @@ export type Database = {
           session?: string
           size?: number
           stop?: number
+          swap?: number | null
           sweep_side?: string
           tags?: string[]
           target?: number | null

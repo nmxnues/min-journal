@@ -21,6 +21,7 @@ import {
   timeWeightedReturn,
   timeline,
   tradingPnL,
+  tradingSwap,
   validateWithdrawal,
 } from "./capital";
 import { makeAccount, makeCashMovement, makeTrade } from "./fixtures";
@@ -410,7 +411,7 @@ describe("assignBacktestRValues — CSV import's batch version of the same fix",
   const account = makeAccount({ startingCapital: 10_000, startedAt: "2025-01-01", riskPercent: 1 });
 
   function pending(date: string, exit: number, overrides: Partial<PendingBacktestTrade> = {}): PendingBacktestTrade {
-    return { date, direction: "long", entry: 100, stop: 90, exit, rValueAtEntry: null, ...overrides };
+    return { date, direction: "long", entry: 100, stop: 90, exit, rValueAtEntry: null, swap: null, ...overrides };
   }
 
   it("processes an unsorted batch in date order, not input order, and returns results in the original order", () => {
@@ -625,5 +626,93 @@ describe("ledger 1R shift and filters", () => {
   it("totals money in and out the way mock 3a's chips and sub-line read", () => {
     const { account, cash } = mockCapital();
     expect(cashTotals(account, cash)).toEqual({ deposited: 25_000, withdrawn: 2_500, inCount: 3, outCount: 1 });
+  });
+});
+
+describe("swap on the money axis", () => {
+  const account = makeAccount({ startingCapital: 10_000, startedAt: "2026-01-01", riskPercent: 1 });
+
+  it("moves the balance by the swap as well as the price P&L", () => {
+    const held = tradeWorth(500, { date: "2026-02-01", swap: -40 });
+    expect(currentBalance(account, [], [held])).toBe(10_460);
+    expect(tradingPnL([held])).toBe(460);
+    expect(tradingSwap([held])).toBe(-40);
+  });
+
+  it("does not move the balance for an open trade that has swap recorded", () => {
+    const open = tradeWorth(0, { date: "2026-02-01", exit: null, result: null, swap: -40 });
+    expect(currentBalance(account, [], [open])).toBe(10_000);
+    expect(timeline([], [open])).toHaveLength(0);
+    // And `tradingSwap` stays a strict decomposition of `tradingPnL`.
+    expect(tradingSwap([open])).toBe(0);
+    expect(tradingPnL([open])).toBe(0);
+  });
+
+  it("counts swap as a trading loss in the drawdown, so the peak does not step for it", () => {
+    // A flat trade that only paid financing still puts the account underwater
+    // — the peak is the opening balance and cash never moved.
+    const flat = tradeWorth(0, { date: "2026-02-01", swap: -200 });
+    const state = drawdownState(account, [], [flat]);
+    expect(state.peakBalance).toBe(10_000);
+    expect(state.currentBalance).toBe(9_800);
+    expect(state.drawdownAmount).toBe(200);
+  });
+
+  it("feeds TWR as part of the sub-period's trading result, not as a cash flow", () => {
+    // Booked as a cash flow it would be chain-linked away and the return
+    // would read 0%; as trading it is the whole return.
+    const flat = tradeWorth(0, { date: "2026-02-01", swap: -100 });
+    expect(timeWeightedReturn(account, [], [flat])).toBeCloseTo(-0.01, 10);
+  });
+
+  it("lowers the withdrawal ceiling by the swap", () => {
+    const held = tradeWorth(0, { date: "2026-02-01", swap: -250 });
+    expect(availableBalanceOn(account, [], [held], "2026-03-01")).toBe(9_750);
+  });
+
+  it("keeps the trade as one ledger row, net amount with the terms split out", () => {
+    const held = tradeWorth(500, { id: "t-swing", date: "2026-02-01", swap: -40 });
+    const rows = ledger(account, [], [held]);
+
+    // Still one row per trade — no synthesised swap row (and so still 2 rows
+    // total with the opening balance).
+    expect(rows).toHaveLength(2);
+    expect(filterLedger(rows, "trades")).toHaveLength(1);
+
+    const row = rows.find((e) => e.id === "t-swing")!;
+    expect(row.amount).toBe(460);
+    expect(row.pricePnl).toBe(500);
+    expect(row.swap).toBe(-40);
+    // The R column stays price R: the row's amount and its R deliberately no
+    // longer reconcile through 1R alone.
+    expect(row.r).toBeCloseTo(0.5, 10);
+    expect(row.balanceAfter).toBe(10_460);
+  });
+
+  it("distinguishes an unrecorded swap from a recorded zero on a ledger row", () => {
+    const unrecorded = tradeWorth(500, { id: "a", date: "2026-02-01" });
+    const recordedZero = tradeWorth(500, { id: "b", date: "2026-02-02", swap: 0 });
+    const rows = ledger(account, [], [unrecorded, recordedZero]);
+    expect(rows.find((e) => e.id === "a")!.swap).toBeNull();
+    expect(rows.find((e) => e.id === "b")!.swap).toBe(0);
+  });
+
+  it("folds a batch row's swap into the running balance when assigning backtest 1R", () => {
+    const backtest = makeAccount({ startingCapital: 10_000, startedAt: "2026-01-01", riskPercent: 1, kind: "backtest" });
+    // Row one is flat on price but pays $1,000 of financing, taking the
+    // balance to 9,000 — so row two's 1% must be 90, not 100.
+    const first: PendingBacktestTrade = {
+      date: "2026-01-10",
+      direction: "long",
+      entry: 100,
+      stop: 90,
+      exit: 100,
+      rValueAtEntry: 1_000,
+      swap: -1_000,
+    };
+    const second: PendingBacktestTrade = { ...first, date: "2026-02-10", rValueAtEntry: null, swap: null };
+
+    const [, secondRValue] = assignBacktestRValues(backtest, [], [], [], [first, second]);
+    expect(secondRValue).toBeCloseTo(90, 10);
   });
 });

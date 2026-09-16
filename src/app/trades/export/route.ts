@@ -67,6 +67,10 @@ function toCsvRow(trade: Trade, modelById: ReadonlyMap<string, { name: string }>
     String(trade.stop),
     trade.target === null ? "" : String(trade.target),
     trade.exit === null ? "" : String(trade.exit),
+    // Blank for a trade with no swap recorded, "0" for one that recorded
+    // zero — the same distinction the column itself carries, so an
+    // export-then-reimport doesn't quietly turn "unknown" into "none".
+    trade.swap === null ? "" : String(trade.swap),
     String(trade.size),
     String(trade.rValueAtEntry),
     trade.modelId === null ? "" : (modelById.get(trade.modelId)?.name ?? ""),

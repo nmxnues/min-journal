@@ -82,6 +82,7 @@ export function toTrade(row: Row<"trades">): Trade {
     exitReason: row.exit_reason,
     holdMinutes: row.hold_minutes,
     rValueAtEntry: Number(row.r_value_at_entry),
+    swap: row.swap === null ? null : Number(row.swap),
     tags: row.tags ?? [],
     notes: row.notes,
     createdAt: row.created_at,

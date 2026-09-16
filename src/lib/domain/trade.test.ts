@@ -7,10 +7,13 @@ import {
   offPlan,
   plannedR,
   pnlAmount,
+  pricePnlAmount,
   rangePosition,
   rangeSize,
   realizedR,
   risk,
+  swapAmount,
+  swapR,
 } from "./trade";
 
 /**
@@ -218,5 +221,53 @@ describe("pnlAmount", () => {
 
   it("is null when there is no realized R", () => {
     expect(pnlAmount(makeTrade({ exit: null }))).toBeNull();
+  });
+});
+
+describe("swap", () => {
+  /** +2R at $150/R = $300 of price P&L, before any financing. */
+  const swing = makeTrade({ entry: 100, stop: 95, exit: 110, rValueAtEntry: 150 });
+
+  it("leaves the price term and R untouched, and only moves the net amount", () => {
+    const withCost = { ...swing, swap: -12.4 };
+
+    // The whole point of the design: R is the same number it was before swap
+    // existed, and the currency figure is the one that moved.
+    expect(realizedR(withCost)).toBe(2);
+    expect(pricePnlAmount(withCost)).toBe(300);
+    expect(pnlAmount(withCost)).toBeCloseTo(287.6, 10);
+  });
+
+  it("adds a positive swap, for a carry trade that earned financing", () => {
+    expect(pnlAmount({ ...swing, swap: 8 })).toBe(308);
+  });
+
+  it("reads an unrecorded swap as zero without claiming it was zero", () => {
+    expect(swing.swap).toBeNull();
+    expect(swapAmount(swing)).toBe(0);
+    expect(pnlAmount(swing)).toBe(300);
+    // `swapR` stays null so a caption can tell "none recorded" from "recorded 0".
+    expect(swapR(swing)).toBeNull();
+    expect(swapR({ ...swing, swap: 0 })).toBe(0);
+  });
+
+  it("stays out of the balance while the trade is still open", () => {
+    // A swing position accrues financing every night it's held, but the app
+    // books it at the close — matching the platform, and keeping an
+    // unrealized position from moving the balance.
+    expect(pnlAmount({ ...swing, exit: null, swap: -30 })).toBeNull();
+  });
+
+  it("expresses swap in R against the trade's own frozen 1R", () => {
+    expect(swapR({ ...swing, swap: -15 })).toBe(-0.1);
+  });
+
+  it("does not let a swap change the R a trade scores", () => {
+    // Two identical setups at identical prices, one held over a weekend.
+    const intraday = { ...swing, swap: 0 };
+    const heldOverWeekend = { ...swing, swap: -45 };
+    expect(realizedR(heldOverWeekend)).toBe(realizedR(intraday));
+    expect(captureRate(heldOverWeekend)).toBe(captureRate(intraday));
+    expect(pnlAmount(heldOverWeekend)).toBeLessThan(pnlAmount(intraday)!);
   });
 });

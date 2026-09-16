@@ -4,10 +4,19 @@
  *
  * Ratios are returned raw (0..1), never pre-rounded — formatting is the UI's
  * job, so the same selector can feed both a "87%" stat card and a chart.
+ *
+ * Every R figure below is *price* R and none of them see `trade.swap`
+ * (docs/decisions.md § Swap). That is what lets `byModel`, `bySession`,
+ * `expectancy` and `avgWin`/`avgLoss` compare setups rather than holding
+ * periods, and what stops a swap typed in months after the fact from moving
+ * an already-settled win rate. The currency effect of swap lives on the money
+ * axis in capital.ts (`tradingPnL`/`tradingSwap`); the only two swap
+ * selectors here, `netSwap` and `netSwapR`, are for reporting it beside those
+ * figures and are not folded into `periodStats` or any group breakdown.
  */
 
 import { memoize } from "./memoize";
-import { offPlan, realizedR } from "./trade";
+import { offPlan, pnlAmount, realizedR, swapAmount } from "./trade";
 import type { IsoDate, Session, SweepSide, Trade, TradeModel } from "./types";
 
 /** Chronological order, `createdAt` breaking ties within a day. */
@@ -40,6 +49,29 @@ function realizedRs(trades: readonly Trade[]): number[] {
 /** Sum of realized R. Trades with no exit contribute nothing (their R is unknown, not zero). */
 export const netR = memoize((trades: readonly Trade[]): number =>
   realizedRs(trades).reduce((sum, r) => sum + r, 0),
+);
+
+/**
+ * Total swap in currency over these trades, and the same figure divided
+ * through each trade's own frozen 1R.
+ *
+ * `netSwapR` is a reporting number — "financing cost me 0.7R this month" — and
+ * is never added to `netR`. Each trade is divided by *its own* `rValueAtEntry`
+ * rather than the total by one 1R, since 1R moves as the account grows.
+ *
+ * Both skip open trades, the same way `netR` skips them and for the same
+ * reason: swap is only confirmed at the close, so counting an open position's
+ * financing here would not reconcile with `tradingPnL`.
+ */
+export const netSwap = memoize((trades: readonly Trade[]): number =>
+  trades.reduce((sum, t) => sum + (pnlAmount(t) === null ? 0 : swapAmount(t)), 0),
+);
+
+export const netSwapR = memoize((trades: readonly Trade[]): number =>
+  trades.reduce((sum, t) => {
+    if (pnlAmount(t) === null || !Number.isFinite(t.rValueAtEntry) || t.rValueAtEntry === 0) return sum;
+    return sum + swapAmount(t) / t.rValueAtEntry;
+  }, 0),
 );
 
 /**

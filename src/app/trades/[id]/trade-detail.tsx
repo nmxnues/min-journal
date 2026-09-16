@@ -102,6 +102,7 @@ export function TradeDetail({
           trade={trade}
           models={models}
           attachments={attachmentPaths}
+          currency={currency}
           accountIsNearDrawdownLimit={accountIsNearDrawdownLimit}
           drawdownPercent={drawdownPercent}
           drawdownLimitPercent={drawdownLimitPercent}

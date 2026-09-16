@@ -3,7 +3,9 @@
  *
  * Nothing here is stored — docs/build-prompt.md §4: derived values are never
  * columns. The single frozen exception is `rValueAtEntry`, which is written
- * once at log time and read (never recomputed) by `pnlAmount`.
+ * once at log time and read (never recomputed) by `pnlAmount`. (`swap` is a
+ * column too, but it is an input the broker decides, not a derived value —
+ * nothing in the row could compute it.)
  *
  * Every function is tolerant of incomplete input and returns `null` rather
  * than NaN/Infinity, because the New Trade form recomputes these on every
@@ -140,11 +142,61 @@ export function offPlan(
   return t.sweepSide === "none" || entryIsMidRange(t);
 }
 
-/** Currency P&L, using the 1R value frozen when the trade was logged. */
-export function pnlAmount(
+/**
+ * The price half of the currency P&L: realized R times the 1R value frozen
+ * when the trade was logged. This is what `pnlAmount` used to be in full,
+ * before swap became a second term.
+ */
+export function pricePnlAmount(
   t: Pick<Trade, "entry" | "stop" | "exit" | "direction" | "rValueAtEntry">,
 ): number | null {
   const realized = realizedR(t);
   if (realized === null || !isUsable(t.rValueAtEntry)) return null;
   return realized * t.rValueAtEntry;
+}
+
+/** Recorded swap, with "not recorded" (null) read as zero. */
+export function swapAmount(t: Pick<Trade, "swap">): number {
+  return isUsable(t.swap) ? t.swap : 0;
+}
+
+/**
+ * Swap expressed in R, for the one caption that reports how much of a trade's
+ * R the financing ate. Deliberately *not* folded into `realizedR` and not
+ * summed by any of the R statistics — see the note on `pnlAmount` below.
+ */
+export function swapR(t: Pick<Trade, "swap" | "rValueAtEntry">): number | null {
+  if (!isUsable(t.rValueAtEntry) || t.rValueAtEntry === 0) return null;
+  if (!isUsable(t.swap)) return null;
+  return t.swap / t.rValueAtEntry;
+}
+
+/**
+ * Currency P&L: what the trade actually did to the account.
+ *
+ *     pnlAmount = realizedR * rValueAtEntry + swap
+ *                 \________ price axis ____/  \cash/
+ *
+ * Swap is a second *term*, never a correction to R. `realizedR` stays
+ * (exit - entry) / risk so it keeps measuring execution — which entry, stop
+ * and exit were chosen — rather than how many nights the position was held
+ * at whatever rate the broker set. Folding financing into R would make the
+ * same setup, taken at the same prices, score differently for a swing hold
+ * than for a same-day close, which is exactly the comparison `byModel`,
+ * `bySession` and `expectancy` exist to make. It would also break
+ * `captureRate`, whose denominator `plannedR` knows nothing about swap, and
+ * would let a swap typed in months later rewrite an already-settled win rate
+ * (docs/decisions.md § Swap).
+ *
+ * Still null while the trade is open, swap or no swap: financing is recorded
+ * as confirmed at the close, matching both the platform (swap accrues against
+ * equity and hits the balance on close) and this app's rule that an
+ * unrealized position hasn't moved the balance.
+ */
+export function pnlAmount(
+  t: Pick<Trade, "entry" | "stop" | "exit" | "direction" | "rValueAtEntry" | "swap">,
+): number | null {
+  const price = pricePnlAmount(t);
+  if (price === null) return null;
+  return price + swapAmount(t);
 }

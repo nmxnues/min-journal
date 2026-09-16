@@ -799,3 +799,214 @@ Previously always defaulted to the real calendar "today" (`new Date().toISOStrin
 **Verified live**, all three fixes together, with a fresh disposable test user (Admin API create/delete again; the browser again had the real user's login autofilled and was swapped out before submitting, same as every prior live-verification pass): set up a new account, logged one EURUSD trade dated 2026-09-10 (typed via the date input, not just passed as a value). Reopening `/trades/new` afterward showed the Date field pre-filled to `2026. 09. 10.` (not the real current date) and the Instrument field still `EURUSD`. Changed Settings' default instrument to `USDJPY` and saved; a fresh `/trades/new` immediately showed `USDJPY`, confirming the Settings field is no longer shadowed even with a trade already logged. Deleted the test user afterward and confirmed via `psql`: back to exactly 1 real user, and the real account's own `settings.default_instrument` (`NZDUSD`, whatever the user had actually set) was never touched by the test session — matching, and explaining, their original bug report.
 
 `npx tsc --noEmit`, `pnpm lint`, `pnpm exec vitest run` (255 passed, no behavior change to any tested selector), and `pnpm build` all clean.
+
+## Swap (overnight interest)
+
+Reported from real use: the currency P&L didn't match the broker, because
+financing on multi-day swing holds was nowhere in the app. Five questions were
+put to the user before building; all five recommendations were confirmed.
+
+**1. R stays purely price-based; swap lands on the money axis only.** This was
+the load-bearing call, and two alternatives were rejected:
+
+- *Fold swap into `realizedR`* (`realizedR += swap / rValueAtEntry`). Rejected
+  on four counts. It breaks `captureRate`, whose denominator `plannedR` knows
+  nothing about financing, so "93% captured" stops meaning anything. It makes
+  `realizedR` — currently a pure function of entry/stop/exit/direction —
+  depend on `rValueAtEntry`, i.e. on the account's balance history, so the same
+  setup at the same prices scores differently in a bigger account. It puts a
+  number the broker only reports after the close into a function the New trade
+  form recomputes on every keystroke. And it lets a swap typed in months later
+  rewrite an already-settled win rate and expectancy, which is the same
+  history-rewriting that `offPlan` deliberately avoids by ignoring model
+  retirement and that `rValueAtEntry` avoids by being frozen.
+- *Two R figures everywhere (price R and total R)*. Rejected as a permanent
+  doubling of `netR`/`expectancy`/`avgWin`/`avgLoss`/`byModel`/`dailyNetR`/
+  `equityCurve`/weekly review with no basis for ever retiring either one, plus
+  a standing ambiguity about which number "net R" means.
+
+What made the first option unnecessary is that this app already separates the
+two axes: R through `realizedR`, money through `pnlAmount`. The reported
+problem was entirely on the money axis. So R keeps measuring execution — which
+entry, stop and exit were chosen — and is directly comparable between a
+same-day close and a week-long hold, which is exactly the comparison
+`byModel`, `bySession` and `expectancy` exist to make. `stats.test.ts` asserts
+this as an invariant: the same trades with swap recorded produce byte-identical
+`netR`, `expectancy`, `avgWin`, `avgLoss`, `winRate`, `ruleAdherence`,
+`equityCurve`, `dailyNetR` and `periodStats`.
+
+The two-figures idea survives only as reporting, in three captions rather than
+in any aggregate: Trade detail's result card, Capital's Trading P&L sub-line,
+and the dashboard hero. `netSwap`/`netSwapR` and `tradingSwap` exist for those
+and are not in `periodStats` or any group breakdown.
+
+**2. `pnlAmount` gains a term rather than changing meaning.**
+
+    pnlAmount = realizedR * rValueAtEntry + swap
+
+`pricePnlAmount` is the old function under a new name, `swapAmount` reads a
+null as 0, and `pnlAmount` keeps its name because all three call sites
+(`timeline`, `tradingPnL`, Trade detail) want the real account movement. It is
+still null while a trade is open, swap or not: financing is treated as
+confirmed at the close, matching the platform (swap accrues against equity and
+hits the balance on close) and this app's existing rule that an unrealized
+position hasn't moved the balance. A swap may be typed on an open trade — so
+it can be filled in from a statement before the exit is known — and Trade
+detail captions it "not in the balance until this trade is closed".
+
+**3. Everything on the money axis inherits it through `timeline`**, and each
+was checked rather than assumed: `balanceSeries`/`capitalSeries`/
+`currentBalance` (the point of the change); `timeWeightedReturn`, where swap
+must be a trade delta and not a cash flow, or it gets chain-linked away and
+the return reads better than the account did; `drawdownState`, where the peak
+moves only with real deposits and withdrawals (Phase 8 §2) so swap correctly
+registers as a trading loss; `availableBalanceOn`, so the withdrawal ceiling
+drops by the financing; and `balanceAsOfDate`/`rValueAsOfDate`. The one place
+needing a hand edit was `assignBacktestRValues`, which rolls the balance
+itself rather than through `timeline`.
+
+**The ledger stays a selector and a trade stays one row.** A swap does not get
+a synthesised row of its own: row ids are either a trade id or a cash-movement
+id, so one trade across two rows would force a ruling on which row "Trades
+only" means and complicate the same-date ordering — to gain "see swaps alone",
+which the CSV's own Swap column already gives. Instead `LedgerEntry` carries
+`pricePnl` and `swap` beside the net `amount`, desktop names the swap in the
+entry cell, and the `r` column stays price R. A trade row's amount and its R
+therefore no longer reconcile through 1R alone, which is the intended
+consequence and what the new captions exist to explain.
+
+**4. One nullable column, `trades.swap numeric`, in the account currency.** No
+separate currency column: a trade is bound to an account by `account_id` and
+`r_value_at_entry` already follows that convention (`cash_movements.currency`
+exists only because a transfer can arrive in another currency). Negative is a
+cost, positive a carry credit, added straight to the balance, with no CHECK
+constraint since both signs and zero are all valid. It is an input, not a
+derived value, so it doesn't contradict build-prompt §4: the broker decides
+it and nothing in the row could compute it.
+
+**Existing trades are left null, not backfilled to 0.** Null means "not
+recorded" and is deliberately distinct from a recorded 0, which says the
+position closed the same day and genuinely paid nothing. Backfilling would
+merge "I closed it intraday" with "I haven't looked it up yet" and lose any
+way to find the rows still worth filling in — and on a swing account those
+rows really did pay swap. Calculations read `swap ?? 0`, so every existing
+figure is unchanged; the whole pre-existing test suite (255 tests) passed
+untouched, which is the evidence for that.
+
+**5. Optional field in Execution (section 3), same position in both forms**, via
+the shared `tradeFieldsShape`, hinted "Overnight interest from your broker.
+Negative for a cost. Leave empty on an intraday close." Blank stores null, and
+clearing the field on an edit puts the row back to null rather than zeroing it.
+The R preview under the section grows a money breakdown — "Realized +2.4R ·
++$480 · swap −$12.40 → +$467.60" — which on New trade is shown only for a
+`live` account, since a backtest account's 1R is frozen to the balance as of
+the trade's own date and this component doesn't predict that; the edit form
+shows it for both, because there the row's `rValueAtEntry` is already frozen
+and exact.
+
+**Not in the mobile quick-log wizard**, per the user: it exists for fast
+same-day logging where swap is zero, and `WIZARD_STEP_FIELDS` doesn't list the
+field, so a wizard-logged trade stores null and gets its swap in Trade detail
+later if it turns into a multi-day hold.
+
+**CSV**: `swap` is a new optional target field between `exit` and `size`,
+never required, accepting negative/positive/zero and rejecting non-numbers.
+Export writes blank for null and "0" for a recorded zero, so an
+export-then-reimport doesn't turn "unknown" into "none". The ledger export
+gains a `Swap` column breaking out the part of `Amount` that wasn't price
+movement.
+
+**No `result` behaviour change.** `result` is a label the trader picks, so a
+trade can legitimately be a "win" on price and negative in currency once
+financing is counted. The existing `result_disagrees_with_exit` warning stays
+price-based; pulling swap into it would fire on that genuinely correct case.
+
+**A real bug found on the way in, not part of the feature.**
+`parseNumberInput` stripped U+2212 as punctuation, so a figure copied off one
+of this app's own screens (`formatSignedCurrency` and `formatR` both print
+U+2212, not a hyphen) parsed as *positive*. Harmless for prices and sizes,
+which are never negative, but a silent sign flip on a swap cost — which is
+almost always negative, and where the sign is the entire point. The parser now
+normalizes U+2212 to "-" first. The change can only widen what parses, and the
+character it newly accepts is unambiguously a minus.
+
+**One forward-compatibility fix.** New trade's `defaultValues` took a saved
+draft wholesale (`draft?.payload.values ?? {…}`), so a draft written before
+this change would have restored with `swap` absent, handing zod an undefined
+string and blocking submit with an error on a field the trader never touched.
+The defaults now sit *under* the draft spread; the draft still wins every field
+it actually carries.
+
+**Conflict check against earlier decisions** — none found:
+
+- **`rValueAtEntry` frozen** (Phase 8 §1): swap is a separate column;
+  `updateTrade` still never reads or writes `r_value_at_entry`. Filling a swap
+  in after the fact is therefore one-directional by design — the balance,
+  ledger, TWR and drawdown pick it up on the next read, while every 1R already
+  on the books stays frozen, including, on a backtest account, those of trades
+  dated after it.
+- **Derived values are never columns** (build-prompt §4): swap is an input.
+  `pnlAmount`, the balance series, the ledger and TWR are all still selectors.
+- **The ledger is a selector with nothing stored** (Phase 8): unchanged, and
+  no swap rows are synthesised.
+- **Drawdown measures trading losses only; the peak moves with cash**
+  (Phase 8 §2): swap arrives as a trade delta, so it doesn't move the peak and
+  reads as a trading loss — the decision's own intent.
+- **Win rate excludes break-even entirely** (Phase 5 §1): untouched, since the
+  R axis is untouched.
+- **CSV import lets backtest accounts leave `rValueAtEntry` blank**: swap is
+  optional regardless of account kind, so `csvRequiredFields` is unchanged.
+- **Phase 8's flagged "every surface that shows money also shows R"**: this
+  moves one step that way — Trade detail and Capital now show swap in both
+  currency and R.
+
+`npx tsc --noEmit`, `pnpm lint`, `pnpm test` (282 passed, 27 new) and
+`pnpm build` are clean.
+
+**Verified live** against the real Supabase project. The migration was pushed
+first (`docs/setup.md` §3, via the `aws-0-ap-northeast-2` pooler); the dry run
+listed only the one new file, confirming the remote was otherwise in sync.
+`supabase gen types` then produced a file **byte-identical** to the hand-edited
+`database.types.ts`, so the hand edit was exactly what the database says.
+(`gen types` needs Docker on CLI 2.117.0, which §4 doesn't mention.)
+
+On the real data, the `ALTER TABLE ... ADD COLUMN` left all 54 existing trades
+at `swap = NULL` with no `updated_at` touched — `ALTER TABLE` isn't an `UPDATE`,
+so the `set_updated_at` trigger never fired.
+
+The functional pass used a disposable user (same practice as Phase 8/9), on a
+$10,000 / 1% live account so 1R was exactly $100 and every figure could be
+checked by hand. Its trades were never mixed with the real account's.
+
+- **New trade form**, EURUSD long, +2.0R, swap −18.40: the preview line read
+  `Realized +2.0R · +$200 · swap −$18 → +$182`.
+- **Trade detail**: `+2.0R` / `+$182` / `Swap −$18 · −0.2R`, with
+  `Planned 3.0R · 67% captured` unchanged — `captureRate` stayed price-based,
+  which is the concrete thing folding swap into R would have broken.
+- **Capital** reconciled to the cent: balance `$10,182` (10,000 + 200 − 18.40),
+  Trading P&L `+$668` / `+7.0R lifetime · incl. −$32 swap` once all four trades
+  were in, TWR `+6.7%` (= 668.25/10,000, i.e. swap felt as trading and not
+  chain-linked away as a cash flow), next-trade 1R `$107` (1% of the
+  swap-reduced balance). The ledger kept **one row per trade** — "Showing 2 of
+  2" with a single trade logged — with the net amount, price R, and the swap
+  named only in the rows that had one.
+- **Dashboard** hero: `+2.0R` / `+$182` / `incl. swap −$18`, expectancy
+  `2.00R` untouched.
+- **Edit form**: seeded `-18.4`; clearing the field stored `NULL`, not 0, and
+  the caption disappeared. A row set to an explicit `0` rendered
+  `Swap $0 · 0.0R` — the null-vs-zero distinction visible end to end, which is
+  the whole reason the column is nullable.
+- **CSV**: both exports carried the new column (ledger `Amount 181.60,
+  Swap -18.40, R 2.00`; trades `Swap` between `Exit` and `Size`). A re-import of
+  a three-row file mapped `Swap` automatically as optional and stored
+  `-31.75` → `-31.75`, blank → `NULL`, `"0"` → `0`.
+
+The disposable user and all of its rows were deleted afterwards and confirmed
+gone: one user left, 54 trades, 2 accounts, and 0 of those 54 trades carrying a
+swap value.
+
+**Deliberately out of scope**, the user's call to leave to me: a "swap not
+recorded" filter on the Trade log. It would spread into the filter dropdown,
+URL parameters, the export's filter parsing and their tests, and it is
+independent of recording swap in the first place. Worth revisiting if the
+existing trades turn out to need bulk backfilling.

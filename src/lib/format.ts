@@ -17,9 +17,16 @@ import { pipSize, priceDecimals } from "./instruments";
  *
  * Assumes the US/UK convention (comma groups, dot decimal), which is what the
  * mocks and the instrument set use; a "1.234,56" style paste would misparse.
+ *
+ * A typographic minus (U+2212) is normalized to ASCII "-" first. Without
+ * that it would be stripped as punctuation and "−12.40" would parse as
+ * *positive* 12.40 — and U+2212 is exactly what this app's own
+ * `formatSignedCurrency`/`formatR` print, so it is what a user gets by
+ * copying a figure off one of these screens. Harmless for prices and sizes,
+ * which are never negative, but a silent sign flip on a swap cost.
  */
 export function parseNumberInput(raw: string): number | null {
-  const cleaned = raw.replace(/[^0-9.-]/g, "").replace(/(?!^)-/g, "");
+  const cleaned = raw.replace(/−/g, "-").replace(/[^0-9.-]/g, "").replace(/(?!^)-/g, "");
   if (cleaned === "" || cleaned === "-" || cleaned === "." || cleaned === "-.") return null;
   const value = Number(cleaned);
   return Number.isFinite(value) ? value : null;

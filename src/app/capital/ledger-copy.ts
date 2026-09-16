@@ -32,12 +32,18 @@ export function parseLedgerFilter(raw: string | null | undefined): LedgerFilter 
  * "NQ · Long · C2 expansion" for a trade (mock 3a), the note for a cash
  * movement ("Monthly top-up · bank transfer"), falling back to its type.
  * `withModel: false` is mobile's shorter "NQ · 롱" (mock 3b).
+ *
+ * A trade that recorded a swap says so here rather than getting a ledger row
+ * of its own: the row's Amount is already net of it, and splitting one trade
+ * across two rows would leave "Trades only" and the running balance arguing
+ * about which row the trade is (docs/decisions.md § Swap).
  */
 export function describeLedgerEntry(
   entry: LedgerEntry,
   modelNameById: ReadonlyMap<string, string>,
   t: (strings: LocaleStrings) => string,
   withModel = true,
+  formatAmount?: (value: number) => string,
 ): string {
   const source = entry.source;
 
@@ -48,6 +54,10 @@ export function describeLedgerEntry(
     const parts = [trade.instrument, t(DIRECTION_LABELS[trade.direction])];
     const modelName = trade.modelId === null ? undefined : modelNameById.get(trade.modelId);
     if (withModel && modelName !== undefined) parts.push(modelName);
+    // Mobile passes no formatter and stays on its two-part "NQ · 롱".
+    if (formatAmount !== undefined && entry.swap !== null && entry.swap !== 0) {
+      parts.push(`${t({ en: "swap", ko: "스왑" })} ${formatAmount(entry.swap)}`);
+    }
     return parts.join(" · ");
   }
 

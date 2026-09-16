@@ -20,7 +20,7 @@ import {
 import { RangeDiagram } from "@/components/range-diagram";
 import { AttachmentThumbnails } from "@/components/attachment-thumbnails";
 import { cn } from "@/lib/cn";
-import { formatPips, formatPrice, parseNumberInput } from "@/lib/format";
+import { formatPips, formatPrice, formatSignedCurrency, parseNumberInput } from "@/lib/format";
 import { useFormatR } from "@/lib/settings/context";
 import { MAX_ATTACHMENTS_PER_TRADE } from "@/lib/attachments";
 import { INSTRUMENT_PRESETS } from "@/lib/instruments";
@@ -45,6 +45,8 @@ export interface TradeEditFormProps {
   trade: Trade;
   models: TradeModel[];
   attachments: readonly { path: string }[];
+  /** The account's currency, for the swap/net figures beside the R preview. */
+  currency: string;
   accountIsNearDrawdownLimit: boolean;
   drawdownPercent: number;
   drawdownLimitPercent: number;
@@ -88,6 +90,7 @@ export function TradeEditForm({
   trade,
   models,
   attachments,
+  currency,
   accountIsNearDrawdownLimit,
   drawdownPercent,
   drawdownLimitPercent,
@@ -136,6 +139,7 @@ export function TradeEditForm({
     const stop = parseNumberInput(values.stop ?? "");
     const target = values.target ? parseNumberInput(values.target) : null;
     const exit = values.exit ? parseNumberInput(values.exit) : null;
+    const swap = values.swap ? parseNumberInput(values.swap) : null;
 
     const rangeReady = rangeHigh !== null && rangeLow !== null && rangeHigh > rangeLow;
     const size = rangeReady ? rangeSize({ rangeHigh: rangeHigh!, rangeLow: rangeLow! }) : null;
@@ -153,7 +157,7 @@ export function TradeEditForm({
         ? realizedR({ entry, stop, exit, direction: values.direction })
         : null;
 
-    return { rangeHigh, rangeLow, entry, stop, target, exit, size, sweepSide, planned, realized };
+    return { rangeHigh, rangeLow, entry, stop, target, exit, swap, size, sweepSide, planned, realized };
   }, [values]);
 
   const selectedModel = models.find((m) => m.id === values.modelId) ?? null;
@@ -493,6 +497,20 @@ export function TradeEditForm({
         </div>
 
         <div className={cn("mt-16 grid gap-16", isMobile ? "grid-cols-1" : "grid-cols-2")}>
+          <Field
+            label={t({ en: "Swap", ko: "스왑" })}
+            htmlFor="swap"
+            error={errors.swap?.message}
+            hint={t({
+              en: "Overnight interest from your broker. Negative for a cost. Leave empty on an intraday close.",
+              ko: "브로커 명세서의 오버나이트 이자. 비용이면 음수. 당일 청산이면 비워두세요.",
+            })}
+          >
+            <Input id="swap" inputMode="decimal" placeholder="−12.40" {...register("swap")} />
+          </Field>
+        </div>
+
+        <div className={cn("mt-16 grid gap-16", isMobile ? "grid-cols-1" : "grid-cols-2")}>
           <Field label={t({ en: "Exit reason", ko: "청산 사유" })} htmlFor="exit-reason" error={errors.exitReason?.message}>
             <Input id="exit-reason" placeholder="Partial into 50%" {...register("exitReason")} />
           </Field>
@@ -507,6 +525,29 @@ export function TradeEditForm({
             <span className={cn(derived.realized >= 0 ? "text-gain" : "text-loss")}>
               {formatR(derived.realized)}
             </span>
+            {/*
+              Unlike the New trade form, this preview is exact on a backtest
+              account too: the row's 1R is already frozen, so `rValueAtEntry`
+              is the real multiplier rather than a prediction. R still moves
+              live with an edited entry/stop/exit while 1R stays put, which is
+              precisely what `pnlAmount` does on read.
+            */}
+            {" · "}
+            {formatSignedCurrency(derived.realized * trade.rValueAtEntry, currency)}
+            {derived.swap !== null && (
+              <>
+                {` · ${t({ en: "swap", ko: "스왑" })} `}
+                {formatSignedCurrency(derived.swap, currency)}
+                {" → "}
+                <span
+                  className={cn(
+                    derived.realized * trade.rValueAtEntry + derived.swap >= 0 ? "text-gain" : "text-loss",
+                  )}
+                >
+                  {formatSignedCurrency(derived.realized * trade.rValueAtEntry + derived.swap, currency)}
+                </span>
+              </>
+            )}
           </p>
         )}
       </SectionCard>

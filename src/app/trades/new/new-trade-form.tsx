@@ -22,7 +22,14 @@ import {
 import { RangeDiagram } from "@/components/range-diagram";
 import { AttachmentThumbnails } from "@/components/attachment-thumbnails";
 import { cn } from "@/lib/cn";
-import { formatCurrency, formatPips, formatPrice, formatTime, parseNumberInput } from "@/lib/format";
+import {
+  formatCurrency,
+  formatPips,
+  formatPrice,
+  formatSignedCurrency,
+  formatTime,
+  parseNumberInput,
+} from "@/lib/format";
 import { useFormatR } from "@/lib/settings/context";
 import { MAX_ATTACHMENTS_PER_TRADE } from "@/lib/attachments";
 import { INSTRUMENT_PRESETS } from "@/lib/instruments";
@@ -128,13 +135,18 @@ export function NewTradeForm({
   } = useForm<NewTradeInput>({
     resolver: zodResolver(createNewTradeSchema(locale)),
     mode: "onTouched",
-    defaultValues:
-      draft?.payload.values ?? {
-        ...NEW_TRADE_DEFAULTS,
-        instrument: defaultInstrument,
-        session: defaultSession,
-        date: defaultDate,
-      },
+    // The draft still wins every field it carries; the defaults sit *under*
+    // it only so a field added to the form after a draft was saved isn't
+    // `undefined` on restore. Taking the stored payload wholesale would hand
+    // zod an undefined string for that field and block submit with an error
+    // pointing at a field the trader never touched.
+    defaultValues: {
+      ...NEW_TRADE_DEFAULTS,
+      instrument: defaultInstrument,
+      session: defaultSession,
+      date: defaultDate,
+      ...draft?.payload.values,
+    },
   });
 
   const values = useWatch({ control }) as NewTradeInput;
@@ -166,6 +178,7 @@ export function NewTradeForm({
     const stop = parseNumberInput(values.stop ?? "");
     const target = values.target ? parseNumberInput(values.target) : null;
     const exit = values.exit ? parseNumberInput(values.exit) : null;
+    const swap = values.swap ? parseNumberInput(values.swap) : null;
 
     const rangeReady = rangeHigh !== null && rangeLow !== null && rangeHigh > rangeLow;
     const size = rangeReady ? rangeSize({ rangeHigh: rangeHigh!, rangeLow: rangeLow! }) : null;
@@ -185,7 +198,7 @@ export function NewTradeForm({
         ? realizedR({ entry, stop, exit, direction: values.direction })
         : null;
 
-    return { rangeHigh, rangeLow, entry, stop, target, exit, size, derivedSweep, sweepSide, planned, realized };
+    return { rangeHigh, rangeLow, entry, stop, target, exit, swap, size, derivedSweep, sweepSide, planned, realized };
   }, [values]);
 
   const selectedModel = models.find((m) => m.id === values.modelId) ?? null;
@@ -660,12 +673,55 @@ export function NewTradeForm({
             </Field>
           </div>
 
+          <div className="mt-16 grid grid-cols-2 gap-16">
+            <Field
+              label={t({ en: "Swap", ko: "스왑" })}
+              htmlFor="swap"
+              error={errors.swap?.message}
+              hint={t({
+                en: "Overnight interest from your broker. Negative for a cost. Leave empty on an intraday close.",
+                ko: "브로커 명세서의 오버나이트 이자. 비용이면 음수. 당일 청산이면 비워두세요.",
+              })}
+            >
+              <Input id="swap" inputMode="decimal" placeholder="−12.40" {...register("swap")} />
+            </Field>
+          </div>
+
           {derived.realized !== null && (
             <p className="mt-12 text-13 font-semibold text-secondary">
               {t({ en: "Realized", ko: "실현" })}{" "}
               <span className={cn(derived.realized >= 0 ? "text-gain" : "text-loss")}>
                 {formatR(derived.realized)}
               </span>
+              {/*
+                The money breakdown is the whole point of recording swap, so
+                it is shown as it is typed. Only on a "live" account, though:
+                there `rValueToday` is exactly what the server will freeze, so
+                the arithmetic is real. A backtest account freezes 1R to the
+                balance as of the trade's own date, which this component
+                deliberately doesn't try to predict, so it gets the R figure
+                and nothing that would be a guess with a currency sign on it.
+              */}
+              {accountKind === "live" && (
+                <>
+                  {" · "}
+                  {formatSignedCurrency(derived.realized * rValueToday, currency)}
+                  {derived.swap !== null && (
+                    <>
+                      {` · ${t({ en: "swap", ko: "스왑" })} `}
+                      {formatSignedCurrency(derived.swap, currency)}
+                      {" → "}
+                      <span
+                        className={cn(
+                          derived.realized * rValueToday + derived.swap >= 0 ? "text-gain" : "text-loss",
+                        )}
+                      >
+                        {formatSignedCurrency(derived.realized * rValueToday + derived.swap, currency)}
+                      </span>
+                    </>
+                  )}
+                </>
+              )}
             </p>
           )}
         </SectionCard>

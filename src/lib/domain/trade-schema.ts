@@ -28,6 +28,10 @@ export const TRADE_SCHEMA_MESSAGES = {
     en: "Hold time can't be negative.",
     ko: "보유 시간은 음수일 수 없습니다.",
   },
+  swapNumber: {
+    en: "Swap must be a number — negative for a cost.",
+    ko: "스왑은 숫자여야 합니다. 비용이면 음수로 입력하세요.",
+  },
 } as const;
 
 export function tradeMessage<K extends keyof typeof TRADE_SCHEMA_MESSAGES>(
@@ -59,6 +63,13 @@ export function tradeFieldsShape(locale: Locale) {
     size: requiredNumber(m("number")),
     target: z.string().trim(),
     exit: z.string().trim(),
+    /**
+     * Optional, and blank for most trades — an intraday close pays no
+     * financing at all. Blank stores `null` ("not recorded") rather than 0,
+     * so a trade held over the weekend that hasn't had its swap filled in
+     * yet stays distinguishable from one that genuinely paid none.
+     */
+    swap: z.string().trim(),
 
     modelId: z.string().nullable(),
     confirmation: z.string().trim(),
@@ -79,6 +90,7 @@ interface TradeNumericValues {
   size: string;
   target: string;
   exit: string;
+  swap: string;
 }
 
 /**
@@ -111,6 +123,13 @@ export function refineTradeNumerics(
   const size = numeric("size");
   numeric("target");
   numeric("exit");
+
+  // Swap has no sign or magnitude rule to enforce: a cost is negative, a
+  // carry credit is positive, and 0 is a real recorded value. Only a cell
+  // that isn't a number at all is rejected.
+  if (values.swap !== "" && parseNumberInput(values.swap) === null) {
+    ctx.addIssue({ code: "custom", path: ["swap"], message: m("swapNumber") });
+  }
 
   if (rangeHigh !== null && rangeLow !== null && rangeHigh <= rangeLow) {
     ctx.addIssue({ code: "custom", path: ["rangeHigh"], message: m("rangeOrder") });

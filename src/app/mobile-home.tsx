@@ -9,7 +9,7 @@ import { BottomTabBar } from "@/components/nav/bottom-tab-bar";
 import { toTabItems } from "@/components/nav/routes";
 import { Button, Card, EmptyState } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { tradingPnL } from "@/lib/domain/capital";
+import { tradingPnL, tradingSwap } from "@/lib/domain/capital";
 import type { ResolvedDashboardPeriod } from "@/lib/domain/dashboard-period";
 import { todayIso } from "@/lib/domain/dates";
 import { byModel, equityCurve, periodStats } from "@/lib/domain/stats";
@@ -52,6 +52,7 @@ export function MobileHome({ period, trades, models, hasAccount, drawdownAlert, 
   const stats = useMemo(() => periodStats(trades), [trades]);
   const equity = useMemo(() => equityCurve(trades), [trades]);
   const periodPnl = useMemo(() => tradingPnL(trades), [trades]);
+  const periodSwap = useMemo(() => tradingSwap(trades), [trades]);
   const modelRows = useMemo(
     () => topAndBottomModels(byModel(trades, models).filter((r) => r.tradeCount > 0)),
     [trades, models],
@@ -132,6 +133,18 @@ export function MobileHome({ period, trades, models, hasAccount, drawdownAlert, 
           </div>
           {stats.tradeCount > 0 && (
             <div className="mt-2 text-13_5 font-bold text-muted">{formatSignedCurrency(periodPnl, currency)}</div>
+          )}
+          {/*
+            The big number is price R and the line above is net of swap, so on a
+            swing account the two only reconcile once the financing is named
+            (docs/decisions.md § Swap). Hidden entirely when no trade in the
+            period recorded one, which is every intraday period.
+          */}
+          {periodSwap !== 0 && (
+            <div className="mt-2 text-12 font-medium text-faint">
+              {t({ en: "incl. swap", ko: "스왑 포함" })}{" "}
+              {formatSignedCurrency(periodSwap, currency)}
+            </div>
           )}
           <div className="mt-14 flex gap-6">
             <span className="rounded-8 bg-divider px-10 py-6 text-12 font-semibold text-secondary">

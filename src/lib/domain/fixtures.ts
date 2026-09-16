@@ -24,6 +24,7 @@ export function makeTrade(overrides: Partial<Trade> = {}): Trade {
     exitReason: null,
     holdMinutes: 38,
     rValueAtEntry: 100,
+    swap: null,
     tags: [],
     notes: null,
     createdAt: "2026-09-09T12:00:00.000Z",

@@ -25,6 +25,14 @@ describe("parseNumberInput", () => {
     expect(parseNumberInput("1-5")).toBe(15);
   });
 
+  it("reads a typographic minus as negative, not as noise to strip", () => {
+    // U+2212 is what this app's own formatters print, so it is what comes
+    // back when a figure is copied off one of its screens — and a swap cost
+    // pasted back in silently flipping positive would be a real bug.
+    expect(parseNumberInput("\u221212.40")).toBe(-12.4);
+    expect(parseNumberInput("\u2212$1,240.00")).toBe(-1_240);
+  });
+
   it("is null while the field is still mid-typing", () => {
     expect(parseNumberInput("")).toBeNull();
     expect(parseNumberInput("-")).toBeNull();

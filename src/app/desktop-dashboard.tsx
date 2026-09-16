@@ -10,7 +10,7 @@ import { SignOutButton } from "@/components/nav/sign-out-button";
 import { TopBar } from "@/components/nav/top-bar";
 import { BarRow, Button, Card, CardHeader, Chip, EmptyState, Panel, StatCard } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { tradingPnL } from "@/lib/domain/capital";
+import { tradingPnL, tradingSwap } from "@/lib/domain/capital";
 import type { ResolvedDashboardPeriod } from "@/lib/domain/dashboard-period";
 import { byModel, bySession, equityCurve, periodStats, sweepAlignment } from "@/lib/domain/stats";
 import { buildTradeLogSearchParams, EMPTY_TRADE_LOG_FILTERS } from "@/lib/domain/trade-log";
@@ -61,6 +61,7 @@ export function DesktopDashboard({
   // vocabulary is R-first), so the dollar total rides underneath as a small
   // caption rather than displacing it.
   const periodPnl = useMemo(() => tradingPnL(trades), [trades]);
+  const periodSwap = useMemo(() => tradingSwap(trades), [trades]);
   const modelRows = useMemo(
     () => byModel(trades, models).filter((r) => r.tradeCount > 0),
     [trades, models],
@@ -144,6 +145,18 @@ export function DesktopDashboard({
             </div>
             {stats.tradeCount > 0 && (
               <div className="mt-4 text-15 font-bold text-muted">{formatSignedCurrency(periodPnl, currency)}</div>
+            )}
+            {/*
+              The big number is price R and the line above is net of swap, so on a
+              swing account the two only reconcile once the financing is named
+              (docs/decisions.md § Swap). Hidden entirely when no trade in the
+              period recorded one, which is every intraday period.
+            */}
+            {periodSwap !== 0 && (
+              <div className="mt-4 text-12_5 font-medium text-faint">
+                {t({ en: "incl. swap", ko: "스왑 포함" })}{" "}
+                {formatSignedCurrency(periodSwap, currency)}
+              </div>
             )}
             <div className="mt-14 flex gap-8">
               <Chip shape="stat">{t(tradeCountLabel(stats.tradeCount))}</Chip>

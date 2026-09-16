@@ -34,6 +34,7 @@ const RECENT_ROWS = 5;
  */
 export function MobileCapital({ data, summary, onRecordCash }: CapitalScreenProps) {
   const t = useT();
+  const formatR = useFormatR();
   const locale = useLocale();
   const { account } = data;
   const currency = account.currency;
@@ -93,6 +94,20 @@ export function MobileCapital({ data, summary, onRecordCash }: CapitalScreenProp
               {formatSignedCurrency(summary.tradingPnL, currency)}
             </Chip>
           </div>
+          {/*
+            The P&L chip above is net of swap. A phone has no room to break
+            that out inside the chip, so it gets its own line here — and only
+            when there is a swap to name, keeping the card unchanged for a
+            purely intraday account (docs/decisions.md § Swap).
+          */}
+          {summary.tradingSwap !== 0 && (
+            <div className="mt-8 text-12 font-medium text-faint">
+              {t({ en: "incl. swap", ko: "스왑 포함" })}{" "}
+              {formatSignedCurrency(summary.tradingSwap, currency)}
+              {" · "}
+              {formatR(summary.tradingSwapR)}
+            </div>
+          )}
           <Sparkline tone="ink" values={summary.series.map((p) => p.balance)} className="mt-16" />
         </Card>
 

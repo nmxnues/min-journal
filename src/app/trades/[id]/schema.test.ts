@@ -15,6 +15,14 @@ describe("tradeToEditInput", () => {
     expect(input.sweepSideOverride).toBe("both");
   });
 
+  it("seeds swap from the trade, and an unrecorded swap as an empty field", () => {
+    expect(tradeToEditInput(makeTrade({ swap: -12.4 })).swap).toBe("-12.4");
+    // A recorded 0 must survive the round trip as "0" — blanking it would
+    // turn "closed same day, paid nothing" into "never recorded".
+    expect(tradeToEditInput(makeTrade({ swap: 0 })).swap).toBe("0");
+    expect(tradeToEditInput(makeTrade({ swap: null })).swap).toBe("");
+  });
+
   it("seeds exitReason and holdMinutes from the trade, defaulting to empty strings", () => {
     const withValues = tradeToEditInput(makeTrade({ exitReason: "Partial into 50%", holdMinutes: 38 }));
     expect(withValues.exitReason).toBe("Partial into 50%");
@@ -45,5 +53,15 @@ describe("createEditTradeSchema", () => {
 
   it("allows an empty hold time — the field is optional", () => {
     expect(createEditTradeSchema("en").safeParse({ ...valid, holdMinutes: "" }).success).toBe(true);
+  });
+
+  it("accepts a negative, zero, or empty swap and rejects a non-number", () => {
+    const parse = (swap: string) => createEditTradeSchema("en").safeParse({ ...valid, swap });
+    // Negative is the common case, not an error: a cost lowers the balance.
+    expect(parse("-12.40").success).toBe(true);
+    expect(parse("8").success).toBe(true);
+    expect(parse("0").success).toBe(true);
+    expect(parse("").success).toBe(true);
+    expect(parse("abc").success).toBe(false);
   });
 });

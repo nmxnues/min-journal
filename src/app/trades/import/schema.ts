@@ -37,6 +37,7 @@ export const CSV_TARGET_FIELDS = [
   "stop",
   "target",
   "exit",
+  "swap",
   "size",
   "rValueAtEntry",
   "model",
@@ -81,6 +82,7 @@ export const CSV_FIELD_LABELS: Record<CsvTargetField, { en: string; ko: string }
   stop: { en: "Stop", ko: "손절가" },
   target: { en: "Target", ko: "타겟" },
   exit: { en: "Exit", ko: "청산가" },
+  swap: { en: "Swap", ko: "스왑" },
   size: { en: "Size", ko: "사이즈" },
   rValueAtEntry: { en: "1R value ($)", ko: "1R 금액" },
   model: { en: "Model", ko: "모델" },
@@ -122,6 +124,10 @@ export function csvRowSchema(locale: Locale, accountKind: AccountKind) {
       stop: z.string().trim().min(1),
       target: z.string().trim(),
       exit: z.string().trim(),
+      // Optional for every account kind, and never required: a blank cell (or
+      // an unmapped column) stores null, which is "not recorded" rather than
+      // a claim that the trade paid no financing.
+      swap: z.string().trim(),
       size: z.string().trim().min(1),
       // Required only for a `live` account — see csvRequiredFields above.
       rValueAtEntry: z.string().trim(),
@@ -197,6 +203,8 @@ export interface TradeInsertFromCsv {
   stop: number;
   target: number | null;
   exit: number | null;
+  /** Account-currency swap; `null` when the column was blank or unmapped. Negative for a cost. */
+  swap: number | null;
   size: number;
   model_id: string | null;
   confirmation: string | null;
@@ -224,6 +232,7 @@ export function toTradeInsert(row: RawCsvRow, modelIdByName: ReadonlyMap<string,
     stop: parseNumberInput(row.stop)!,
     target: row.target === "" ? null : parseNumberInput(row.target),
     exit: row.exit === "" ? null : parseNumberInput(row.exit),
+    swap: row.swap === "" ? null : parseNumberInput(row.swap),
     size: parseNumberInput(row.size)!,
     // No match by name is treated as Unassigned rather than a rejection — a
     // typo'd model name shouldn't sink an otherwise-valid historical row.

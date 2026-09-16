@@ -150,7 +150,21 @@ export function DesktopCapital({ data, summary, onRecordCash }: CapitalScreenPro
             label={t({ en: "Trading P&L", ko: "매매 손익" })}
             value={formatSignedCurrency(summary.tradingPnL, currency)}
             tone={pnlTone}
-            sub={t({ en: `${formatR(summary.lifetimeR)} lifetime`, ko: `누적 ${formatR(summary.lifetimeR)}` })}
+            // The value is net of swap while the lifetime R beside it is
+            // price R, so the two stop reconciling through 1R as soon as any
+            // swap is recorded. Naming the swap here is what explains the gap
+            // — and on a swing account it is the figure that made the dollar
+            // number disagree with the broker in the first place
+            // (docs/decisions.md § Swap). With no swap recorded the caption is
+            // byte-identical to before.
+            sub={
+              summary.tradingSwap === 0
+                ? t({ en: `${formatR(summary.lifetimeR)} lifetime`, ko: `누적 ${formatR(summary.lifetimeR)}` })
+                : t({
+                    en: `${formatR(summary.lifetimeR)} lifetime · incl. ${formatSignedCurrency(summary.tradingSwap, currency)} swap`,
+                    ko: `누적 ${formatR(summary.lifetimeR)} · 스왑 ${formatSignedCurrency(summary.tradingSwap, currency)} 포함`,
+                  })
+            }
           />
           <StatCard
             label={t({ en: "Return on capital", ko: "자본 수익률" })}
@@ -182,6 +196,9 @@ function LedgerCard({ data, summary }: Pick<CapitalScreenProps, "data" | "summar
 
   const rows = filterLedger(summary.entries, filter);
   const visible = showAll ? rows : rows.slice(0, LEDGER_PAGE_SIZE);
+  // Desktop has the column width to name a row's swap inside its entry cell;
+  // the Amount column stays the net figure either way.
+  const formatSwap = (value: number) => formatSignedCurrency(value, data.account.currency);
   const grid = "grid grid-cols-[74px_1fr_116px_104px_108px] items-center gap-14";
 
   return (
@@ -243,8 +260,11 @@ function LedgerCard({ data, summary }: Pick<CapitalScreenProps, "data" | "summar
                   {t(LEDGER_KIND_LABELS[entry.kind])}
                 </span>
                 {/* The mock's column truncates longer notes/model names; the full text stays one hover away. */}
-                <span className="truncate text-14 font-semibold text-ink" title={describeLedgerEntry(entry, summary.modelNameById, t)}>
-                  {describeLedgerEntry(entry, summary.modelNameById, t)}
+                <span
+                  className="truncate text-14 font-semibold text-ink"
+                  title={describeLedgerEntry(entry, summary.modelNameById, t, true, formatSwap)}
+                >
+                  {describeLedgerEntry(entry, summary.modelNameById, t, true, formatSwap)}
                 </span>
               </span>
               <span

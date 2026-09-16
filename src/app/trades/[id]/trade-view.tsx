@@ -23,6 +23,8 @@ import {
   offPlan,
   plannedR,
   pnlAmount,
+  swapAmount,
+  swapR,
   rangePosition,
   rangeSize,
   realizedR,
@@ -61,6 +63,12 @@ export function TradeView({ trade, attachments, currency }: TradeViewProps) {
 
   const realized = realizedR(trade);
   const pnl = pnlAmount(trade);
+  // Only captioned when a swap was actually recorded: a null means nobody has
+  // filled it in yet, and printing "swap $0.00" there would claim a fact the
+  // row doesn't have. An explicit 0 does get shown — it says the position was
+  // closed the same day and genuinely paid nothing.
+  const swap = trade.swap === null ? null : swapAmount(trade);
+  const swapInR = swapR(trade);
   const planned = plannedR(trade);
   const capture = captureRate(trade);
   const size = rangeSize(trade);
@@ -100,6 +108,23 @@ export function TradeView({ trade, attachments, currency }: TradeViewProps) {
           </div>
           {pnl !== null && (
             <div className="mt-4 text-15 font-bold text-muted">{formatSignedCurrency(pnl, currency)}</div>
+          )}
+          {/*
+            The R headline above is price R and the amount beside it is net of
+            swap, so when there is a swap the two no longer reconcile through
+            1R alone — this line is what closes that gap on screen
+            (docs/decisions.md § Swap).
+          */}
+          {swap !== null && (
+            <div className="mt-4 text-12_5 font-medium text-faint">
+              {t({ en: "Swap", ko: "스왑" })} {formatSignedCurrency(swap, currency)}
+              {swapInR !== null && ` · ${formatR(swapInR)}`}
+              {trade.exit === null &&
+                ` · ${t({
+                  en: "not in the balance until this trade is closed",
+                  ko: "청산 전에는 잔고에 반영되지 않습니다",
+                })}`}
+            </div>
           )}
           {planned !== null && (
             <div className="mt-6 text-12_5 font-medium text-faint">

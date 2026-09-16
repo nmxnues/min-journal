@@ -72,6 +72,7 @@ export function tradeToEditInput(trade: Trade): EditTradeInput {
     size: String(trade.size),
     target: trade.target === null ? "" : String(trade.target),
     exit: trade.exit === null ? "" : String(trade.exit),
+    swap: trade.swap === null ? "" : String(trade.swap),
     modelId: trade.modelId,
     confirmation: trade.confirmation ?? "",
     result: trade.result,

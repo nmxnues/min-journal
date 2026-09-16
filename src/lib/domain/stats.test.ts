@@ -12,6 +12,9 @@ import {
   expectancy,
   filterByDateRange,
   netR,
+  netSwap,
+  netSwapR,
+  periodStats,
   ruleAdherence,
   sortChronologically,
   sweepAlignment,
@@ -342,5 +345,44 @@ describe("memoisation", () => {
     const first = dailyNetR([tradeWithR(1)]);
     const second = dailyNetR([tradeWithR(2)]);
     expect(first).not.toBe(second);
+  });
+});
+
+describe("swap and the R axis", () => {
+  /**
+   * The load-bearing guarantee of the whole design: recording swap must not
+   * move a single R statistic. Same trades, same prices, same everything —
+   * one set held overnight and charged for it.
+   */
+  const prices = [tradeWithR(2), tradeWithR(-1), tradeWithR(3), tradeWithR(0)];
+  const charged = prices.map((t, i) => ({ ...t, swap: -5 * (i + 1) }));
+
+  it("leaves every R metric identical", () => {
+    expect(netR(charged)).toBe(netR(prices));
+    expect(expectancy(charged)).toBe(expectancy(prices));
+    expect(avgWin(charged)).toBe(avgWin(prices));
+    expect(avgLoss(charged)).toBe(avgLoss(prices));
+    expect(winRate(charged)).toBe(winRate(prices));
+    expect(ruleAdherence(charged)).toBe(ruleAdherence(prices));
+    expect(equityCurve(charged)).toEqual(equityCurve(prices));
+    expect(dailyNetR(charged)).toEqual(dailyNetR(prices));
+    expect(periodStats(charged)).toEqual(periodStats(prices));
+  });
+
+  it("reports swap separately, in currency and in R", () => {
+    // -5, -10, -15, -20 against a $100 1R from the fixture.
+    expect(netSwap(charged)).toBe(-50);
+    expect(netSwapR(charged)).toBeCloseTo(-0.5, 10);
+  });
+
+  it("counts nothing for trades with no swap recorded", () => {
+    expect(netSwap(prices)).toBe(0);
+    expect(netSwapR(prices)).toBe(0);
+  });
+
+  it("skips open trades, matching netR and tradingPnL", () => {
+    const open = [{ ...tradeWithR(0), exit: null, result: null, swap: -30 }];
+    expect(netSwap(open)).toBe(0);
+    expect(netSwapR(open)).toBe(0);
   });
 });
