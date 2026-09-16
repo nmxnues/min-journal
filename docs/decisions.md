@@ -1010,3 +1010,39 @@ recorded" filter on the Trade log. It would spread into the filter dropdown,
 URL parameters, the export's filter parsing and their tests, and it is
 independent of recording swap in the first place. Worth revisiting if the
 existing trades turn out to need bulk backfilling.
+
+## PWA title bar was black — `theme_color` pointed at the ink token
+
+Reported from real use: the installed app showed a black band across the top
+in both windowed and fullscreen mode.
+
+That band is OS chrome, not page content. An installed PWA's window title bar
+(and, before installing, the mobile browser's address-bar tint) is coloured by
+the manifest's `theme_color`, which Phase 9 §4 set to `--color-ink` (`#191f28`)
+— pairing it with `background_color: --color-page` as "the splash background,
+and the OS chrome around it". The splash half of that pairing was right; the
+chrome half made the OS draw near-black immediately above a white `TopBar`.
+
+Both are now `--color-surface` (`#ffffff`), which is exactly `TopBar`'s own
+`bg-surface`, so the chrome reads as the app's top edge instead of a separate
+band. `background_color` stays `#f4f5f7` — it is the splash behind the icon,
+where the page grey is correct.
+
+The value is declared in **two** places and they have to agree: `manifest.ts`'s
+`theme_color` (the installed window) and `layout.tsx`'s `viewport.themeColor`
+(the `<meta name="theme-color">` that tints browser chrome before the app is
+ever installed). Only changing the manifest would have left mobile Safari and
+Chrome still drawing the dark tint. `appleWebApp.statusBarStyle` was already
+`"default"`, which is the correct iOS counterpart to a light bar: dark status
+text on a light background. Verified by fetching `/manifest.webmanifest` and
+grepping the rendered `<head>` — both serve `#ffffff`.
+
+Not a code-level fix anyone can see by redeploying alone: **Chrome caches an
+installed app's manifest**, so an already-installed copy keeps the old black
+bar until it re-reads it. Uninstalling and re-adding the app is the reliable
+way to pick the new colour up.
+
+No dark-mode variant was added. `theme-color` supports a `media` attribute for
+that, but this app has a single light palette (globals.css defines one set of
+tokens, with `[data-pnl="west"]` as the only runtime swap and it only touches
+gain/loss hues).

@@ -10,10 +10,17 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "A single-user CRT trading journal.",
     start_url: "/",
     display: "standalone",
-    // Matches globals.css's --color-page / --color-ink — the splash
-    // background while the app loads, and the OS chrome around it.
+    // `background_color` is the splash behind the icon while the app loads:
+    // globals.css's --color-page, the same grey the page itself sits on.
+    //
+    // `theme_color` is the installed window's own title bar (and the mobile
+    // browser's address-bar tint). It is --color-surface, i.e. exactly the
+    // `bg-surface` white of TopBar, so the OS chrome reads as the top edge of
+    // the app rather than as a separate black band above it. It was
+    // --color-ink (#191f28) up to this point, which is what made that band
+    // black in both windowed and fullscreen mode.
     background_color: "#f4f5f7",
-    theme_color: "#191f28",
+    theme_color: "#ffffff",
     // Static files in public/. No "maskable" entry: the artwork already has
     // its own rounded corners and bars close to the edge, so Android's
     // circular mask would clip it.

@@ -27,9 +27,12 @@ export const metadata: Metadata = {
   },
 };
 
-// Matches manifest.ts's theme_color — this is the separate mechanism that
+// Must match manifest.ts's theme_color — this is the separate mechanism that
 // also tints the browser chrome (e.g. Safari/Chrome's address-bar area on
-// mobile) even before the app is ever added to a home screen.
+// mobile) even before the app is ever added to a home screen. Both are
+// --color-surface white so the chrome continues TopBar rather than sitting
+// above it as a dark band; `appleWebApp.statusBarStyle: "default"` above is
+// the iOS counterpart, giving that bar dark-on-light content to match.
 //
 // `viewportFit: "cover"` is the actual prerequisite for
 // `env(safe-area-inset-*)` to resolve to anything but `0` on iOS — without
@@ -40,7 +43,7 @@ export const metadata: Metadata = {
 // only once the padding bump still didn't read as any different on a real
 // iPhone.
 export const viewport: Viewport = {
-  themeColor: "#191f28",
+  themeColor: "#ffffff",
   viewportFit: "cover",
 };
 
