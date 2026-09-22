@@ -27,8 +27,9 @@ export function EquityCurve({
   captions,
   tone,
   gradientId = "equity-curve-fill",
+  label = "Cumulative R over the period",
   className,
-}: EquityCurveProps) {
+}: EquityCurveProps & { label?: string }) {
   const last = values.length > 0 ? values[values.length - 1] : 0;
   const color = (tone ?? (last < 0 ? "loss" : "gain")) === "loss" ? "var(--pnl-loss)" : "var(--pnl-gain)";
 
@@ -44,7 +45,7 @@ export function EquityCurve({
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         preserveAspectRatio="none"
         role="img"
-        aria-label="Cumulative R over the period"
+        aria-label={label}
         className="block h-[180px] w-full"
       >
         <defs>
@@ -88,10 +89,13 @@ export function EquityCurve({
 export function Sparkline({
   values,
   tone,
+  label = "Recent performance",
   className,
 }: {
   values: readonly number[];
   tone?: "gain" | "loss" | "ink";
+  /** Screen-reader name; callers pass it translated. */
+  label?: string;
   className?: string;
 }) {
   const last = values.length > 0 ? values[values.length - 1] : 0;
@@ -105,7 +109,7 @@ export function Sparkline({
       viewBox="0 0 300 70"
       preserveAspectRatio="none"
       role="img"
-      aria-label="Recent performance"
+      aria-label={label}
       className={cn("block h-[70px] w-full", className)}
     >
       {values.length > 1 && (

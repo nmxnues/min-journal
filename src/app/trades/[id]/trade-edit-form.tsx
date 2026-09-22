@@ -37,7 +37,7 @@ import { MAX_TRADE_DATE, MIN_TRADE_DATE } from "@/lib/domain/dates";
 import { deriveSweepSide, plannedR, rangeSize, realizedR } from "@/lib/domain/trade";
 import { collectWarnings, type WarningCode } from "@/lib/domain/warnings";
 import type { SweepSide, Trade, TradeModel, TradeResult } from "@/lib/domain/types";
-import { useLocale, useT } from "@/lib/i18n/locale-context";
+import { useIsMobile, useLocale, useT } from "@/lib/i18n/locale-context";
 import { usePasteAttachment } from "@/lib/use-paste-attachment";
 import { useCommissionPrefill } from "@/lib/use-commission-prefill";
 import { updateTrade } from "./actions";
@@ -111,7 +111,7 @@ export function TradeEditForm({
   // at any width, so mobile collapses the same numbered sections to a single
   // column at the app's existing 900px mobile boundary rather than inventing
   // a second breakpoint mechanism.
-  const isMobile = locale === "ko";
+  const isMobile = useIsMobile();
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
   const [showSweepOverride, setShowSweepOverride] = useState(
@@ -538,7 +538,7 @@ export function TradeEditForm({
 
         <div className={cn("mt-16 grid gap-16", isMobile ? "grid-cols-1" : "grid-cols-2")}>
           <Field label={t({ en: "Exit reason", ko: "청산 사유" })} htmlFor="exit-reason" error={errors.exitReason?.message}>
-            <Input id="exit-reason" placeholder="Partial into 50%" {...register("exitReason")} />
+            <Input id="exit-reason" placeholder={t({ en: "Partial into 50%", ko: "50% 부분 청산" })} {...register("exitReason")} />
           </Field>
           <Field label={t({ en: "Hold (minutes)", ko: "보유 시간 (분)" })} htmlFor="hold-minutes" error={errors.holdMinutes?.message}>
             <Input id="hold-minutes" inputMode="numeric" placeholder="38" {...register("holdMinutes")} />

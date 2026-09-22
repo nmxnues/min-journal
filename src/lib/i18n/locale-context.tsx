@@ -1,19 +1,33 @@
 "use client";
 
-import { createContext, useContext, useLayoutEffect, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useState, type ReactNode } from "react";
 import {
   getViewportLocale,
+  isMobileViewport,
   LOCALE_BREAKPOINT_PX,
+  LOCALE_PREFERENCE_COOKIE,
+  resolveLocale,
   VIEWPORT_LOCALE_COOKIE,
   type Locale,
+  type LocalePreference,
   type LocaleStrings,
 } from "./locale";
 
-const LocaleContext = createContext<Locale | null>(null);
+interface LocaleState {
+  /** The display language: the preference, or the viewport's under "auto". */
+  locale: Locale;
+  /** Layout only — true on a narrow screen whatever the language. */
+  isMobile: boolean;
+  preference: LocalePreference;
+  setPreference: (preference: LocalePreference) => void;
+}
 
-function writeCookie(locale: Locale) {
+const LocaleContext = createContext<LocaleState | null>(null);
+
+function writeCookie(name: string, value: string) {
   // 1 year, readable by the server on the next request so SSR starts correct.
-  document.cookie = `${VIEWPORT_LOCALE_COOKIE}=${locale}; path=/; max-age=31536000; samesite=lax`;
+  document.cookie = `${name}=${value}; path=/; max-age=31536000; samesite=lax`;
 }
 
 export interface LocaleProviderProps {
@@ -24,8 +38,13 @@ export interface LocaleProviderProps {
    * `window.innerWidth` read) or React throws a hydration mismatch, since
    * the server has no way to know the viewport width on a request it never
    * saw a screen for.
+   *
+   * This is the *viewport* locale (see VIEWPORT_LOCALE_COOKIE): it picks the
+   * layout, and the language only under "auto".
    */
   initialLocale: Locale;
+  /** From the `locale-preference` cookie; "auto" when unset. */
+  initialPreference: LocalePreference;
   children: ReactNode;
 }
 
@@ -45,37 +64,78 @@ export interface LocaleProviderProps {
  *    900px (e.g. rotating a tablet, or resizing a desktop window) updates the
  *    locale immediately without a reload.
  */
-export function LocaleProvider({ initialLocale, children }: LocaleProviderProps) {
-  const [locale, setLocale] = useState<Locale>(initialLocale);
+export function LocaleProvider({ initialLocale, initialPreference, children }: LocaleProviderProps) {
+  const router = useRouter();
+  const [viewportLocale, setViewportLocale] = useState<Locale>(initialLocale);
+  const [preference, setPreferenceState] = useState<LocalePreference>(initialPreference);
+  const locale = resolveLocale(preference, viewportLocale);
 
   useLayoutEffect(() => {
     const measured = getViewportLocale(window.innerWidth);
     if (measured !== initialLocale) {
-      setLocale(measured);
+      setViewportLocale(measured);
     }
-    writeCookie(measured);
-    document.documentElement.lang = measured;
+    writeCookie(VIEWPORT_LOCALE_COOKIE, measured);
 
     const query = window.matchMedia(`(min-width: ${LOCALE_BREAKPOINT_PX}px)`);
     function onChange(event: MediaQueryListEvent | MediaQueryList) {
       const next: Locale = event.matches ? "en" : "ko";
-      setLocale(next);
-      writeCookie(next);
-      document.documentElement.lang = next;
+      setViewportLocale(next);
+      writeCookie(VIEWPORT_LOCALE_COOKIE, next);
     }
     query.addEventListener("change", onChange);
     return () => query.removeEventListener("change", onChange);
   }, [initialLocale]);
 
-  return <LocaleContext.Provider value={locale}>{children}</LocaleContext.Provider>;
+  useLayoutEffect(() => {
+    document.documentElement.lang = locale;
+  }, [locale]);
+
+  const setPreference = useCallback(
+    (next: LocalePreference) => {
+      if (next === "auto") {
+        document.cookie = `${LOCALE_PREFERENCE_COOKIE}=; path=/; max-age=0; samesite=lax`;
+      } else {
+        writeCookie(LOCALE_PREFERENCE_COOKIE, next);
+      }
+      setPreferenceState(next);
+      // Server-rendered copy (page titles, anything a Server Component
+      // printed) re-renders in the new language.
+      router.refresh();
+    },
+    [router],
+  );
+
+  const value = useMemo(
+    () => ({ locale, isMobile: isMobileViewport(viewportLocale), preference, setPreference }),
+    [locale, viewportLocale, preference, setPreference],
+  );
+
+  return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
 }
 
-export function useLocale(): Locale {
-  const locale = useContext(LocaleContext);
-  if (locale === null) {
+function useLocaleState(): LocaleState {
+  const state = useContext(LocaleContext);
+  if (state === null) {
     throw new Error("useLocale must be used within a LocaleProvider");
   }
-  return locale;
+  return state;
+}
+
+/** Display language. Never use this to pick a layout — that's `useIsMobile`. */
+export function useLocale(): Locale {
+  return useLocaleState().locale;
+}
+
+/** Phone layout vs desktop layout, from the viewport width alone. */
+export function useIsMobile(): boolean {
+  return useLocaleState().isMobile;
+}
+
+/** The Settings screen's language choice for this browser. */
+export function useLocalePreference(): Pick<LocaleState, "preference" | "setPreference"> {
+  const { preference, setPreference } = useLocaleState();
+  return { preference, setPreference };
 }
 
 /**

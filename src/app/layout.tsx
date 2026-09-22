@@ -1,7 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import { LocaleProvider } from "@/lib/i18n/locale-context";
-import { parseInitialLocale, VIEWPORT_LOCALE_COOKIE } from "@/lib/i18n/locale";
+import {
+  LOCALE_PREFERENCE_COOKIE,
+  parseInitialLocale,
+  parseLocalePreference,
+  resolveLocale,
+  VIEWPORT_LOCALE_COOKIE,
+} from "@/lib/i18n/locale";
 import { SettingsProvider } from "@/lib/settings/context";
 import { getSettings } from "@/lib/supabase/queries";
 import "./globals.css";
@@ -54,6 +60,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   // that one case, corrected client-side before paint (see locale-context.tsx).
   const cookieStore = await cookies();
   const initialLocale = parseInitialLocale(cookieStore.get(VIEWPORT_LOCALE_COOKIE)?.value);
+  // Settings' language choice for this browser; "auto" follows the viewport.
+  const initialPreference = parseLocalePreference(cookieStore.get(LOCALE_PREFERENCE_COOKIE)?.value);
 
   // getSettings() is RLS-scoped and returns null rather than throwing when
   // there's no session (e.g. /login) or no row yet — safe to call on every
@@ -68,9 +76,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const rPrecision = settings?.r_precision ?? 1;
 
   return (
-    <html lang={initialLocale} data-pnl={pnlConvention} className="h-full antialiased">
+    <html lang={resolveLocale(initialPreference, initialLocale)} data-pnl={pnlConvention} className="h-full antialiased">
       <body className="min-h-full flex flex-col">
-        <LocaleProvider initialLocale={initialLocale}>
+        <LocaleProvider initialLocale={initialLocale} initialPreference={initialPreference}>
           <SettingsProvider value={{ rPrecision }}>{children}</SettingsProvider>
         </LocaleProvider>
       </body>

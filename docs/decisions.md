@@ -1157,3 +1157,45 @@ Dashboard and every other R statistic stay price-only (§ Commission).
 Ctrl/⌘+Enter saves; plain Enter is a newline in the memo boxes and inert in
 one-line fields. Time is a 4-digit 24-hour field, because the native time
 input in a Korean browser opens on an 오전/오후 segment.
+
+## Language setting (Auto / 한국어 / English)
+
+Settings gains a per-browser language choice. **Auto** (the default) is the
+original rule — English at ≥900px, Korean below — and the before/after
+screenshot comparison of every screen in Auto was pixel-identical except the
+new Settings card.
+
+**Layout and language are now separate signals.** Every screen used to pick
+its phone or desktop layout with `locale === "ko"`, which would have put the
+phone layout on a wide screen the moment someone chose Korean there. Layout
+now reads `useIsMobile()` (viewport width only); text reads `useLocale()`
+(the preference, or the viewport's language under Auto).
+
+**Stored in a cookie, not the settings row.** `locale-preference` is per
+browser so a desktop and a phone can differ, and the server reads it, so the
+first paint is already in the right language (no English flash). The
+existing `viewport-locale` cookie keeps its old values ("ko" = narrow), so
+devices that already have it keep working. Choosing Auto deletes the
+preference cookie.
+
+**Server text follows it too.** `getRequestLocale()` resolves the same two
+cookies on the server, so action error messages (`tr({ en, ko })`) and page
+titles (`localizedTitle`) come back in the language on screen without every
+caller passing it in. Under Auto the phone's tab titles are now Korean, the
+one visible Auto change.
+
+"New trade" reads "새 거래" in Korean; "Off-plan" stays English in both, by
+the user's choice.
+
+**Two older display bugs fixed in the same change** (they read wrong in both
+languages, so they were left out of the Auto comparison and fixed after it):
+
+- *Avg net win / loss* no longer clips ("−$6" for −$613 on phones) or wraps
+  (desktop). The pair is one line whose font-size is the card's own unless the
+  text is wider than the card, then it scales to fit — CSS only
+  (`min(1em, 100cqi / (chars × 0.6))`), so no flash. 0.6em/char is rounded up
+  from 0.52–0.58 measured in Chrome with Pretendard. On phones this card and
+  Commission paid span both columns, so ±$12,345 stays at the full 26px
+  instead of shrinking to ~11px in a half-width card.
+- English singular/plural: "1 trade" (Weekly review), "1 entry" (phone
+  Capital ledger), "1 data row" (CSV import). Korean text is unchanged.

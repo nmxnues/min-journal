@@ -13,6 +13,7 @@ import {
   SWEEP_SIDE_LABELS,
 } from "@/lib/labels";
 import { CSV_FIELD_LABELS, CSV_TARGET_FIELDS } from "../import/schema";
+import { tr } from "@/lib/i18n/server-locale";
 
 /**
  * Writes exactly the filtered set the table is showing (docs/README.md §
@@ -26,7 +27,7 @@ import { CSV_FIELD_LABELS, CSV_TARGET_FIELDS } from "../import/schema";
 export async function GET(request: NextRequest) {
   const account = await getCurrentAccount();
   if (account === null) {
-    return NextResponse.json({ error: "No account." }, { status: 404 });
+    return NextResponse.json({ error: await tr({ en: "No account.", ko: "계좌가 없습니다." }) }, { status: 404 });
   }
 
   const filters = parseTradeLogFilters(request.nextUrl.searchParams);

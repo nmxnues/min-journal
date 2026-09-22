@@ -69,8 +69,9 @@ export function BalanceAndRValueChart({
   legend,
   title,
   gradientId = "capital-fill",
+  label = "Account balance and the value of 1R over time",
   className,
-}: BalanceAndRValueChartProps) {
+}: BalanceAndRValueChartProps & { label?: string }) {
   const balances = points.map((p) => p.balance);
   const rValues = points.map((p) => p.rValue);
 
@@ -117,7 +118,7 @@ export function BalanceAndRValueChart({
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         preserveAspectRatio="none"
         role="img"
-        aria-label="Account balance and the value of 1R over time"
+        aria-label={label}
         className="block h-[170px] w-full"
       >
         <defs>

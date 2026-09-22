@@ -35,7 +35,7 @@ import {
   risk,
 } from "@/lib/domain/trade";
 import type { Trade } from "@/lib/domain/types";
-import { useLocale, useT } from "@/lib/i18n/locale-context";
+import { useIsMobile, useLocale, useT } from "@/lib/i18n/locale-context";
 import { usePasteAttachment } from "@/lib/use-paste-attachment";
 import { useTradeAttachments } from "./use-trade-attachments";
 
@@ -92,7 +92,7 @@ export function TradeView({ trade, attachments, currency }: TradeViewProps) {
   // Phase 3's EmptyState/BottomTabBar. `locale` is this app's own
   // mobile/desktop signal (Phase 3: it flips at exactly 900px), reused here
   // rather than introducing a second breakpoint mechanism.
-  const isMobile = locale === "ko";
+  const isMobile = useIsMobile();
 
   return (
     <div className={cn("mx-auto flex max-w-[1000px] flex-col gap-16", isMobile ? "p-20" : "p-32")}>

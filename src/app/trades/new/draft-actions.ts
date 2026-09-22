@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import type { NewTradeInput } from "./schema";
+import { tr } from "@/lib/i18n/server-locale";
 
 /**
  * `drafts` is one row per user (user_id is the PK) — a single in-progress
@@ -46,7 +47,7 @@ export async function saveDraft(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user === null) return { ok: false, error: "Not signed in." };
+  if (user === null) return { ok: false, error: await tr({ en: "Not signed in.", ko: "로그인이 필요합니다." }) };
 
   const { data, error } = await supabase
     .from("drafts")

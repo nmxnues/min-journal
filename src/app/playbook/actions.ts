@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getModels } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
 import type { ModelStatus } from "@/lib/domain/types";
+import { tr } from "@/lib/i18n/server-locale";
 
 export type ActionResult = { ok: true; id: string } | { ok: false; error: string };
 
@@ -21,7 +22,7 @@ export async function createModel(): Promise<ActionResult> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user === null) return { ok: false, error: "Not signed in." };
+  if (user === null) return { ok: false, error: await tr({ en: "Not signed in.", ko: "로그인이 필요합니다." }) };
 
   const existing = await getModels();
   const nextSortOrder = existing.reduce((max, m) => Math.max(max, m.sortOrder), -1) + 1;
@@ -55,7 +56,7 @@ export async function updateModel(id: string, input: UpdateModelInput): Promise<
   const supabase = await createClient();
 
   const name = input.name.trim();
-  if (name === "") return { ok: false, error: "Name can't be empty." };
+  if (name === "") return { ok: false, error: await tr({ en: "Name can't be empty.", ko: "이름을 입력하세요." }) };
 
   const { error } = await supabase
     .from("models")

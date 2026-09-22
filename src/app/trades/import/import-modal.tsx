@@ -193,7 +193,7 @@ export function ImportModal({ open, accountKind, onClose, onImported }: ImportMo
           <>
             <p className="text-13_5 leading-[1.6] text-secondary">
               {t({
-                en: `${dataRows.length} data rows found. Map each field below to a column, or leave optional ones unmapped.`,
+                en: `${dataRows.length} data ${dataRows.length === 1 ? "row" : "rows"} found. Map each field below to a column, or leave optional ones unmapped.`,
                 ko: `데이터 ${dataRows.length}행을 찾았습니다. 아래에서 각 필드를 컬럼에 매핑하세요 (선택 항목은 비워둘 수 있습니다).`,
               })}
             </p>

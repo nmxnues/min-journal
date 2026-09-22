@@ -114,7 +114,7 @@ export function MobileCapital({ data, summary, onRecordCash }: CapitalScreenProp
               {formatSignedCurrency(-summary.tradingCommission, currency, 2)}
             </div>
           )}
-          <Sparkline tone="ink" values={summary.series.map((p) => p.balance)} className="mt-16" />
+          <Sparkline tone="ink" label={t({ en: "Balance over time", ko: "잔고 추이" })} values={summary.series.map((p) => p.balance)} className="mt-16" />
         </Card>
 
         {/* 1R card */}
@@ -177,7 +177,7 @@ export function MobileCapital({ data, summary, onRecordCash }: CapitalScreenProp
 
           {expanded && (
             <div className="mt-14 flex items-center justify-between text-12_5">
-              <span className="font-medium text-faint">{t({ en: `${rows.length} entries`, ko: `${rows.length}건` })}</span>
+              <span className="font-medium text-faint">{t({ en: `${rows.length} ${rows.length === 1 ? "entry" : "entries"}`, ko: `${rows.length}건` })}</span>
               <a
                 href={`/capital/export?filter=${filter}`}
                 className="rounded-6 font-semibold text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"

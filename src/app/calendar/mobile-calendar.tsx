@@ -21,7 +21,7 @@ import { offPlan, realizedR } from "@/lib/domain/trade";
 import type { IsoDate, Trade, TradeModel } from "@/lib/domain/types";
 import { formatTradeDate } from "@/lib/format";
 import { useFormatR } from "@/lib/settings/context";
-import { useT } from "@/lib/i18n/locale-context";
+import { useLocale, useT } from "@/lib/i18n/locale-context";
 import { DIRECTION_LABELS, tradeCountLabel } from "@/lib/labels";
 import { heatStyle } from "./heat-scale";
 
@@ -35,6 +35,7 @@ export interface MobileCalendarProps {
 export function MobileCalendar({ month, trades, models, hasAccount }: MobileCalendarProps) {
   const formatR = useFormatR();
   const t = useT();
+  const locale = useLocale();
   const router = useRouter();
   const today = todayIso();
 
@@ -75,7 +76,7 @@ export function MobileCalendar({ month, trades, models, hasAccount }: MobileCale
           >
             <ChevronLeft aria-hidden size={18} />
           </Link>
-          <span className="text-20 font-extrabold tracking-[-.03em] text-ink">{formatMonthLabel(month, "ko")}</span>
+          <span className="text-20 font-extrabold tracking-[-.03em] text-ink">{formatMonthLabel(month, locale)}</span>
           <Link
             href={`/calendar?month=${nextMonth}`}
             aria-label={t({ en: "Next month", ko: "다음 달" })}
@@ -104,7 +105,7 @@ export function MobileCalendar({ month, trades, models, hasAccount }: MobileCale
       <div className="flex flex-1 flex-col gap-14 px-20 py-12">
         <Card className="px-18 py-20">
           <div className="mb-8 grid grid-cols-7 gap-6 text-center text-11 font-semibold text-faint">
-            {["일", "월", "화", "수", "목", "금", "토"].map((label, i) => (
+            {t({ en: "Sun Mon Tue Wed Thu Fri Sat", ko: "일 월 화 수 목 금 토" }).split(" ").map((label, i) => (
               <span key={i}>{label}</span>
             ))}
           </div>
@@ -152,7 +153,7 @@ export function MobileCalendar({ month, trades, models, hasAccount }: MobileCale
           ) : (
             <>
               <div className="text-15 font-bold text-ink">
-                {formatTradeDate(selectedDate, "ko", true)} ·{" "}
+                {formatTradeDate(selectedDate, locale, true)} ·{" "}
                 {t(tradeCountLabel(selectedDayStats?.tradeCount ?? 0))}{" "}
                 {selectedDayStats !== undefined && (
                   <span className={selectedDayStats.netR >= 0 ? "text-gain" : "text-loss"}>

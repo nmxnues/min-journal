@@ -45,7 +45,7 @@ import {
 import { MAX_TRADE_DATE, MIN_TRADE_DATE } from "@/lib/domain/dates";
 import { deriveSweepSide, plannedR, rangeSize, realizedR } from "@/lib/domain/trade";
 import type { AccountKind, SweepSide, TradeModel, TradeResult } from "@/lib/domain/types";
-import { useLocale, useT } from "@/lib/i18n/locale-context";
+import { useIsMobile, useLocale, useT } from "@/lib/i18n/locale-context";
 import { createTrade } from "./actions";
 import type { DraftRecord } from "./draft-actions";
 import { createNewTradeSchema, NEW_TRADE_DEFAULTS, type NewTradeInput } from "./schema";
@@ -122,6 +122,7 @@ export function NewTradeForm({
   const formatR = useFormatR();
   const t = useT();
   const locale = useLocale();
+  const isMobile = useIsMobile();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
@@ -344,7 +345,7 @@ export function NewTradeForm({
         }
       : undefined;
 
-  if (locale === "ko") {
+  if (isMobile) {
     return (
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
         <header className="sticky top-0 z-10 flex flex-col gap-14 bg-page px-20 pt-16 pb-14">

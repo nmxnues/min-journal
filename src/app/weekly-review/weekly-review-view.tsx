@@ -23,8 +23,8 @@ import {
 } from "@/lib/domain/weekly-review";
 import { formatPercent } from "@/lib/format";
 import { useFormatR } from "@/lib/settings/context";
-import { useLocale, useT } from "@/lib/i18n/locale-context";
-import { DIRECTION_LABELS, SESSION_LABELS } from "@/lib/labels";
+import { useIsMobile, useLocale, useT } from "@/lib/i18n/locale-context";
+import { DIRECTION_LABELS, SESSION_LABELS, tradeCountLabel } from "@/lib/labels";
 import { signOut } from "../actions";
 import { saveFocusItems, saveReviewText } from "./actions";
 
@@ -62,7 +62,7 @@ export function WeeklyReviewView({ week, hasAccount, review, previous, trades = 
   const formatR = useFormatR();
   const t = useT();
   const locale = useLocale();
-  const isMobile = locale === "ko";
+  const isMobile = useIsMobile();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -82,7 +82,7 @@ export function WeeklyReviewView({ week, hasAccount, review, previous, trades = 
       activeHref=""
       right={
         <>
-          <Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "New trade" })}</Button>
+          <Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "새 거래" })}</Button>
           <SignOutButton signOutAction={signOut} />
         </>
       }
@@ -109,7 +109,7 @@ export function WeeklyReviewView({ week, hasAccount, review, previous, trades = 
               en: "Log a trade first, then come back at the end of the week.",
               ko: "먼저 트레이드를 기록한 뒤 주말에 다시 들러보세요.",
             })}
-            action={<Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "New trade" })}</Button>}
+            action={<Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "새 거래" })}</Button>}
             className="w-full max-w-[440px]"
           />
         </div>
@@ -229,7 +229,7 @@ export function WeeklyReviewView({ week, hasAccount, review, previous, trades = 
                 label={t({ en: "Net", ko: "순 R" })}
                 value={formatR(summary.netR)}
                 tone={summary.netR >= 0 ? "gain" : "loss"}
-                sub={t({ en: `${summary.tradeCount} trades`, ko: `${summary.tradeCount}건` })}
+                sub={t(tradeCountLabel(summary.tradeCount))}
               />
               <StatCard
                 label={t({ en: "Win rate", ko: "승률" })}

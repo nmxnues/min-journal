@@ -10,6 +10,7 @@ import {
   uniqueAttachmentFilename,
 } from "@/lib/attachments";
 import { createClient } from "@/lib/supabase/server";
+import { tr } from "@/lib/i18n/server-locale";
 
 export type ReserveResult = { ok: true; path: string } | { ok: false; error: string };
 export type ActionResultVoid = { ok: true } | { ok: false; error: string };
@@ -31,16 +32,16 @@ export async function reserveTradeAttachmentPath(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user === null) return { ok: false, error: "Not signed in." };
+  if (user === null) return { ok: false, error: await tr({ en: "Not signed in.", ko: "로그인이 필요합니다." }) };
 
   if (!(ALLOWED_ATTACHMENT_TYPES as readonly string[]).includes(file.type)) {
-    return { ok: false, error: "That file type isn't supported." };
+    return { ok: false, error: await tr({ en: "That file type isn't supported.", ko: "지원하지 않는 파일 형식입니다." }) };
   }
   if (file.size > MAX_ATTACHMENT_BYTES) {
-    return { ok: false, error: "That file is too large." };
+    return { ok: false, error: await tr({ en: "That file is too large.", ko: "파일이 너무 큽니다." }) };
   }
   if (existingCount >= MAX_ATTACHMENTS_PER_TRADE) {
-    return { ok: false, error: `Up to ${MAX_ATTACHMENTS_PER_TRADE} attachments per trade.` };
+    return { ok: false, error: await tr({ en: `Up to ${MAX_ATTACHMENTS_PER_TRADE} attachments per trade.`, ko: `트레이드당 첨부는 최대 ${MAX_ATTACHMENTS_PER_TRADE}개입니다.` }) };
   }
 
   const path = tradeAttachmentPath(user.id, tradeId, uniqueAttachmentFilename(file.name));
@@ -58,7 +59,7 @@ export async function confirmTradeAttachment(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user === null) return { ok: false, error: "Not signed in." };
+  if (user === null) return { ok: false, error: await tr({ en: "Not signed in.", ko: "로그인이 필요합니다." }) };
 
   const { error } = await supabase.from("attachments").insert({
     user_id: user.id,
@@ -84,8 +85,8 @@ export async function removeTradeAttachment(tradeId: string, path: string): Prom
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user === null) return { ok: false, error: "Not signed in." };
-  if (!path.startsWith(`${user.id}/`)) return { ok: false, error: "Not your attachment." };
+  if (user === null) return { ok: false, error: await tr({ en: "Not signed in.", ko: "로그인이 필요합니다." }) };
+  if (!path.startsWith(`${user.id}/`)) return { ok: false, error: await tr({ en: "Not your attachment.", ko: "내 첨부 파일이 아닙니다." }) };
 
   await supabase.storage.from(CHART_SHOTS_BUCKET).remove([path]);
   const { error } = await supabase

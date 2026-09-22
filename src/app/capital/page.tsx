@@ -1,11 +1,9 @@
-import type { Metadata } from "next";
 import { todayIso } from "@/lib/domain/dates";
 import { getAccountLedgerInputs, getAllAccounts, getModels, getCurrentAccount } from "@/lib/supabase/queries";
 import { CapitalView } from "./capital-view";
+import { localizedTitle } from "@/lib/i18n/server-locale";
 
-export const metadata: Metadata = {
-  title: "Capital · Min Journal",
-};
+export const generateMetadata = localizedTitle({ en: "Capital", ko: "자산" });
 
 export default async function CapitalPage() {
   const [account, allAccounts] = await Promise.all([getCurrentAccount(), getAllAccounts()]);

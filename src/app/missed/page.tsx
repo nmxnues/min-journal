@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import { currentIsoMonth, isValidIsoMonth, monthRange } from "@/lib/domain/dates";
 import { summarizeMissed, netRAfterCommission } from "@/lib/domain/missed-trade";
 import { isoWeekRange, isValidIsoWeek, todayIsoWeek } from "@/lib/domain/weekly-review";
@@ -10,10 +9,9 @@ import {
   getTradesInRange,
 } from "@/lib/supabase/queries";
 import { MissedView, type MissedPeriod } from "./missed-view";
+import { localizedTitle } from "@/lib/i18n/server-locale";
 
-export const metadata: Metadata = {
-  title: "Missed trades · Min Journal",
-};
+export const generateMetadata = localizedTitle({ en: "Missed trades", ko: "놓친 거래" });
 
 /** `?month=YYYY-MM` shows a month; anything else (default) shows an ISO week. */
 function resolvePeriod(params: { week?: string; month?: string }): MissedPeriod {

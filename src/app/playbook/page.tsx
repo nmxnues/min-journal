@@ -1,11 +1,9 @@
-import type { Metadata } from "next";
 import { byModel } from "@/lib/domain/stats";
 import { getAllTrades, getModels, getCurrentAccount } from "@/lib/supabase/queries";
 import { PlaybookView } from "./playbook-view";
+import { localizedTitle } from "@/lib/i18n/server-locale";
 
-export const metadata: Metadata = {
-  title: "Playbook · Min Journal",
-};
+export const generateMetadata = localizedTitle({ en: "Playbook", ko: "플레이북" });
 
 export default async function PlaybookPage() {
   const account = await getCurrentAccount();

@@ -178,7 +178,7 @@ export function MobileHome({ period, trades, models, hasAccount, drawdownAlert, 
             </span>
           </div>
           {equity.points.length > 1 && (
-            <Sparkline values={equity.points.map((p) => p.cumulativeR)} className="mt-18" />
+            <Sparkline label={t({ en: "Recent performance", ko: "최근 성과" })} values={equity.points.map((p) => p.cumulativeR)} className="mt-18" />
           )}
         </Card>
 

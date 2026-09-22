@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import { moneyStats, netR, winRate } from "@/lib/domain/stats";
 import {
   filterTrades,
@@ -10,10 +9,9 @@ import {
 } from "@/lib/domain/trade-log";
 import { getAllTrades, getModels, getCurrentAccount } from "@/lib/supabase/queries";
 import { TradeLogView } from "./trade-log-view";
+import { localizedTitle } from "@/lib/i18n/server-locale";
 
-export const metadata: Metadata = {
-  title: "Trades · Min Journal",
-};
+export const generateMetadata = localizedTitle({ en: "Trades", ko: "기록" });
 
 export default async function TradeLogPage({
   searchParams,

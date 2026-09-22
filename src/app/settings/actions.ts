@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { parseNumberInput } from "@/lib/format";
 import type { PnlConvention, Session } from "@/lib/domain/types";
 import { createClient } from "@/lib/supabase/server";
+import { tr } from "@/lib/i18n/server-locale";
 
 export type SettingsActionResult = { ok: true } | { ok: false; error: string };
 
@@ -32,34 +33,34 @@ export async function updateSettings(input: SettingsInput): Promise<SettingsActi
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user === null) return { ok: false, error: "Not signed in." };
+  if (user === null) return { ok: false, error: await tr({ en: "Not signed in.", ko: "로그인이 필요합니다." }) };
 
   if (!VALID_PNL_CONVENTIONS.includes(input.pnlConvention)) {
-    return { ok: false, error: "Unknown P&L color convention." };
+    return { ok: false, error: await tr({ en: "Unknown P&L color convention.", ko: "알 수 없는 손익 색상 설정입니다." }) };
   }
   if (!VALID_SESSIONS.includes(input.defaultSession)) {
-    return { ok: false, error: "Unknown default session." };
+    return { ok: false, error: await tr({ en: "Unknown default session.", ko: "알 수 없는 기본 세션입니다." }) };
   }
   const instrument = input.defaultInstrument.trim();
-  if (instrument === "") return { ok: false, error: "Enter a default instrument." };
+  if (instrument === "") return { ok: false, error: await tr({ en: "Enter a default instrument.", ko: "기본 종목을 입력하세요." }) };
 
   const rPrecision = parseNumberInput(input.rPrecision);
   if (rPrecision === null || !Number.isInteger(rPrecision) || rPrecision < 0 || rPrecision > 4) {
-    return { ok: false, error: "R precision must be a whole number of decimal places, 0 to 4." };
+    return { ok: false, error: await tr({ en: "R precision must be a whole number of decimal places, 0 to 4.", ko: "R 소수 자릿수는 0~4 사이의 정수여야 합니다." }) };
   }
 
   // Trimmed, non-empty, de-duplicated — same re-validation stance as every
   // other field here (the client's own trim/dedupe is a display nicety, not
   // the source of truth).
   const tagPresets = [...new Set(input.tagPresets.map((tag) => tag.trim()).filter((tag) => tag !== ""))];
-  if (tagPresets.length === 0) return { ok: false, error: "Add at least one tag." };
+  if (tagPresets.length === 0) return { ok: false, error: await tr({ en: "Add at least one tag.", ko: "태그를 하나 이상 추가하세요." }) };
 
   // Blank reads as 0 (no commission to prefill); a negative is refused here
   // as well as by the column's CHECK, since a commission is always a cost.
   const commission =
     input.commissionPerLotPerSide.trim() === "" ? 0 : parseNumberInput(input.commissionPerLotPerSide);
   if (commission === null || commission < 0) {
-    return { ok: false, error: "Commission per lot must be a number of 0 or more." };
+    return { ok: false, error: await tr({ en: "Commission per lot must be a number of 0 or more.", ko: "1랏당 커미션은 0 이상의 숫자여야 합니다." }) };
   }
 
   // upsert, not update: settings.user_id is the PK, always seeded by

@@ -8,7 +8,7 @@ import { rValueForBalance, type CapitalSeriesPoint } from "@/lib/domain/capital"
 import type { Account, RiskSetting } from "@/lib/domain/types";
 import { formatCurrency, formatTradeDate, parseNumberInput } from "@/lib/format";
 import type { LocaleStrings } from "@/lib/i18n/locale";
-import { useLocale, useT } from "@/lib/i18n/locale-context";
+import { useIsMobile, useLocale, useT } from "@/lib/i18n/locale-context";
 import { tradeCountLabel } from "@/lib/labels";
 import { updateRiskSetting } from "./actions";
 import type { CapitalData, CapitalSummary } from "./use-capital-summary";
@@ -51,7 +51,7 @@ export function RiskPerTradeCard({
   compact?: boolean;
 }) {
   const t = useT();
-  const locale = useLocale();
+  const isMobile = useIsMobile();
   const { account } = data;
   const currency = account.currency;
   const [target, setTarget] = useState<RiskOption | null>(null);
@@ -116,7 +116,7 @@ export function RiskPerTradeCard({
           rValueToday={summary.rValueToday}
           loggedTradeCount={data.trades.length}
           target={target}
-          variant={locale === "ko" ? "sheet" : "modal"}
+          variant={isMobile ? "sheet" : "modal"}
           onClose={() => setTarget(null)}
         />
       )}

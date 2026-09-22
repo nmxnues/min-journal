@@ -124,6 +124,7 @@ export function DesktopCapital({ data, summary, onRecordCash }: CapitalScreenPro
             </div>
           </div>
           <BalanceAndRValueChart
+            label={t({ en: "Account balance and the value of 1R over time", ko: "기간별 계좌 잔고와 1R 금액" })}
             title={t({ en: "Balance & 1R value", ko: "잔고 · 1R 값" })}
             legend={{ balance: t({ en: "Balance", ko: "잔고" }), rValue: t({ en: "1R value", ko: "1R 값" }) }}
             points={chart.points}

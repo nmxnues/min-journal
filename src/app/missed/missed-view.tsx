@@ -15,7 +15,7 @@ import { missedNetR, type MissedSummary, type MissedTrade } from "@/lib/domain/m
 import type { AccountKind, IsoDate } from "@/lib/domain/types";
 import { formatWeekLabel, isoWeekOf, shiftIsoWeek, type IsoWeek } from "@/lib/domain/weekly-review";
 import { formatPrice, formatTradeDate } from "@/lib/format";
-import { useLocale, useT } from "@/lib/i18n/locale-context";
+import { useIsMobile, useLocale, useT } from "@/lib/i18n/locale-context";
 import { DIRECTION_LABELS, MISS_REASON_LABELS, RESULT_LABELS, SESSION_LABELS } from "@/lib/labels";
 import { useFormatR } from "@/lib/settings/context";
 import { signOut } from "../actions";
@@ -57,7 +57,7 @@ const rTone = (r: number) => (r > 0 ? "text-gain" : r < 0 ? "text-loss" : "text-
  */
 export function MissedView(props: MissedViewProps) {
   const t = useT();
-  const isMobile = useLocale() === "ko";
+  const isMobile = useIsMobile();
   const router = useRouter();
 
   return (
@@ -68,7 +68,7 @@ export function MissedView(props: MissedViewProps) {
           activeHref="/missed"
           right={
             <>
-              <Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "New trade" })}</Button>
+              <Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "새 거래" })}</Button>
               <SignOutButton signOutAction={signOut} />
             </>
           }

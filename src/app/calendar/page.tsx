@@ -1,11 +1,9 @@
-import type { Metadata } from "next";
 import { currentIsoMonth, isValidIsoMonth, monthRange } from "@/lib/domain/dates";
 import { getModels, getCurrentAccount, getTradesInRange } from "@/lib/supabase/queries";
 import { CalendarView } from "./calendar-view";
+import { localizedTitle } from "@/lib/i18n/server-locale";
 
-export const metadata: Metadata = {
-  title: "Calendar · Min Journal",
-};
+export const generateMetadata = localizedTitle({ en: "Calendar", ko: "캘린더" });
 
 export default async function CalendarPage({
   searchParams,

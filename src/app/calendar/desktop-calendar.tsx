@@ -75,7 +75,7 @@ export function DesktopCalendar({ month, trades, models, hasAccount }: DesktopCa
         activeHref="/calendar"
         right={
           <>
-            <Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "New trade" })}</Button>
+            <Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "새 거래" })}</Button>
             <SignOutButton signOutAction={signOut} />
           </>
         }
@@ -121,7 +121,7 @@ export function DesktopCalendar({ month, trades, models, hasAccount }: DesktopCa
               en: "Once you record a trade, this calendar fills in with your daily results.",
               ko: "트레이드를 기록하면 이 캘린더에 일별 결과가 채워집니다.",
             })}
-            action={<Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "New trade" })}</Button>}
+            action={<Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "새 거래" })}</Button>}
             className="w-full max-w-[440px]"
           />
         </div>

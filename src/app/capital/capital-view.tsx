@@ -7,7 +7,7 @@ import { toNavItems, toTabItems } from "@/components/nav/routes";
 import { SignOutButton } from "@/components/nav/sign-out-button";
 import { TopBar } from "@/components/nav/top-bar";
 import { Button, EmptyState } from "@/components/ui";
-import { useLocale, useT } from "@/lib/i18n/locale-context";
+import { useIsMobile, useT } from "@/lib/i18n/locale-context";
 import { signOut } from "../actions";
 import { AccountSetup } from "../trades/new/account-setup";
 import { CashMovementModal } from "./cash-movement-modal";
@@ -26,11 +26,10 @@ export function CapitalView({ data }: { data: CapitalData | null }) {
 }
 
 function CapitalScreen({ data }: { data: CapitalData }) {
-  const locale = useLocale();
   const router = useRouter();
   const summary = useCapitalSummary(data);
   const [cashOpen, setCashOpen] = useState(false);
-  const isMobile = locale === "ko";
+  const isMobile = useIsMobile();
 
   const screenProps = { data, summary, onRecordCash: () => setCashOpen(true) };
 
@@ -61,10 +60,9 @@ function CapitalScreen({ data }: { data: CapitalData }) {
  */
 function NoAccount() {
   const t = useT();
-  const locale = useLocale();
   const router = useRouter();
   const [setupOpen, setSetupOpen] = useState(false);
-  const isMobile = locale === "ko";
+  const isMobile = useIsMobile();
 
   return (
     <div className="flex min-h-full flex-col bg-page">

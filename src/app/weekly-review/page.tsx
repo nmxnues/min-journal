@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import { netR, ruleAdherence, winRate } from "@/lib/domain/stats";
 import { offPlan } from "@/lib/domain/trade";
 import {
@@ -11,10 +10,9 @@ import {
 import { getModels, getCurrentAccount, getTradesInRange } from "@/lib/supabase/queries";
 import { getOrCreateWeeklyReview } from "./get-or-create";
 import { WeeklyReviewView } from "./weekly-review-view";
+import { localizedTitle } from "@/lib/i18n/server-locale";
 
-export const metadata: Metadata = {
-  title: "Weekly review · Min Journal",
-};
+export const generateMetadata = localizedTitle({ en: "Weekly review", ko: "주간 리뷰" });
 
 export default async function WeeklyReviewPage({
   searchParams,

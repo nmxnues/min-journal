@@ -13,7 +13,7 @@ import type { ModelStats } from "@/lib/domain/stats";
 import type { TradeModel } from "@/lib/domain/types";
 import { formatPercent } from "@/lib/format";
 import { useFormatR } from "@/lib/settings/context";
-import { useLocale, useT } from "@/lib/i18n/locale-context";
+import { useIsMobile, useT } from "@/lib/i18n/locale-context";
 import { signOut } from "../actions";
 import { createModel, setModelStatus, updateModel } from "./actions";
 
@@ -27,8 +27,7 @@ const em = "—";
 
 export function PlaybookView({ models, stats, hasAccount }: PlaybookViewProps) {
   const t = useT();
-  const locale = useLocale();
-  const isMobile = locale === "ko";
+  const isMobile = useIsMobile();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [expandedId, setExpandedId] = useState<string | null>(models[0]?.id ?? null);
@@ -51,7 +50,7 @@ export function PlaybookView({ models, stats, hasAccount }: PlaybookViewProps) {
       activeHref="/playbook"
       right={
         <>
-          <Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "New trade" })}</Button>
+          <Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "새 거래" })}</Button>
           <SignOutButton signOutAction={signOut} />
         </>
       }
@@ -80,7 +79,7 @@ export function PlaybookView({ models, stats, hasAccount }: PlaybookViewProps) {
               en: "Add the setups you actually trade, so the dashboard can tell you which ones earn their place.",
               ko: "실제로 거래하는 셋업을 추가하면 대시보드에서 어떤 모델이 제 몫을 하는지 알 수 있습니다.",
             })}
-            action={<Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "New trade" })}</Button>}
+            action={<Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "새 거래" })}</Button>}
             className="w-full max-w-[440px]"
           />
         </div>

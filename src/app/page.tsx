@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import { drawdownState } from "@/lib/domain/capital";
 import { currentIsoMonth } from "@/lib/domain/dates";
 import { parseDashboardPeriod, resolveDashboardPeriod } from "@/lib/domain/dashboard-period";
@@ -10,10 +9,9 @@ import {
   getTradesInRange,
 } from "@/lib/supabase/queries";
 import { Dashboard } from "./dashboard";
+import { localizedTitle } from "@/lib/i18n/server-locale";
 
-export const metadata: Metadata = {
-  title: "Dashboard · Min Journal",
-};
+export const generateMetadata = localizedTitle({ en: "Dashboard", ko: "홈" });
 
 export default async function Home({
   searchParams,

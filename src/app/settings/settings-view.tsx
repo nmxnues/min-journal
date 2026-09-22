@@ -11,7 +11,8 @@ import { Button, Card, Combobox, Field, Input, Segmented } from "@/components/ui
 import { cn } from "@/lib/cn";
 import type { PnlConvention, Session, Settings } from "@/lib/domain/types";
 import { formatR, parseNumberInput } from "@/lib/format";
-import { useLocale, useT } from "@/lib/i18n/locale-context";
+import type { LocalePreference } from "@/lib/i18n/locale";
+import { useIsMobile, useLocalePreference, useT } from "@/lib/i18n/locale-context";
 import { INSTRUMENT_PRESETS } from "@/lib/instruments";
 import { SESSION_LABELS, SESSION_ORDER } from "@/lib/labels";
 import { signOut } from "../actions";
@@ -34,8 +35,8 @@ export interface SettingsViewProps {
  */
 export function SettingsView({ settings }: SettingsViewProps) {
   const t = useT();
-  const locale = useLocale();
-  const isMobile = locale === "ko";
+  const isMobile = useIsMobile();
+  const { preference: language, setPreference: setLanguage } = useLocalePreference();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -84,7 +85,7 @@ export function SettingsView({ settings }: SettingsViewProps) {
       activeHref=""
       right={
         <>
-          <Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "New trade" })}</Button>
+          <Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "새 거래" })}</Button>
           <SignOutButton signOutAction={signOut} />
         </>
       }
@@ -102,6 +103,29 @@ export function SettingsView({ settings }: SettingsViewProps) {
       {isMobile ? mobileHeader : topBar}
 
       <div className={cn("mx-auto flex w-full max-w-[720px] flex-1 flex-col gap-16", isMobile ? "p-20" : "p-32")}>
+        {/* Language — per browser, applies at once (not part of Save) */}
+        <Card className={cn(isMobile ? "px-20 py-24" : "px-28 py-26")}>
+          <h2 className="text-16 font-bold tracking-[-.02em] text-ink">{t({ en: "Language", ko: "언어" })}</h2>
+          <p className="mt-6 text-13_5 leading-[1.6] text-secondary">
+            {t({
+              en: "Auto shows English on a computer and Korean on a phone. Saved on this browser only, so each device keeps its own choice. Applies right away.",
+              ko: "자동은 컴퓨터에서 영어, 휴대폰에서 한국어로 보여줍니다. 이 브라우저에만 저장되어 기기마다 따로 정할 수 있고, 바로 적용됩니다.",
+            })}
+          </p>
+          <Segmented<LocalePreference>
+            className="mt-16"
+            name={t({ en: "Language", ko: "언어" })}
+            value={language}
+            onChange={setLanguage}
+            options={[
+              { value: "auto", label: t({ en: "Auto", ko: "자동" }) },
+              // Each language is named in itself, so it can be found from either.
+              { value: "ko", label: "한국어" },
+              { value: "en", label: "English" },
+            ]}
+          />
+        </Card>
+
         {/* P&L convention */}
         <Card className={cn(isMobile ? "px-20 py-24" : "px-28 py-26")}>
           <h2 className="text-16 font-bold tracking-[-.02em] text-ink">

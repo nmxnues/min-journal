@@ -8,6 +8,7 @@ import { CHART_SHOTS_BUCKET } from "@/lib/attachments";
 import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/lib/i18n/locale";
 import { createEditTradeSchema, type EditTradeInput } from "./schema";
+import { tr } from "@/lib/i18n/server-locale";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -32,7 +33,7 @@ export async function updateTrade(
 ): Promise<ActionResult> {
   const parsed = createEditTradeSchema(locale).safeParse(values);
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
+    return { ok: false, error: parsed.error.issues[0]?.message ?? await tr({ en: "Invalid input.", ko: "입력값이 올바르지 않습니다." }) };
   }
   const v = parsed.data;
 
@@ -40,7 +41,7 @@ export async function updateTrade(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user === null) return { ok: false, error: "Not signed in." };
+  if (user === null) return { ok: false, error: await tr({ en: "Not signed in.", ko: "로그인이 필요합니다." }) };
 
   const rangeHigh = parseNumberInput(v.rangeHigh)!;
   const rangeLow = parseNumberInput(v.rangeLow)!;
@@ -109,7 +110,7 @@ export async function deleteTrade(id: string): Promise<ActionResult> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user === null) return { ok: false, error: "Not signed in." };
+  if (user === null) return { ok: false, error: await tr({ en: "Not signed in.", ko: "로그인이 필요합니다." }) };
 
   const folder = `${user.id}/${id}`;
   const { data: objects } = await supabase.storage.from(CHART_SHOTS_BUCKET).list(folder);

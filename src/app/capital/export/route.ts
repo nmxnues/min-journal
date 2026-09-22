@@ -4,6 +4,7 @@ import { filterLedger, ledger } from "@/lib/domain/capital";
 import { todayIso } from "@/lib/domain/dates";
 import { getAccountLedgerInputs, getModels, getCurrentAccount } from "@/lib/supabase/queries";
 import { describeLedgerEntry, LEDGER_KIND_LABELS, parseLedgerFilter } from "../ledger-copy";
+import { tr } from "@/lib/i18n/server-locale";
 
 /**
  * The ledger card's "Export CSV" (mock 3a) — the same rows the card shows under
@@ -14,7 +15,7 @@ import { describeLedgerEntry, LEDGER_KIND_LABELS, parseLedgerFilter } from "../l
 export async function GET(request: NextRequest) {
   const account = await getCurrentAccount();
   if (account === null) {
-    return NextResponse.json({ error: "No account." }, { status: 404 });
+    return NextResponse.json({ error: await tr({ en: "No account.", ko: "계좌가 없습니다." }) }, { status: 404 });
   }
 
   const filter = parseLedgerFilter(request.nextUrl.searchParams.get("filter"));

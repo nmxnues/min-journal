@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { drawdownState } from "@/lib/domain/capital";
 import { DEFAULT_TAG_PRESETS } from "@/lib/labels";
@@ -11,10 +10,9 @@ import {
   getTradeAttachments,
 } from "@/lib/supabase/queries";
 import { TradeDetail } from "./trade-detail";
+import { localizedTitle } from "@/lib/i18n/server-locale";
 
-export const metadata: Metadata = {
-  title: "Trade detail · Min Journal",
-};
+export const generateMetadata = localizedTitle({ en: "Trade detail", ko: "거래 상세" });
 
 export default async function TradeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

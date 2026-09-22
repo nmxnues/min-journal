@@ -26,7 +26,7 @@ import {
 import type { AccountKind, Trade, TradeModel } from "@/lib/domain/types";
 import { formatCompactDate, formatCurrency, formatPercent, formatSignedCurrency } from "@/lib/format";
 import { useFormatR } from "@/lib/settings/context";
-import { useLocale, useT } from "@/lib/i18n/locale-context";
+import { useIsMobile, useT } from "@/lib/i18n/locale-context";
 import { INSTRUMENT_PRESETS } from "@/lib/instruments";
 import {
   DIRECTION_LABELS,
@@ -100,8 +100,7 @@ export function TradeLogView({
 }: TradeLogViewProps) {
   const formatR = useFormatR();
   const t = useT();
-  const locale = useLocale();
-  const isMobile = locale === "ko";
+  const isMobile = useIsMobile();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [importOpen, setImportOpen] = useState(false);
@@ -142,7 +141,7 @@ export function TradeLogView({
       activeHref="/trades"
       right={
         <>
-          <Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "New trade" })}</Button>
+          <Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "새 거래" })}</Button>
           <SignOutButton signOutAction={signOut} />
         </>
       }
@@ -166,7 +165,7 @@ export function TradeLogView({
               en: "Once you record a trade, it shows up here.",
               ko: "트레이드를 기록하면 이곳에 표시됩니다.",
             })}
-            action={<Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "New trade" })}</Button>}
+            action={<Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "새 거래" })}</Button>}
             className="w-full max-w-[440px]"
           />
         </div>

@@ -12,6 +12,7 @@ import { attachDraftFilesToTrade } from "./attachments-actions";
 import { deleteDraft } from "./draft-actions";
 import { createNewTradeSchema, type NewTradeInput } from "./schema";
 import type { Locale } from "@/lib/i18n/locale";
+import { tr } from "@/lib/i18n/server-locale";
 
 export type ActionResult = { ok: true; id: string } | { ok: false; error: string };
 
@@ -39,24 +40,24 @@ export async function createAccount(input: AccountSetupInput): Promise<ActionRes
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (user === null) return { ok: false, error: "Not signed in." };
+  if (user === null) return { ok: false, error: await tr({ en: "Not signed in.", ko: "로그인이 필요합니다." }) };
 
   const startingCapital = parseNumberInput(input.startingCapital);
   const riskPercent = parseNumberInput(input.riskPercent);
   const drawdownLimitPercent = parseNumberInput(input.drawdownLimitPercent);
 
   if (startingCapital === null || startingCapital < 0) {
-    return { ok: false, error: "Enter your starting capital." };
+    return { ok: false, error: await tr({ en: "Enter your starting capital.", ko: "시작 자본을 입력하세요." }) };
   }
   if (riskPercent === null || riskPercent <= 0) {
-    return { ok: false, error: "Enter the percentage of the balance you risk per trade." };
+    return { ok: false, error: await tr({ en: "Enter the percentage of the balance you risk per trade.", ko: "트레이드당 잔고의 몇 %를 걸지 입력하세요." }) };
   }
   if (drawdownLimitPercent === null || drawdownLimitPercent <= 0) {
-    return { ok: false, error: "Enter a drawdown limit." };
+    return { ok: false, error: await tr({ en: "Enter a drawdown limit.", ko: "드로다운 한도를 입력하세요." }) };
   }
   const startedAt = /^\d{4}-\d{2}-\d{2}$/.test(input.startedAt) ? input.startedAt : todayIso();
   if (input.kind === "backtest" && startedAt > todayIso()) {
-    return { ok: false, error: "A backtest account's start date can't be in the future." };
+    return { ok: false, error: await tr({ en: "A backtest account's start date can't be in the future.", ko: "백테스트 계좌의 시작일은 미래일 수 없습니다." }) };
   }
 
   const { data, error } = await supabase
@@ -89,7 +90,7 @@ export async function createTrade(
 ): Promise<ActionResult> {
   const parsed = createNewTradeSchema(locale).safeParse(values);
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
+    return { ok: false, error: parsed.error.issues[0]?.message ?? await tr({ en: "Invalid input.", ko: "입력값이 올바르지 않습니다." }) };
   }
   const v = parsed.data;
 
@@ -97,10 +98,10 @@ export async function createTrade(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user === null) return { ok: false, error: "Not signed in." };
+  if (user === null) return { ok: false, error: await tr({ en: "Not signed in.", ko: "로그인이 필요합니다." }) };
 
   const account = await getCurrentAccount();
-  if (account === null) return { ok: false, error: "Set up an account first." };
+  if (account === null) return { ok: false, error: await tr({ en: "Set up an account first.", ko: "먼저 계좌를 만드세요." }) };
 
   const rangeHigh = parseNumberInput(v.rangeHigh)!;
   const rangeLow = parseNumberInput(v.rangeLow)!;
@@ -142,7 +143,7 @@ export async function createTrade(
       ? rValueAsOfDate(account, cashMovements, trades, riskChanges, v.date)
       : currentRValue(account, cashMovements, trades);
   if (!Number.isFinite(rValueAtEntry) || rValueAtEntry <= 0) {
-    return { ok: false, error: "This account's 1R works out to zero — check its risk settings." };
+    return { ok: false, error: await tr({ en: "This account's 1R works out to zero — check its risk settings.", ko: "이 계좌의 1R이 0으로 계산됩니다 — 리스크 설정을 확인하세요." }) };
   }
 
   const { data, error } = await supabase

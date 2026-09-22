@@ -13,6 +13,7 @@ import { parseNumberInput } from "@/lib/format";
 import { CURRENT_ACCOUNT_COOKIE } from "@/lib/current-account";
 import { createClient } from "@/lib/supabase/server";
 import { getAccount, getAccountLedgerInputs, toCashMovement } from "@/lib/supabase/queries";
+import { tr } from "@/lib/i18n/server-locale";
 
 /**
  * Capital's writes. Every check the client already makes is repeated here —
@@ -49,29 +50,29 @@ export async function recordCashMovement(input: RecordCashMovementInput): Promis
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user === null) return { ok: false, error: "Not signed in." };
+  if (user === null) return { ok: false, error: await tr({ en: "Not signed in.", ko: "로그인이 필요합니다." }) };
 
   if (input.type !== "deposit" && input.type !== "withdrawal") {
-    return { ok: false, error: "Choose deposit or withdrawal." };
+    return { ok: false, error: await tr({ en: "Choose deposit or withdrawal.", ko: "입금 또는 출금을 선택하세요." }) };
   }
 
   const account = await getAccount(input.accountId);
-  if (account === null) return { ok: false, error: "Account not found." };
+  if (account === null) return { ok: false, error: await tr({ en: "Account not found.", ko: "계좌를 찾을 수 없습니다." }) };
 
   const amount = parseNumberInput(input.amount);
-  if (amount === null || amount <= 0) return { ok: false, error: "Enter an amount above zero." };
+  if (amount === null || amount <= 0) return { ok: false, error: await tr({ en: "Enter an amount above zero.", ko: "0보다 큰 금액을 입력하세요." }) };
 
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) return { ok: false, error: "Pick a date." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) return { ok: false, error: await tr({ en: "Pick a date.", ko: "날짜를 선택하세요." }) };
   if (input.date < account.startedAt) {
-    return { ok: false, error: "That date is before this account started." };
+    return { ok: false, error: await tr({ en: "That date is before this account started.", ko: "계좌 시작일보다 이전 날짜입니다." }) };
   }
-  if (input.date > todayIso()) return { ok: false, error: "Cash can't be recorded for a future date." };
+  if (input.date > todayIso()) return { ok: false, error: await tr({ en: "Cash can't be recorded for a future date.", ko: "미래 날짜로는 입출금을 기록할 수 없습니다." }) };
 
   if (input.type === "withdrawal") {
     const { trades, cashMovements } = await getAccountLedgerInputs(account.id);
     const available = availableBalanceOn(account, cashMovements, trades, input.date);
     if (!validateWithdrawal(amount, available).ok) {
-      return { ok: false, error: "This withdrawal is more than the balance available on that date." };
+      return { ok: false, error: await tr({ en: "This withdrawal is more than the balance available on that date.", ko: "그 날짜의 잔고보다 큰 금액은 출금할 수 없습니다." }) };
     }
   }
 
@@ -102,16 +103,16 @@ export async function deleteCashMovement(id: string): Promise<CapitalActionResul
     .eq("id", id)
     .maybeSingle();
   if (readError) return { ok: false, error: readError.message };
-  if (row === null) return { ok: false, error: "That entry no longer exists." };
+  if (row === null) return { ok: false, error: await tr({ en: "That entry no longer exists.", ko: "이미 삭제된 항목입니다." }) };
 
   const movement = toCashMovement(row);
   const account = await getAccount(movement.accountId);
-  if (account === null) return { ok: false, error: "Account not found." };
+  if (account === null) return { ok: false, error: await tr({ en: "Account not found.", ko: "계좌를 찾을 수 없습니다." }) };
 
   const { trades, cashMovements } = await getAccountLedgerInputs(account.id);
   const check = checkCashMovementDeletion(account, cashMovements, trades, movement.id);
   if (!check.ok) {
-    return { ok: false, error: "Deleting this deposit would take a later balance below zero." };
+    return { ok: false, error: await tr({ en: "Deleting this deposit would take a later balance below zero.", ko: "이 입금을 삭제하면 이후 잔고가 0 아래로 내려갑니다." }) };
   }
 
   const { error } = await supabase.from("cash_movements").delete().eq("id", movement.id);
@@ -138,22 +139,22 @@ export interface RiskSettingInput {
  */
 export async function updateRiskSetting(input: RiskSettingInput): Promise<CapitalActionResult> {
   const account = await getAccount(input.accountId);
-  if (account === null) return { ok: false, error: "Account not found." };
+  if (account === null) return { ok: false, error: await tr({ en: "Account not found.", ko: "계좌를 찾을 수 없습니다." }) };
 
   let update: { risk_mode: RiskMode; risk_percent: number | null; fixed_risk_amount: number | null };
 
   if (input.riskMode === "percent") {
     const percent = parseNumberInput(input.riskPercent);
     if (percent === null || percent <= 0 || percent > 100) {
-      return { ok: false, error: "Risk per trade must be between 0 and 100% of the balance." };
+      return { ok: false, error: await tr({ en: "Risk per trade must be between 0 and 100% of the balance.", ko: "트레이드당 리스크는 잔고의 0~100% 사이여야 합니다." }) };
     }
     update = { risk_mode: "percent", risk_percent: percent, fixed_risk_amount: null };
   } else if (input.riskMode === "fixed") {
     const amount = parseNumberInput(input.fixedRiskAmount);
-    if (amount === null || amount <= 0) return { ok: false, error: "Enter a fixed 1R amount above zero." };
+    if (amount === null || amount <= 0) return { ok: false, error: await tr({ en: "Enter a fixed 1R amount above zero.", ko: "0보다 큰 고정 1R 금액을 입력하세요." }) };
     update = { risk_mode: "fixed", risk_percent: null, fixed_risk_amount: amount };
   } else {
-    return { ok: false, error: "Unknown risk mode." };
+    return { ok: false, error: await tr({ en: "Unknown risk mode.", ko: "알 수 없는 리스크 방식입니다." }) };
   }
 
   const supabase = await createClient();
@@ -174,7 +175,7 @@ export async function updateRiskSetting(input: RiskSettingInput): Promise<Capita
  */
 export async function setCurrentAccount(accountId: string): Promise<CapitalActionResult> {
   const account = await getAccount(accountId);
-  if (account === null) return { ok: false, error: "Account not found." };
+  if (account === null) return { ok: false, error: await tr({ en: "Account not found.", ko: "계좌를 찾을 수 없습니다." }) };
 
   const cookieStore = await cookies();
   cookieStore.set(CURRENT_ACCOUNT_COOKIE, account.id, {
@@ -198,7 +199,7 @@ export async function setCurrentAccount(accountId: string): Promise<CapitalActio
 export async function updateDrawdownLimit(accountId: string, rawPercent: string): Promise<CapitalActionResult> {
   const percent = parseNumberInput(rawPercent);
   if (percent === null || percent <= 0 || percent >= 100) {
-    return { ok: false, error: "The drawdown limit must be between 0 and 100%." };
+    return { ok: false, error: await tr({ en: "The drawdown limit must be between 0 and 100%.", ko: "드로다운 한도는 0~100% 사이여야 합니다." }) };
   }
 
   const supabase = await createClient();

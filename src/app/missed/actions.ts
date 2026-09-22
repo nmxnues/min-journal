@@ -5,6 +5,7 @@ import { parseNumberInput } from "@/lib/format";
 import type { Locale } from "@/lib/i18n/locale";
 import { createClient } from "@/lib/supabase/server";
 import { createMissedTradeSchema, type MissedTradeInput } from "./schema";
+import { tr } from "@/lib/i18n/server-locale";
 
 export type ActionResult = { ok: true; id: string } | { ok: false; error: string };
 
@@ -15,7 +16,7 @@ function blankToNull(value: string): string | null {
 
 function toColumns(input: MissedTradeInput, locale: Locale) {
   const parsed = createMissedTradeSchema(locale).safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." } as const;
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? (locale === "ko" ? "입력값이 올바르지 않습니다." : "Invalid input.") } as const;
   const v = parsed.data;
   return {
     ok: true,
@@ -51,7 +52,7 @@ export async function createMissedTrade(input: MissedTradeInput, locale: Locale 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user === null) return { ok: false, error: "Not signed in." };
+  if (user === null) return { ok: false, error: await tr({ en: "Not signed in.", ko: "로그인이 필요합니다." }) };
 
   const { data: settings } = await supabase.from("settings").select("commission_per_lot_per_side").maybeSingle();
 

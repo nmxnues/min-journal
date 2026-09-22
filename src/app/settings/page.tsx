@@ -1,12 +1,10 @@
-import type { Metadata } from "next";
 import type { Settings } from "@/lib/domain/types";
 import { DEFAULT_TAG_PRESETS } from "@/lib/labels";
 import { getSettings, toSettings } from "@/lib/supabase/queries";
 import { SettingsView } from "./settings-view";
+import { localizedTitle } from "@/lib/i18n/server-locale";
 
-export const metadata: Metadata = {
-  title: "Settings · Min Journal",
-};
+export const generateMetadata = localizedTitle({ en: "Settings", ko: "설정" });
 
 const FALLBACK_SETTINGS: Settings = {
   pnlConvention: "kr",

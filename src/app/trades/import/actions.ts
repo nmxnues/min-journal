@@ -6,6 +6,7 @@ import type { Locale } from "@/lib/i18n/locale";
 import { getAccountLedgerInputs, getModels, getCurrentAccount } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
 import { csvRowSchema, toTradeInsert, type RawCsvRow } from "./schema";
+import { tr } from "@/lib/i18n/server-locale";
 
 export type ImportResult = { ok: true; count: number } | { ok: false; error: string };
 
@@ -28,12 +29,12 @@ export async function importTrades(rows: RawCsvRow[], locale: Locale = "en"): Pr
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user === null) return { ok: false, error: "Not signed in." };
+  if (user === null) return { ok: false, error: await tr({ en: "Not signed in.", ko: "로그인이 필요합니다." }) };
 
   const account = await getCurrentAccount();
-  if (account === null) return { ok: false, error: "Set up an account first." };
+  if (account === null) return { ok: false, error: await tr({ en: "Set up an account first.", ko: "먼저 계좌를 만드세요." }) };
 
-  if (rows.length === 0) return { ok: false, error: "No rows to import." };
+  if (rows.length === 0) return { ok: false, error: await tr({ en: "No rows to import.", ko: "가져올 행이 없습니다." }) };
 
   const models = await getModels();
   const modelIdByName = new Map(models.map((m) => [m.name.trim().toLowerCase(), m.id]));
@@ -45,7 +46,10 @@ export async function importTrades(rows: RawCsvRow[], locale: Locale = "en"): Pr
     if (!parsed.success) {
       return {
         ok: false,
-        error: `A row failed server-side validation: ${parsed.error.issues[0]?.message ?? "invalid row"}`,
+        error: await tr({
+          en: `A row failed server-side validation: ${parsed.error.issues[0]?.message ?? "invalid row"}`,
+          ko: `서버 검증에 실패한 행이 있습니다: ${parsed.error.issues[0]?.message ?? "잘못된 행"}`,
+        }),
       };
     }
     trades.push(toTradeInsert(parsed.data, modelIdByName));
@@ -76,7 +80,7 @@ export async function importTrades(rows: RawCsvRow[], locale: Locale = "en"): Pr
   // checked rather than trusted, since a null here would otherwise hit the
   // database's own NOT NULL constraint with a far less useful error.
   if (rValues.some((v) => v === null || !Number.isFinite(v))) {
-    return { ok: false, error: "Could not resolve a 1R value for one or more rows." };
+    return { ok: false, error: await tr({ en: "Could not resolve a 1R value for one or more rows.", ko: "일부 행의 1R 값을 계산할 수 없습니다." }) };
   }
   const resolvedRValues = rValues as number[];
 

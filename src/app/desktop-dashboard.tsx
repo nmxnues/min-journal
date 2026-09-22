@@ -93,7 +93,7 @@ export function DesktopDashboard({
           <Link href="/settings" className="rounded-6 text-13 font-semibold text-accent hover:text-accent-pressed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">
             {t({ en: "Settings", ko: "설정" })}
           </Link>
-          <Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "New trade" })}</Button>
+          <Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "새 거래" })}</Button>
           <SignOutButton signOutAction={signOut} />
         </>
       }
@@ -118,7 +118,7 @@ export function DesktopDashboard({
               en: "Once you record a trade, this dashboard fills in with your stats.",
               ko: "트레이드를 기록하면 이 대시보드에 통계가 채워집니다.",
             })}
-            action={<Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "New trade" })}</Button>}
+            action={<Button onClick={() => router.push("/trades/new")}>{t({ en: "New trade", ko: "새 거래" })}</Button>}
             className="w-full max-w-[440px]"
           />
         </div>
@@ -181,6 +181,7 @@ export function DesktopDashboard({
           </div>
           <div>
             <EquityCurve
+              label={t({ en: "Cumulative R over the period", ko: "기간 누적 R" })}
               values={equity.points.map((p) => p.cumulativeR)}
               captions={
                 equity.points.length > 0

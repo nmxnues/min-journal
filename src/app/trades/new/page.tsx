@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import { currentRValue, drawdownState } from "@/lib/domain/capital";
 import { todayIso } from "@/lib/domain/dates";
 import type { Session } from "@/lib/domain/types";
@@ -14,10 +13,9 @@ import {
 import { reconcileDraftAttachments } from "./attachments-actions";
 import { getDraft } from "./draft-actions";
 import { NewTradeGate } from "./new-trade-gate";
+import { localizedTitle } from "@/lib/i18n/server-locale";
 
-export const metadata: Metadata = {
-  title: "New trade · Min Journal",
-};
+export const generateMetadata = localizedTitle({ en: "New trade", ko: "새 거래" });
 
 export default async function NewTradePage() {
   const account = await getCurrentAccount();
