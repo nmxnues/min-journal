@@ -16,11 +16,15 @@
  * chain-link it away and overstate the return) and the drawdown peak must not
  * step for it (only real deposits and withdrawals move the peak — Phase 8 §2).
  * The R axis in stats.ts stays swap-free (docs/decisions.md § Swap).
+ *
+ * Entry and exit commission ride in the same way and for the same reasons:
+ * a cost of the position, netted in `pnlAmount`, never a cash movement and
+ * never R (docs/decisions.md § Commission).
  */
 
 import { DRAWDOWN_WARNING_MARGIN_PCT } from "./constants";
 import { memoize } from "./memoize";
-import { pnlAmount, pricePnlAmount, realizedR, swapAmount } from "./trade";
+import { commissionAmount, pnlAmount, pricePnlAmount, realizedR, swapAmount } from "./trade";
 import type { Account, CashMovement, Direction, IsoDate, RiskChange, RiskSetting, Trade } from "./types";
 
 /**
@@ -234,6 +238,9 @@ export interface PendingBacktestTrade {
   rValueAtEntry: number | null;
   /** Swap from the CSV row, `null` when it left the column blank. Folds into the running balance like a real row's would. */
   swap: number | null;
+  /** Entry and exit commission from the CSV row; absent or blank reads as 0. Folds into the running balance like swap. */
+  entryCommission?: number;
+  exitCommission?: number;
 }
 
 /**
@@ -276,11 +283,12 @@ export function assignBacktestRValues(
     const rValue = row.rValueAtEntry ?? rValueForBalance(riskSettingOn(account, riskChanges, row.date), balance);
     results[index] = rValue;
 
-    // Mirrors `pnlAmount` exactly — price term plus swap — so a row later in
+    // Mirrors `pnlAmount` exactly — price term plus swap minus commission — so a row later in
     // the batch sees the same balance it would have seen had the earlier rows
     // already been saved and read back through the timeline.
     const realized = realizedR(row);
-    if (realized !== null) balance += realized * rValue + swapAmount(row);
+    if (realized !== null) balance += realized * rValue + swapAmount(row) -
+        commissionAmount({ entryCommission: row.entryCommission ?? 0, exitCommission: row.exitCommission ?? 0 });
   }
 
   return results;
@@ -405,8 +413,8 @@ export function cashTotals(account: Account, cashMovements: readonly CashMovemen
 }
 
 /**
- * Total currency P&L from trading alone — price movement *and* the swap paid
- * or earned holding those positions, i.e. everything trading did to the
+ * Total currency P&L from trading alone — price movement, the swap paid or
+ * earned holding those positions, and the commission paid on them, i.e. everything trading did to the
  * balance as against everything cash movements did.
  */
 export const tradingPnL = memoize((trades: readonly Trade[]): number =>
@@ -421,6 +429,15 @@ export const tradingPnL = memoize((trades: readonly Trade[]): number =>
  */
 export const tradingSwap = memoize((trades: readonly Trade[]): number =>
   trades.reduce((sum, t) => sum + (pnlAmount(t) === null ? 0 : swapAmount(t)), 0),
+);
+
+/**
+ * The commission part of `tradingPnL`, as a positive total cost. Same rule as
+ * `tradingSwap`: open trades contribute nothing, so
+ * `tradingPnL = price P&L + tradingSwap - tradingCommission` holds exactly.
+ */
+export const tradingCommission = memoize((trades: readonly Trade[]): number =>
+  trades.reduce((sum, t) => sum + (pnlAmount(t) === null ? 0 : commissionAmount(t)), 0),
 );
 
 /**
@@ -637,17 +654,19 @@ export interface LedgerEntry {
   kind: "opening" | "deposit" | "withdrawal" | "trade";
   id: string;
   date: IsoDate;
-  /** Signed currency amount. On a trade row this is price P&L plus swap — what the balance actually did. */
+  /** Signed currency amount. On a trade row this is price P&L plus swap minus commission — what the balance actually did. */
   amount: number;
   /**
    * R for trade rows; null for cash rows (the UI shows an em-dash).
    * Price R, matching every other R in the app — a trade row's `amount` and
-   * `r` therefore differ by its swap rather than by `rValueAtEntry` alone.
+   * `r` therefore differ by its swap and commission rather than by `rValueAtEntry` alone.
    */
   r: number | null;
-  /** The `amount` split into its two terms, so a row can caption its swap. Both null on cash rows. */
+  /** The `amount` split into its terms, so a row can caption its swap and commission. All null on cash rows. */
   pricePnl: number | null;
   swap: number | null;
+  /** Entry + exit commission, positive. */
+  commission: number | null;
   /** Running balance after this row. */
   balanceAfter: number;
   /** 1R under the setting in force on this row's date, before and after it moved the balance. */
@@ -689,6 +708,7 @@ export const ledger = memoize(
         r: null,
         pricePnl: null,
         swap: null,
+        commission: null,
         balanceAfter: balance,
         rValueBefore: 0,
         rValueAfter: rValue(account.startedAt, balance),
@@ -709,6 +729,7 @@ export const ledger = memoize(
         r: source.kind === "trade" ? realizedR(source.trade) : null,
         pricePnl: source.kind === "trade" ? pricePnlAmount(source.trade) : null,
         swap: source.kind === "trade" ? source.trade.swap : null,
+        commission: source.kind === "trade" ? commissionAmount(source.trade) : null,
         balanceAfter: balance,
         rValueBefore: rValue(event.date, before),
         rValueAfter: rValue(event.date, balance),

@@ -32,6 +32,10 @@ export const TRADE_SCHEMA_MESSAGES = {
     en: "Swap must be a number — negative for a cost.",
     ko: "스왑은 숫자여야 합니다. 비용이면 음수로 입력하세요.",
   },
+  commissionNonNegative: {
+    en: "Commission must be a number of 0 or more — it's always entered as a positive cost.",
+    ko: "커미션은 0 이상의 숫자여야 합니다. 비용이지만 양수로 입력하세요.",
+  },
 } as const;
 
 export function tradeMessage<K extends keyof typeof TRADE_SCHEMA_MESSAGES>(
@@ -70,6 +74,13 @@ export function tradeFieldsShape(locale: Locale) {
      * yet stays distinguishable from one that genuinely paid none.
      */
     swap: z.string().trim(),
+    /**
+     * Positive costs in the account currency; blank stores 0. Prefilled by
+     * the forms from size * settings.commissionPerLotPerSide, but always
+     * editable (docs/decisions.md § Commission).
+     */
+    entryCommission: z.string().trim(),
+    exitCommission: z.string().trim(),
 
     modelId: z.string().nullable(),
     confirmation: z.string().trim(),
@@ -91,6 +102,8 @@ interface TradeNumericValues {
   target: string;
   exit: string;
   swap: string;
+  entryCommission: string;
+  exitCommission: string;
 }
 
 /**
@@ -129,6 +142,16 @@ export function refineTradeNumerics(
   // that isn't a number at all is rejected.
   if (values.swap !== "" && parseNumberInput(values.swap) === null) {
     ctx.addIssue({ code: "custom", path: ["swap"], message: m("swapNumber") });
+  }
+
+  // A commission is a cost and is entered positive; the sign lives in the
+  // formula (`pnlAmount` subtracts it), so a negative here is always a typo.
+  for (const field of ["entryCommission", "exitCommission"] as const) {
+    if (values[field] === "") continue;
+    const parsed = parseNumberInput(values[field]);
+    if (parsed === null || parsed < 0) {
+      ctx.addIssue({ code: "custom", path: [field], message: m("commissionNonNegative") });
+    }
   }
 
   if (rangeHigh !== null && rangeLow !== null && rangeHigh <= rangeLow) {

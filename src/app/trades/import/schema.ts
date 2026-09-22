@@ -39,6 +39,8 @@ export const CSV_TARGET_FIELDS = [
   "exit",
   "swap",
   "size",
+  "entryCommission",
+  "exitCommission",
   "rValueAtEntry",
   "model",
   "confirmation",
@@ -84,6 +86,8 @@ export const CSV_FIELD_LABELS: Record<CsvTargetField, { en: string; ko: string }
   exit: { en: "Exit", ko: "청산가" },
   swap: { en: "Swap", ko: "스왑" },
   size: { en: "Size", ko: "사이즈" },
+  entryCommission: { en: "Entry commission", ko: "진입 커미션" },
+  exitCommission: { en: "Exit commission", ko: "청산 커미션" },
   rValueAtEntry: { en: "1R value ($)", ko: "1R 금액" },
   model: { en: "Model", ko: "모델" },
   confirmation: { en: "Confirmation", ko: "확인 신호" },
@@ -129,6 +133,10 @@ export function csvRowSchema(locale: Locale, accountKind: AccountKind) {
       // a claim that the trade paid no financing.
       swap: z.string().trim(),
       size: z.string().trim().min(1),
+      // Optional; blank stores 0. Never prefilled from Settings on import —
+      // a historical row's commission is whatever the file says it was.
+      entryCommission: z.string().trim(),
+      exitCommission: z.string().trim(),
       // Required only for a `live` account — see csvRequiredFields above.
       rValueAtEntry: z.string().trim(),
       model: z.string().trim(),
@@ -206,6 +214,9 @@ export interface TradeInsertFromCsv {
   /** Account-currency swap; `null` when the column was blank or unmapped. Negative for a cost. */
   swap: number | null;
   size: number;
+  /** Positive account-currency costs; 0 when the column was blank or unmapped. */
+  entry_commission: number;
+  exit_commission: number;
   model_id: string | null;
   confirmation: string | null;
   result: TradeResult | null;
@@ -234,6 +245,8 @@ export function toTradeInsert(row: RawCsvRow, modelIdByName: ReadonlyMap<string,
     exit: row.exit === "" ? null : parseNumberInput(row.exit),
     swap: row.swap === "" ? null : parseNumberInput(row.swap),
     size: parseNumberInput(row.size)!,
+    entry_commission: row.entryCommission === "" ? 0 : parseNumberInput(row.entryCommission)!,
+    exit_commission: row.exitCommission === "" ? 0 : parseNumberInput(row.exitCommission)!,
     // No match by name is treated as Unassigned rather than a rejection — a
     // typo'd model name shouldn't sink an otherwise-valid historical row.
     model_id: row.model === "" ? null : (modelIdByName.get(row.model.trim().toLowerCase()) ?? null),

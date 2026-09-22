@@ -10,6 +10,7 @@ import {
   timeWeightedReturn,
   tradingPnL,
   tradingSwap,
+  tradingCommission,
 } from "@/lib/domain/capital";
 import { netR, netSwapR } from "@/lib/domain/stats";
 import type { Account, CashMovement, IsoDate, RiskChange, Trade, TradeModel } from "@/lib/domain/types";
@@ -44,6 +45,8 @@ export function useCapitalSummary(data: CapitalData) {
       /** The swap already inside `tradingPnL`, broken out so the screen can say where the figure came from. */
       tradingSwap: tradingSwap(trades),
       tradingSwapR: netSwapR(trades),
+      /** Likewise the commission already subtracted inside `tradingPnL`, as a positive cost. */
+      tradingCommission: tradingCommission(trades),
       lifetimeR: netR(trades),
       timeWeightedReturn: timeWeightedReturn(account, cashMovements, trades),
       drawdown: drawdownState(account, cashMovements, trades),

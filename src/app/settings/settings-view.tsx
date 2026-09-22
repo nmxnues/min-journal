@@ -7,10 +7,10 @@ import { BottomTabBar } from "@/components/nav/bottom-tab-bar";
 import { toNavItems, toTabItems } from "@/components/nav/routes";
 import { SignOutButton } from "@/components/nav/sign-out-button";
 import { TopBar } from "@/components/nav/top-bar";
-import { Button, Card, Combobox, Field, Segmented } from "@/components/ui";
+import { Button, Card, Combobox, Field, Input, Segmented } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import type { PnlConvention, Session, Settings } from "@/lib/domain/types";
-import { formatR } from "@/lib/format";
+import { formatR, parseNumberInput } from "@/lib/format";
 import { useLocale, useT } from "@/lib/i18n/locale-context";
 import { INSTRUMENT_PRESETS } from "@/lib/instruments";
 import { SESSION_LABELS, SESSION_ORDER } from "@/lib/labels";
@@ -44,6 +44,7 @@ export function SettingsView({ settings }: SettingsViewProps) {
   const [defaultSession, setDefaultSession] = useState<Session>(settings.defaultSession);
   const [rPrecision, setRPrecision] = useState(settings.rPrecision);
   const [tagPresets, setTagPresets] = useState(settings.tagPresets);
+  const [commission, setCommission] = useState(String(settings.commissionPerLotPerSide));
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
@@ -52,6 +53,7 @@ export function SettingsView({ settings }: SettingsViewProps) {
     defaultInstrument !== settings.defaultInstrument ||
     defaultSession !== settings.defaultSession ||
     rPrecision !== settings.rPrecision ||
+    (parseNumberInput(commission) ?? 0) !== settings.commissionPerLotPerSide ||
     tagPresets.length !== settings.tagPresets.length ||
     tagPresets.some((tag, i) => tag !== settings.tagPresets[i]);
 
@@ -65,6 +67,7 @@ export function SettingsView({ settings }: SettingsViewProps) {
         defaultSession,
         rPrecision: String(rPrecision),
         tagPresets,
+        commissionPerLotPerSide: commission,
       });
       if (result.ok) {
         setSaved(true);
@@ -177,6 +180,40 @@ export function SettingsView({ settings }: SettingsViewProps) {
               options={R_PRECISION_OPTIONS.map((n) => ({ value: n, label: n }))}
             />
             <span className="shrink-0 text-15 font-extrabold text-gain">{formatR(18.4, rPrecision)}</span>
+          </div>
+        </Card>
+
+        {/* Commission — only a prefill for the trade forms */}
+        <Card className={cn(isMobile ? "px-20 py-24" : "px-28 py-26")}>
+          <h2 className="text-16 font-bold tracking-[-.02em] text-ink">
+            {t({ en: "Commission", ko: "커미션" })}
+          </h2>
+          <p className="mt-6 text-13_5 leading-[1.6] text-secondary">
+            {t({
+              en: "One-way commission per 1.0 lot, in the account currency. Entering a size on a trade fills both the entry and exit commission with size × this — you can still change either one on the trade.",
+              ko: "1랏당 편도 커미션(계좌 통화)입니다. 트레이드에 사이즈를 입력하면 진입·청산 커미션이 각각 사이즈 × 이 값으로 채워지며, 트레이드마다 직접 고칠 수 있습니다.",
+            })}
+          </p>
+          <div className="mt-16">
+            <Field
+              label={t({ en: "Per lot, per side", ko: "1랏당 편도" })}
+              htmlFor="settings-commission"
+              error={
+                parseNumberInput(commission) === null && commission.trim() !== ""
+                  ? t({ en: "Enter a number.", ko: "숫자를 입력하세요." })
+                  : (parseNumberInput(commission) ?? 0) < 0
+                    ? t({ en: "Commission can't be negative.", ko: "커미션은 음수일 수 없습니다." })
+                    : undefined
+              }
+            >
+              <Input
+                id="settings-commission"
+                inputMode="decimal"
+                placeholder="3.5"
+                value={commission}
+                onChange={(e) => setCommission(e.target.value)}
+              />
+            </Field>
           </div>
         </Card>
 

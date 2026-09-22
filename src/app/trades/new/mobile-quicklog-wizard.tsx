@@ -70,6 +70,13 @@ export interface MobileQuickLogWizardProps {
   currency: string;
   attachments: ReturnType<typeof useDraftAttachments>;
   onExitChange: (raw: string) => void;
+  /**
+   * Prefills both commissions from the size (docs/decisions.md § Commission).
+   * The wizard has no commission fields of its own — same call as swap — so
+   * a quick-logged trade stores the Settings rate and is corrected in Trade
+   * detail if the broker charged something else.
+   */
+  onSizeChange: (raw: string) => void;
   onResultChange: (value: TradeResult) => void;
   warnings: WarningCode[];
   warningText: Record<WarningCode, string>;
@@ -135,6 +142,7 @@ export function MobileQuickLogWizard({
   currency,
   attachments,
   onExitChange,
+  onSizeChange,
   onResultChange,
   warnings,
   warningText,
@@ -320,7 +328,12 @@ export function MobileQuickLogWizard({
             <Input id="target" inputMode="decimal" placeholder="1.2680" {...register("target")} />
           </Field>
           <Field label={t({ en: "Size (lots)", ko: "사이즈 (랏)" })} htmlFor="size" error={errors.size?.message}>
-            <Input id="size" inputMode="decimal" placeholder="1.0" {...register("size")} />
+            <Input
+              id="size"
+              inputMode="decimal"
+              placeholder="1.0"
+              {...register("size", { onChange: (e) => onSizeChange(e.target.value) })}
+            />
           </Field>
 
           <div className="flex items-center justify-between rounded-16 bg-accent-tint px-20 py-16">

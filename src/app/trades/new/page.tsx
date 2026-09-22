@@ -60,6 +60,7 @@ export default async function NewTradePage() {
         defaultDate: mostRecentDate ?? todayIso(),
         draft,
         tagPresets: settings?.tag_presets ?? DEFAULT_TAG_PRESETS.slice(),
+        commissionPerLotPerSide: Number(settings?.commission_per_lot_per_side ?? 0),
       }}
     />
   );

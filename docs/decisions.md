@@ -1046,3 +1046,74 @@ No dark-mode variant was added. `theme-color` supports a `media` attribute for
 that, but this app has a single light palette (globals.css defines one set of
 tokens, with `[data-pnl="west"]` as the only runtime swap and it only touches
 gain/loss hues).
+
+## Commission (Raw-spread accounts)
+
+Requested for a Raw account, which charges commission per lot on both the
+entry and the exit. Two choices were put to the user before building; both
+recommendations were confirmed.
+
+**1. Money axis only, like swap — plus a separate net-P&L stat set.**
+
+    pnlAmount = realizedR * rValueAtEntry + swap - entryCommission - exitCommission
+
+Every R statistic stays price-based for the reasons in § Swap (commission
+scales with size, so folding it into R would score the same setup differently
+at a different lot size, and would break `captureRate`). The user asked for
+win rate and averages "on net P&L", so instead of changing the R stats,
+`moneyStats` in stats.ts adds a currency set beside them: net P&L, **net win
+rate** (share of closed trades with net P&L > 0, flat ones excluded like
+break-even is from `winRate`), average net P&L, average net win / net loss and
+the commission total. The net win rate deliberately ignores `result`: a price
+scratch that paid $7 commission is a "be" label and a net loss.
+`commission.test.ts` pins that recording commission leaves every R statistic
+byte-identical, and that `moneyStats` reconciles exactly with
+`tradingPnL`/`tradingSwap`/`tradingCommission`.
+
+**2. The per-lot rate lives in user settings**
+(`settings.commission_per_lot_per_side`), not per account — the user's call,
+since there is one real account. It is only a form default; the stored
+per-trade values are what every calculation reads, so changing the rate never
+rewrites history.
+
+**Columns.** `trades.entry_commission` / `exit_commission`, `numeric not null
+default 0 check (>= 0)`, account currency, stored positive and subtracted by
+the formula. Unlike `swap` they are not nullable: the user asked for existing
+trades to read as 0, and a commission of 0 carries no "not recorded"
+ambiguity worth a null. A negative is refused by the form schema, the CSV
+schema and the CHECK.
+
+**Prefill.** Typing a size fills both sides with `size × rate` (to the cent)
+unless that side is "manual". A side is manual once the trader types in it,
+or from the start when it holds anything other than the prefill — a corrected
+draft, or an existing trade's stored value. So opening a pre-commission trade
+(0) and changing its size never silently applies today's rate; the field hint
+offers "use size × rate" instead. The mobile quick-log wizard has no
+commission fields (same call as swap) but still prefills from the size, so a
+quick-logged trade stores the Settings rate.
+
+**Surfaces.** Trade log rows show net P&L under the price R, and the summary
+adds net P&L, net win rate and commission total. Trade detail shows the net
+figure with price/swap/commission lines (commission split entry · exit, and in
+R). The dashboard hero gets an "incl. commission" caption and a Net P&L stat
+row. Capital's Trading P&L and the ledger name commission beside swap. The
+ledger keeps one row per trade (`LedgerEntry.commission`). CSV: two optional
+import/export columns after Size (blank → 0), a Net P&L column on the trades
+export and a Commission column on the ledger export. Commission amounts are
+shown to the cent (`formatCurrency(..., decimals)`), since $3.50 rounds
+visibly wrong at whole dollars.
+
+**Open trades.** Commission counts at the close like swap: `pnlAmount` stays
+null while open, so an entry commission on an open position isn't in the
+balance yet (Trade detail says so).
+
+**Migration** `20260922120000_trade_commission.sql`, pushed after a
+`pg_dump` backup (`~/Documents/min-journal-backups/`). Before and after: 56
+trades, size sum 57.36663, 1 swap recorded, 1 settings row, 2 accounts. A
+field-by-field diff of every pre-existing column across all 56 rows showed
+zero changes, `updated_at` included; `ADD COLUMN ... DEFAULT` is
+metadata-only. `supabase gen types` output was installed as
+`database.types.ts` (9 added lines, nothing removed).
+
+`npx tsc --noEmit`, `pnpm lint`, `pnpm test` (305 passed: the 282
+pre-existing tests unmodified, 23 new) and `pnpm build` are clean.

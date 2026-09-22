@@ -29,14 +29,16 @@ export async function GET(request: NextRequest) {
 
   // "Amount" is the net figure the screen shows; "Swap" breaks out the part of
   // it that wasn't price movement, blank on cash rows and on trades with no
-  // swap recorded (docs/decisions.md § Swap).
-  const header = ["Date", "Type", "Description", "Amount", "Swap", "R", "Balance", "Currency"];
+  // swap recorded (docs/decisions.md § Swap). "Commission" is the positive
+  // cost already subtracted inside Amount, blank on cash rows.
+  const header = ["Date", "Type", "Description", "Amount", "Swap", "Commission", "R", "Balance", "Currency"];
   const rows = entries.map((entry) => [
     entry.date,
     LEDGER_KIND_LABELS[entry.kind].en,
     describeLedgerEntry(entry, modelNameById, en),
     entry.amount.toFixed(2),
     entry.swap === null ? "" : entry.swap.toFixed(2),
+    entry.commission === null ? "" : entry.commission.toFixed(2),
     entry.r === null ? "" : entry.r.toFixed(2),
     entry.balanceAfter.toFixed(2),
     account.currency,

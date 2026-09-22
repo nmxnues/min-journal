@@ -21,6 +21,7 @@ export interface TradeDetailProps {
   drawdownLimitPercent: number;
   currency: string;
   tagPresets: string[];
+  commissionPerLotPerSide: number;
 }
 
 export function TradeDetail({
@@ -32,6 +33,7 @@ export function TradeDetail({
   drawdownLimitPercent,
   currency,
   tagPresets,
+  commissionPerLotPerSide,
 }: TradeDetailProps) {
   const t = useT();
   const locale = useLocale();
@@ -107,6 +109,7 @@ export function TradeDetail({
           drawdownPercent={drawdownPercent}
           drawdownLimitPercent={drawdownLimitPercent}
           tagPresets={tagPresets}
+          commissionPerLotPerSide={commissionPerLotPerSide}
           onCancel={() => setMode("view")}
           onSaved={() => {
             router.refresh();

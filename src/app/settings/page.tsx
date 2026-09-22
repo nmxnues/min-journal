@@ -14,6 +14,7 @@ const FALLBACK_SETTINGS: Settings = {
   defaultSession: "asia",
   rPrecision: 1,
   tagPresets: DEFAULT_TAG_PRESETS.slice(),
+  commissionPerLotPerSide: 0,
 };
 
 export default async function SettingsPage() {

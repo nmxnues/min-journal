@@ -39,6 +39,12 @@ export interface Settings {
   rPrecision: number;
   /** User-editable behaviour tags offered on the trade form. Order is display order. */
   tagPresets: string[];
+  /**
+   * One-way commission per 1.0 lot, in the account currency. Only a form
+   * default: the trade forms prefill each side with `size * this`, and the
+   * stored per-trade values are what every calculation reads.
+   */
+  commissionPerLotPerSide: number;
 }
 
 /** ISO date, `YYYY-MM-DD` (Postgres `date`). Sorts correctly as a string. */
@@ -79,6 +85,14 @@ export interface Trade {
    * setup closed same-day (docs/decisions.md § Swap).
    */
   swap: number | null;
+  /**
+   * Commission charged on the entry and on the exit, in the account's
+   * currency. Always >= 0 and subtracted as a cost; 0 for every trade logged
+   * before the columns existed. Money axis only, exactly like `swap`
+   * (docs/decisions.md § Commission).
+   */
+  entryCommission: number;
+  exitCommission: number;
   tags: string[];
   notes: string | null;
   createdAt: string;

@@ -19,6 +19,8 @@ import {
 } from "@/components/ui";
 import { RangeDiagram } from "@/components/range-diagram";
 import { AttachmentThumbnails } from "@/components/attachment-thumbnails";
+import { CommissionFields } from "@/components/commission-fields";
+import { NetBreakdown } from "@/components/net-breakdown";
 import { cn } from "@/lib/cn";
 import { formatPips, formatPrice, formatSignedCurrency, parseNumberInput } from "@/lib/format";
 import { useFormatR } from "@/lib/settings/context";
@@ -37,6 +39,7 @@ import { collectWarnings, type WarningCode } from "@/lib/domain/warnings";
 import type { SweepSide, Trade, TradeModel, TradeResult } from "@/lib/domain/types";
 import { useLocale, useT } from "@/lib/i18n/locale-context";
 import { usePasteAttachment } from "@/lib/use-paste-attachment";
+import { useCommissionPrefill } from "@/lib/use-commission-prefill";
 import { updateTrade } from "./actions";
 import { createEditTradeSchema, tradeToEditInput, type EditTradeInput } from "./schema";
 import { useTradeAttachments } from "./use-trade-attachments";
@@ -53,6 +56,8 @@ export interface TradeEditFormProps {
   onCancel: () => void;
   onSaved: () => void;
   tagPresets: string[];
+  /** settings.commission_per_lot_per_side — the size-driven prefill; a stored value that differs from it is left alone. */
+  commissionPerLotPerSide: number;
 }
 
 function SectionCard({
@@ -97,6 +102,7 @@ export function TradeEditForm({
   onCancel,
   onSaved,
   tagPresets,
+  commissionPerLotPerSide,
 }: TradeEditFormProps) {
   const formatR = useFormatR();
   const t = useT();
@@ -125,6 +131,12 @@ export function TradeEditForm({
     defaultValues: tradeToEditInput(trade),
   });
 
+  const commissionPrefill = useCommissionPrefill({
+    perLotPerSide: commissionPerLotPerSide,
+    initial: tradeToEditInput(trade),
+    setCommission: (side, value) => setValue(side, value, { shouldDirty: true, shouldValidate: true }),
+  });
+
   const values = useWatch({ control }) as EditTradeInput;
   const tradeAttachments = useTradeAttachments(trade.id, attachments);
   usePasteAttachment(
@@ -140,6 +152,8 @@ export function TradeEditForm({
     const target = values.target ? parseNumberInput(values.target) : null;
     const exit = values.exit ? parseNumberInput(values.exit) : null;
     const swap = values.swap ? parseNumberInput(values.swap) : null;
+    const commission =
+      (parseNumberInput(values.entryCommission ?? "") ?? 0) + (parseNumberInput(values.exitCommission ?? "") ?? 0);
 
     const rangeReady = rangeHigh !== null && rangeLow !== null && rangeHigh > rangeLow;
     const size = rangeReady ? rangeSize({ rangeHigh: rangeHigh!, rangeLow: rangeLow! }) : null;
@@ -157,7 +171,7 @@ export function TradeEditForm({
         ? realizedR({ entry, stop, exit, direction: values.direction })
         : null;
 
-    return { rangeHigh, rangeLow, entry, stop, target, exit, swap, size, sweepSide, planned, realized };
+    return { rangeHigh, rangeLow, entry, stop, target, exit, swap, commission, size, sweepSide, planned, realized };
   }, [values]);
 
   const selectedModel = models.find((m) => m.id === values.modelId) ?? null;
@@ -412,7 +426,11 @@ export function TradeEditForm({
             <Input id="target" inputMode="decimal" {...register("target")} />
           </Field>
           <Field label={t({ en: "Size (lots)", ko: "사이즈 (랏)" })} htmlFor="size" error={errors.size?.message}>
-            <Input id="size" inputMode="decimal" {...register("size")} />
+            <Input
+              id="size"
+              inputMode="decimal"
+              {...register("size", { onChange: (e) => commissionPrefill.onSizeChange(e.target.value) })}
+            />
           </Field>
         </div>
 
@@ -496,7 +514,7 @@ export function TradeEditForm({
           </Field>
         </div>
 
-        <div className={cn("mt-16 grid gap-16", isMobile ? "grid-cols-1" : "grid-cols-2")}>
+        <div className={cn("mt-16 grid gap-16", isMobile ? "grid-cols-1" : "grid-cols-3")}>
           <Field
             label={t({ en: "Swap", ko: "스왑" })}
             htmlFor="swap"
@@ -508,6 +526,14 @@ export function TradeEditForm({
           >
             <Input id="swap" inputMode="decimal" placeholder="−12.40" {...register("swap")} />
           </Field>
+          <CommissionFields
+            registerSide={(side) => register(side, { onChange: () => commissionPrefill.markManual(side) })}
+            errors={errors}
+            prefill={commissionPrefill}
+            sizeRaw={values.size ?? ""}
+            perLotPerSide={commissionPerLotPerSide}
+            currency={currency}
+          />
         </div>
 
         <div className={cn("mt-16 grid gap-16", isMobile ? "grid-cols-1" : "grid-cols-2")}>
@@ -534,20 +560,12 @@ export function TradeEditForm({
             */}
             {" · "}
             {formatSignedCurrency(derived.realized * trade.rValueAtEntry, currency)}
-            {derived.swap !== null && (
-              <>
-                {` · ${t({ en: "swap", ko: "스왑" })} `}
-                {formatSignedCurrency(derived.swap, currency)}
-                {" → "}
-                <span
-                  className={cn(
-                    derived.realized * trade.rValueAtEntry + derived.swap >= 0 ? "text-gain" : "text-loss",
-                  )}
-                >
-                  {formatSignedCurrency(derived.realized * trade.rValueAtEntry + derived.swap, currency)}
-                </span>
-              </>
-            )}
+            <NetBreakdown
+              price={derived.realized * trade.rValueAtEntry}
+              swap={derived.swap}
+              commission={derived.commission}
+              currency={currency}
+            />
           </p>
         )}
       </SectionCard>

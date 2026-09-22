@@ -55,6 +55,7 @@ export default async function TradeDetailPage({ params }: { params: Promise<{ id
       drawdownLimitPercent={drawdown.limitPercent}
       currency={account?.currency ?? "USD"}
       tagPresets={settings?.tag_presets ?? DEFAULT_TAG_PRESETS.slice()}
+      commissionPerLotPerSide={Number(settings?.commission_per_lot_per_side ?? 0)}
     />
   );
 }

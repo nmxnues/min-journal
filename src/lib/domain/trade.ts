@@ -3,9 +3,9 @@
  *
  * Nothing here is stored — docs/build-prompt.md §4: derived values are never
  * columns. The single frozen exception is `rValueAtEntry`, which is written
- * once at log time and read (never recomputed) by `pnlAmount`. (`swap` is a
- * column too, but it is an input the broker decides, not a derived value —
- * nothing in the row could compute it.)
+ * once at log time and read (never recomputed) by `pnlAmount`. (`swap` and the
+ * two commissions are columns too, but they are inputs the broker decides,
+ * not derived values — nothing in the row could compute them.)
  *
  * Every function is tolerant of incomplete input and returns `null` rather
  * than NaN/Infinity, because the New Trade form recomputes these on every
@@ -171,32 +171,59 @@ export function swapR(t: Pick<Trade, "swap" | "rValueAtEntry">): number | null {
   return t.swap / t.rValueAtEntry;
 }
 
+/** Entry plus exit commission, as a positive cost. */
+export function commissionAmount(t: Pick<Trade, "entryCommission" | "exitCommission">): number {
+  return (isUsable(t.entryCommission) ? t.entryCommission : 0) + (isUsable(t.exitCommission) ? t.exitCommission : 0);
+}
+
+/** Total commission expressed in R, for the captions that report it beside swap. */
+export function commissionR(
+  t: Pick<Trade, "entryCommission" | "exitCommission" | "rValueAtEntry">,
+): number | null {
+  if (!isUsable(t.rValueAtEntry) || t.rValueAtEntry === 0) return null;
+  return commissionAmount(t) / t.rValueAtEntry;
+}
+
+/**
+ * The prefill for one side's commission: size in lots times the one-way
+ * rate from Settings, to the cent. Null when either input isn't usable, so a
+ * half-typed size leaves the field alone rather than writing 0 into it.
+ */
+export function commissionForSize(
+  size: number | null | undefined,
+  perLotPerSide: number | null | undefined,
+): number | null {
+  if (!isUsable(size) || size <= 0 || !isUsable(perLotPerSide) || perLotPerSide <= 0) return null;
+  return Math.round(size * perLotPerSide * 100) / 100;
+}
+
 /**
  * Currency P&L: what the trade actually did to the account.
  *
- *     pnlAmount = realizedR * rValueAtEntry + swap
- *                 \________ price axis ____/  \cash/
+ *     pnlAmount = realizedR * rValueAtEntry + swap - entryCommission - exitCommission
+ *                 \________ price axis ____/  \_________ cash, money axis only ________/
  *
- * Swap is a second *term*, never a correction to R. `realizedR` stays
- * (exit - entry) / risk so it keeps measuring execution — which entry, stop
- * and exit were chosen — rather than how many nights the position was held
- * at whatever rate the broker set. Folding financing into R would make the
- * same setup, taken at the same prices, score differently for a swing hold
- * than for a same-day close, which is exactly the comparison `byModel`,
+ * Swap and commission are extra *terms*, never corrections to R. `realizedR`
+ * stays (exit - entry) / risk so it keeps measuring execution — which entry,
+ * stop and exit were chosen — rather than how many nights the position was
+ * held or what the broker charged per lot. Folding either into R would make
+ * the same setup, taken at the same prices, score differently for a swing
+ * hold or a bigger size, which is exactly the comparison `byModel`,
  * `bySession` and `expectancy` exist to make. It would also break
- * `captureRate`, whose denominator `plannedR` knows nothing about swap, and
- * would let a swap typed in months later rewrite an already-settled win rate
- * (docs/decisions.md § Swap).
+ * `captureRate`, whose denominator `plannedR` knows nothing about costs
+ * (docs/decisions.md § Swap, § Commission).
  *
- * Still null while the trade is open, swap or no swap: financing is recorded
- * as confirmed at the close, matching both the platform (swap accrues against
- * equity and hits the balance on close) and this app's rule that an
- * unrealized position hasn't moved the balance.
+ * Still null while the trade is open: swap and both commissions are treated
+ * as confirmed at the close, matching this app's rule that an unrealized
+ * position hasn't moved the balance.
  */
 export function pnlAmount(
-  t: Pick<Trade, "entry" | "stop" | "exit" | "direction" | "rValueAtEntry" | "swap">,
+  t: Pick<
+    Trade,
+    "entry" | "stop" | "exit" | "direction" | "rValueAtEntry" | "swap" | "entryCommission" | "exitCommission"
+  >,
 ): number | null {
   const price = pricePnlAmount(t);
   if (price === null) return null;
-  return price + swapAmount(t);
+  return price + swapAmount(t) - commissionAmount(t);
 }

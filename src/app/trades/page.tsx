@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { netR, winRate } from "@/lib/domain/stats";
+import { moneyStats, netR, winRate } from "@/lib/domain/stats";
 import {
   filterTrades,
   paginateTrades,
@@ -33,7 +33,7 @@ export default async function TradeLogPage({
   const account = await getCurrentAccount();
   if (account === null) {
     return (
-      <TradeLogView hasAccount={false} accountKind={null} models={[]} matching={[]} summary={null} pagination={null} />
+      <TradeLogView hasAccount={false} accountKind={null} currency="USD" models={[]} matching={[]} summary={null} pagination={null} />
     );
   }
 
@@ -47,12 +47,16 @@ export default async function TradeLogPage({
     <TradeLogView
       hasAccount
       accountKind={account.kind}
+      currency={account.currency}
       models={models}
       matching={pagination.pageTrades}
       summary={{
         tradeCount: filtered.length,
         netR: netR(filtered),
         winRate: winRate(filtered),
+        netPnl: moneyStats(filtered).netPnl,
+        netWinRate: moneyStats(filtered).netWinRate,
+        totalCommission: moneyStats(filtered).totalCommission,
       }}
       pagination={{
         currentPage: pagination.currentPage,

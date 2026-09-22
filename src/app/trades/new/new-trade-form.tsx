@@ -21,6 +21,8 @@ import {
 } from "@/components/ui";
 import { RangeDiagram } from "@/components/range-diagram";
 import { AttachmentThumbnails } from "@/components/attachment-thumbnails";
+import { CommissionFields } from "@/components/commission-fields";
+import { NetBreakdown } from "@/components/net-breakdown";
 import { cn } from "@/lib/cn";
 import {
   formatCurrency,
@@ -51,6 +53,7 @@ import { useDraftAttachments } from "./use-draft-attachments";
 import { useDraftAutosave } from "./use-draft-autosave";
 import { collectWarnings, type WarningCode } from "@/lib/domain/warnings";
 import { usePasteAttachment } from "@/lib/use-paste-attachment";
+import { useCommissionPrefill } from "@/lib/use-commission-prefill";
 import { MobileQuickLogWizard, WIZARD_STEP_COUNT, WIZARD_STEP_FIELDS } from "./mobile-quicklog-wizard";
 
 export interface NewTradeFormProps {
@@ -75,6 +78,8 @@ export interface NewTradeFormProps {
   defaultDate: string;
   draft: DraftRecord | null;
   tagPresets: string[];
+  /** settings.commission_per_lot_per_side — prefills both commission fields from the size. 0 = no prefill. */
+  commissionPerLotPerSide: number;
 }
 
 function SectionCard({
@@ -112,6 +117,7 @@ export function NewTradeForm({
   defaultDate,
   draft,
   tagPresets,
+  commissionPerLotPerSide,
 }: NewTradeFormProps) {
   const formatR = useFormatR();
   const t = useT();
@@ -124,6 +130,14 @@ export function NewTradeForm({
   const [resultTouched, setResultTouched] = useState(draft !== null);
   /** Mobile quicklog wizard step (docs/decisions.md § Phase 4d) — unused on desktop. */
   const [wizardStep, setWizardStep] = useState(1);
+
+  const initialValues: NewTradeInput = {
+    ...NEW_TRADE_DEFAULTS,
+    instrument: defaultInstrument,
+    session: defaultSession,
+    date: defaultDate,
+    ...draft?.payload.values,
+  };
 
   const {
     control,
@@ -140,13 +154,13 @@ export function NewTradeForm({
     // `undefined` on restore. Taking the stored payload wholesale would hand
     // zod an undefined string for that field and block submit with an error
     // pointing at a field the trader never touched.
-    defaultValues: {
-      ...NEW_TRADE_DEFAULTS,
-      instrument: defaultInstrument,
-      session: defaultSession,
-      date: defaultDate,
-      ...draft?.payload.values,
-    },
+    defaultValues: initialValues,
+  });
+
+  const commissionPrefill = useCommissionPrefill({
+    perLotPerSide: commissionPerLotPerSide,
+    initial: initialValues,
+    setCommission: (side, value) => setValue(side, value, { shouldDirty: true, shouldValidate: true }),
   });
 
   const values = useWatch({ control }) as NewTradeInput;
@@ -179,6 +193,8 @@ export function NewTradeForm({
     const target = values.target ? parseNumberInput(values.target) : null;
     const exit = values.exit ? parseNumberInput(values.exit) : null;
     const swap = values.swap ? parseNumberInput(values.swap) : null;
+    const commission =
+      (parseNumberInput(values.entryCommission ?? "") ?? 0) + (parseNumberInput(values.exitCommission ?? "") ?? 0);
 
     const rangeReady = rangeHigh !== null && rangeLow !== null && rangeHigh > rangeLow;
     const size = rangeReady ? rangeSize({ rangeHigh: rangeHigh!, rangeLow: rangeLow! }) : null;
@@ -198,7 +214,21 @@ export function NewTradeForm({
         ? realizedR({ entry, stop, exit, direction: values.direction })
         : null;
 
-    return { rangeHigh, rangeLow, entry, stop, target, exit, swap, size, derivedSweep, sweepSide, planned, realized };
+    return {
+      rangeHigh,
+      rangeLow,
+      entry,
+      stop,
+      target,
+      exit,
+      swap,
+      commission,
+      size,
+      derivedSweep,
+      sweepSide,
+      planned,
+      realized,
+    };
   }, [values]);
 
   const selectedModel = models.find((m) => m.id === values.modelId) ?? null;
@@ -354,6 +384,7 @@ export function NewTradeForm({
           currency={currency}
           attachments={attachments}
           onExitChange={onExitChange}
+          onSizeChange={commissionPrefill.onSizeChange}
           onResultChange={onResultChange}
           warnings={warnings}
           warningText={warningText}
@@ -576,7 +607,12 @@ export function NewTradeForm({
               htmlFor="size"
               error={errors.size?.message}
             >
-              <Input id="size" inputMode="decimal" placeholder="1.0" {...register("size")} />
+              <Input
+                id="size"
+                inputMode="decimal"
+                placeholder="1.0"
+                {...register("size", { onChange: (e) => commissionPrefill.onSizeChange(e.target.value) })}
+              />
             </Field>
           </div>
 
@@ -673,7 +709,7 @@ export function NewTradeForm({
             </Field>
           </div>
 
-          <div className="mt-16 grid grid-cols-2 gap-16">
+          <div className="mt-16 grid grid-cols-3 gap-16">
             <Field
               label={t({ en: "Swap", ko: "스왑" })}
               htmlFor="swap"
@@ -685,6 +721,16 @@ export function NewTradeForm({
             >
               <Input id="swap" inputMode="decimal" placeholder="−12.40" {...register("swap")} />
             </Field>
+            <CommissionFields
+              registerSide={(side) =>
+                register(side, { onChange: () => commissionPrefill.markManual(side) })
+              }
+              errors={errors}
+              prefill={commissionPrefill}
+              sizeRaw={values.size ?? ""}
+              perLotPerSide={commissionPerLotPerSide}
+              currency={currency}
+            />
           </div>
 
           {derived.realized !== null && (
@@ -694,7 +740,8 @@ export function NewTradeForm({
                 {formatR(derived.realized)}
               </span>
               {/*
-                The money breakdown is the whole point of recording swap, so
+                The money breakdown is the whole point of recording swap and
+                commission, so
                 it is shown as it is typed. Only on a "live" account, though:
                 there `rValueToday` is exactly what the server will freeze, so
                 the arithmetic is real. A backtest account freezes 1R to the
@@ -706,20 +753,12 @@ export function NewTradeForm({
                 <>
                   {" · "}
                   {formatSignedCurrency(derived.realized * rValueToday, currency)}
-                  {derived.swap !== null && (
-                    <>
-                      {` · ${t({ en: "swap", ko: "스왑" })} `}
-                      {formatSignedCurrency(derived.swap, currency)}
-                      {" → "}
-                      <span
-                        className={cn(
-                          derived.realized * rValueToday + derived.swap >= 0 ? "text-gain" : "text-loss",
-                        )}
-                      >
-                        {formatSignedCurrency(derived.realized * rValueToday + derived.swap, currency)}
-                      </span>
-                    </>
-                  )}
+                  <NetBreakdown
+                    price={derived.realized * rValueToday}
+                    swap={derived.swap}
+                    commission={derived.commission}
+                    currency={currency}
+                  />
                 </>
               )}
             </p>

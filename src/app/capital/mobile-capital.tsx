@@ -108,6 +108,12 @@ export function MobileCapital({ data, summary, onRecordCash }: CapitalScreenProp
               {formatR(summary.tradingSwapR)}
             </div>
           )}
+          {summary.tradingCommission !== 0 && (
+            <div className="mt-4 text-12 font-medium text-faint">
+              {t({ en: "incl. commission", ko: "커미션 포함" })}{" "}
+              {formatSignedCurrency(-summary.tradingCommission, currency, 2)}
+            </div>
+          )}
           <Sparkline tone="ink" values={summary.series.map((p) => p.balance)} className="mt-16" />
         </Card>
 

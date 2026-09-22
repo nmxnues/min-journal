@@ -65,6 +65,8 @@ export async function importTrades(rows: RawCsvRow[], locale: Locale = "en"): Pr
       // a batch of swing trades assigns the same 1R sequence it would have if
       // the rows had been imported one file at a time.
       swap: t.swap,
+      entryCommission: t.entry_commission,
+      exitCommission: t.exit_commission,
     }));
     rValues = assignBacktestRValues(account, cashMovements, existingTrades, riskChanges, pending);
   }
@@ -95,6 +97,8 @@ export async function importTrades(rows: RawCsvRow[], locale: Locale = "en"): Pr
     exit: trade.exit,
     swap: trade.swap,
     size: trade.size,
+    entry_commission: trade.entry_commission,
+    exit_commission: trade.exit_commission,
     model_id: trade.model_id,
     confirmation: trade.confirmation,
     result: trade.result,

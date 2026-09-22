@@ -13,10 +13,15 @@
  * axis in capital.ts (`tradingPnL`/`tradingSwap`); the only two swap
  * selectors here, `netSwap` and `netSwapR`, are for reporting it beside those
  * figures and are not folded into `periodStats` or any group breakdown.
+ *
+ * Commission follows the same split (docs/decisions.md § Commission). The
+ * trader's "stats on net P&L" live in `moneyStats` at the bottom of this file:
+ * a separate, currency-denominated set — net total, net win rate, average net
+ * P&L — beside the R statistics rather than in place of them.
  */
 
 import { memoize } from "./memoize";
-import { offPlan, pnlAmount, realizedR, swapAmount } from "./trade";
+import { commissionAmount, offPlan, pnlAmount, realizedR, swapAmount } from "./trade";
 import type { IsoDate, Session, SweepSide, Trade, TradeModel } from "./types";
 
 /** Chronological order, `createdAt` breaking ties within a day. */
@@ -359,3 +364,74 @@ export const periodStats = memoize((trades: readonly Trade[]): PeriodStats => ({
   ruleAdherence: ruleAdherence(trades),
   winStreaks: winStreaks(trades),
 }));
+
+/**
+ * A net P&L within half a cent of zero counts as flat — the same scratch
+ * tolerance `result`'s break-even label gives price, applied to currency so
+ * float noise from `realizedR * rValueAtEntry` can't turn a flat trade into a
+ * one-in-a-billion "win".
+ */
+const FLAT_PNL_EPSILON = 0.005;
+
+export interface MoneyStats {
+  /** Trades with an exit — the only ones that have a net P&L at all. */
+  closedCount: number;
+  /** Sum of `pnlAmount`: price + swap − commission. Equals capital.ts `tradingPnL`. */
+  netPnl: number;
+  /** Entry + exit commission over the closed trades, as a positive cost. */
+  totalCommission: number;
+  /** Swap over the closed trades, signed (negative = cost). */
+  totalSwap: number;
+  /**
+   * Share of closed trades whose *net* P&L is positive, among those that
+   * were net positive or net negative. Flat trades are left out of both
+   * sides, mirroring `winRate`'s treatment of break-even.
+   *
+   * Deliberately independent of `result`: that label is price-based and
+   * chosen by the trader, while this is what the account actually kept — a
+   * +0.05R scratch that paid $7 commission is a price "be" and a net loss.
+   */
+  netWinRate: number | null;
+  /** Mean net P&L per closed trade, flat ones included (they dilute it, as in `expectancy`). */
+  avgNetPnl: number | null;
+  /** Mean net P&L of net-positive trades. */
+  avgNetWin: number | null;
+  /** Mean net P&L of net-negative trades; stays negative. */
+  avgNetLoss: number | null;
+}
+
+/**
+ * The currency-denominated counterpart to `periodStats`, over net P&L
+ * (docs/decisions.md § Commission). Open trades are skipped throughout —
+ * their P&L, swap and commission aren't confirmed until the close — so
+ * `netPnl`, `totalSwap` and `totalCommission` reconcile exactly with
+ * `tradingPnL`/`tradingSwap`/`tradingCommission`.
+ */
+export const moneyStats = memoize((trades: readonly Trade[]): MoneyStats => {
+  const pnls: number[] = [];
+  let totalCommission = 0;
+  let totalSwap = 0;
+
+  for (const trade of trades) {
+    const pnl = pnlAmount(trade);
+    if (pnl === null) continue;
+    pnls.push(pnl);
+    totalCommission += commissionAmount(trade);
+    totalSwap += swapAmount(trade);
+  }
+
+  const wins = pnls.filter((p) => p > FLAT_PNL_EPSILON);
+  const losses = pnls.filter((p) => p < -FLAT_PNL_EPSILON);
+  const decisive = wins.length + losses.length;
+
+  return {
+    closedCount: pnls.length,
+    netPnl: pnls.reduce((sum, p) => sum + p, 0),
+    totalCommission,
+    totalSwap,
+    netWinRate: decisive === 0 ? null : wins.length / decisive,
+    avgNetPnl: mean(pnls),
+    avgNetWin: mean(wins),
+    avgNetLoss: mean(losses),
+  };
+});

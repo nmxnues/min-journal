@@ -113,6 +113,9 @@ export async function createTrade(
   // typed here is stored as given, negative included: a swap cost lowers
   // the balance and a carry credit raises it.
   const swap = v.swap === "" ? null : parseNumberInput(v.swap);
+  // Blank is 0 (no commission charged); the schema already refused negatives.
+  const entryCommission = v.entryCommission === "" ? 0 : parseNumberInput(v.entryCommission)!;
+  const exitCommission = v.exitCommission === "" ? 0 : parseNumberInput(v.exitCommission)!;
 
   const sweepSide: SweepSide =
     v.sweepSideOverride ?? deriveSweepSide({ stop, rangeHigh, rangeLow }) ?? "none";
@@ -161,6 +164,8 @@ export async function createTrade(
       exit,
       size,
       swap,
+      entry_commission: entryCommission,
+      exit_commission: exitCommission,
       model_id: v.modelId,
       confirmation: v.confirmation.trim() === "" ? null : v.confirmation.trim(),
       result: v.result,

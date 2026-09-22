@@ -52,6 +52,9 @@ export async function updateTrade(
   // Clearing the field puts the row back to null ("not recorded"), which is
   // how a wrongly-entered swap gets retracted rather than zeroed out.
   const swap = v.swap === "" ? null : parseNumberInput(v.swap);
+  // Blank is 0 (no commission charged); the schema already refused negatives.
+  const entryCommission = v.entryCommission === "" ? 0 : parseNumberInput(v.entryCommission)!;
+  const exitCommission = v.exitCommission === "" ? 0 : parseNumberInput(v.exitCommission)!;
   const holdMinutes = v.holdMinutes === "" ? null : parseNumberInput(v.holdMinutes);
 
   const sweepSide: SweepSide =
@@ -74,6 +77,8 @@ export async function updateTrade(
       exit,
       size,
       swap,
+      entry_commission: entryCommission,
+      exit_commission: exitCommission,
       model_id: v.modelId,
       confirmation: v.confirmation.trim() === "" ? null : v.confirmation.trim(),
       result: v.result,

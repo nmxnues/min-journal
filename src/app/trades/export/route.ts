@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { stringifyCsv } from "@/lib/csv";
-import { plannedR, realizedR } from "@/lib/domain/trade";
+import { plannedR, pnlAmount, realizedR } from "@/lib/domain/trade";
 import { filterTrades, parseTradeLogFilters, parseTradeLogSort, sortTrades } from "@/lib/domain/trade-log";
 import type { Trade } from "@/lib/domain/types";
 import { todayIso } from "@/lib/domain/dates";
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
   const trades = sortTrades(filterTrades(allTrades, filters), sort, direction, models);
 
-  const header = [...CSV_TARGET_FIELDS.map((field) => CSV_FIELD_LABELS[field].en), "Planned R", "Realized R"];
+  const header = [...CSV_TARGET_FIELDS.map((field) => CSV_FIELD_LABELS[field].en), "Planned R", "Realized R", "Net P&L"];
   const rows = trades.map((trade) => toCsvRow(trade, modelById));
 
   const csv = stringifyCsv([header, ...rows]);
@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
 function toCsvRow(trade: Trade, modelById: ReadonlyMap<string, { name: string }>): string[] {
   const planned = plannedR(trade);
   const realized = realizedR(trade);
+  const pnl = pnlAmount(trade);
   return [
     trade.date,
     trade.instrument,
@@ -72,6 +73,8 @@ function toCsvRow(trade: Trade, modelById: ReadonlyMap<string, { name: string }>
     // export-then-reimport doesn't quietly turn "unknown" into "none".
     trade.swap === null ? "" : String(trade.swap),
     String(trade.size),
+    String(trade.entryCommission),
+    String(trade.exitCommission),
     String(trade.rValueAtEntry),
     trade.modelId === null ? "" : (modelById.get(trade.modelId)?.name ?? ""),
     trade.confirmation ?? "",
@@ -85,5 +88,7 @@ function toCsvRow(trade: Trade, modelById: ReadonlyMap<string, { name: string }>
     // the columns its own mapping step points at.
     planned === null ? "" : planned.toFixed(1),
     realized === null ? "" : realized.toFixed(1),
+    // Price + swap − commission; blank while the trade is open.
+    pnl === null ? "" : pnl.toFixed(2),
   ];
 }

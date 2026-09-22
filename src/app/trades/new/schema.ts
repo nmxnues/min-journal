@@ -41,6 +41,8 @@ export const NEW_TRADE_DEFAULTS: NewTradeInput = {
   target: "",
   exit: "",
   swap: "",
+  entryCommission: "",
+  exitCommission: "",
   modelId: null,
   confirmation: "",
   result: null,

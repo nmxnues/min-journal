@@ -10,7 +10,7 @@ import { SignOutButton } from "@/components/nav/sign-out-button";
 import { TopBar } from "@/components/nav/top-bar";
 import { Button, Card, Chip, EmptyState } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { offPlan, plannedR, realizedR } from "@/lib/domain/trade";
+import { offPlan, plannedR, pnlAmount, realizedR } from "@/lib/domain/trade";
 import {
   buildTradeLogSearchParams,
   EMPTY_TRADE_LOG_FILTERS,
@@ -24,7 +24,7 @@ import {
   type TradeLogFilters,
 } from "@/lib/domain/trade-log";
 import type { AccountKind, Trade, TradeModel } from "@/lib/domain/types";
-import { formatCompactDate, formatPercent } from "@/lib/format";
+import { formatCompactDate, formatCurrency, formatPercent, formatSignedCurrency } from "@/lib/format";
 import { useFormatR } from "@/lib/settings/context";
 import { useLocale, useT } from "@/lib/i18n/locale-context";
 import { INSTRUMENT_PRESETS } from "@/lib/instruments";
@@ -63,6 +63,11 @@ export interface TradeLogSummary {
   tradeCount: number;
   netR: number;
   winRate: number | null;
+  /** Currency, after swap and commission (docs/decisions.md § Commission). */
+  netPnl: number;
+  netWinRate: number | null;
+  /** Positive cost over the closed trades in the filtered set. */
+  totalCommission: number;
 }
 
 export interface TradeLogPagination {
@@ -75,6 +80,8 @@ export interface TradeLogViewProps {
   hasAccount: boolean;
   /** Only meaningful when `hasAccount` — Import needs it to know whether `rValueAtEntry` can be left blank. */
   accountKind: AccountKind | null;
+  /** Account currency for the net P&L figures. */
+  currency: string;
   models: TradeModel[];
   /** The current page's trades only — summary/export reflect the full filtered set server-side. */
   matching: Trade[];
@@ -82,7 +89,15 @@ export interface TradeLogViewProps {
   pagination: TradeLogPagination | null;
 }
 
-export function TradeLogView({ hasAccount, accountKind, models, matching, summary, pagination }: TradeLogViewProps) {
+export function TradeLogView({
+  hasAccount,
+  accountKind,
+  currency,
+  models,
+  matching,
+  summary,
+  pagination,
+}: TradeLogViewProps) {
   const formatR = useFormatR();
   const t = useT();
   const locale = useLocale();
@@ -298,6 +313,23 @@ export function TradeLogView({ hasAccount, accountKind, models, matching, summar
                 label={t({ en: "Win rate", ko: "승률" })}
                 value={summary.winRate === null ? em : formatPercent(summary.winRate)}
               />
+              <SummaryStat
+                label={t({ en: "Net P&L", ko: "순손익" })}
+                value={formatSignedCurrency(summary.netPnl, currency)}
+                tone={summary.netPnl > 0 ? "gain" : summary.netPnl < 0 ? "loss" : undefined}
+              />
+              <SummaryStat
+                label={t({ en: "Net win rate", ko: "순손익 승률" })}
+                value={summary.netWinRate === null ? em : formatPercent(summary.netWinRate)}
+              />
+              <SummaryStat
+                label={t({ en: "Commission", ko: "커미션" })}
+                value={
+                  summary.totalCommission === 0
+                    ? formatCurrency(0, currency)
+                    : formatSignedCurrency(-summary.totalCommission, currency, 2)
+                }
+              />
             </div>
           )}
         </Card>
@@ -323,7 +355,7 @@ export function TradeLogView({ hasAccount, accountKind, models, matching, summar
           ) : isMobile ? (
             <div className="flex flex-col">
               {matching.map((trade, i) => (
-                <MobileTradeRow key={trade.id} trade={trade} model={trade.modelId === null ? null : (modelById.get(trade.modelId) ?? null)} bordered={i > 0} />
+                <MobileTradeRow key={trade.id} trade={trade} model={trade.modelId === null ? null : (modelById.get(trade.modelId) ?? null)} bordered={i > 0} currency={currency} />
               ))}
             </div>
           ) : (
@@ -333,6 +365,7 @@ export function TradeLogView({ hasAccount, accountKind, models, matching, summar
                 <DesktopTradeRow
                   key={trade.id}
                   trade={trade}
+                  currency={currency}
                   model={trade.modelId === null ? null : (modelById.get(trade.modelId) ?? null)}
                 />
               ))}
@@ -428,11 +461,12 @@ function TableHeader({
   );
 }
 
-function DesktopTradeRow({ trade, model }: { trade: Trade; model: TradeModel | null }) {
+function DesktopTradeRow({ trade, model, currency }: { trade: Trade; model: TradeModel | null; currency: string }) {
   const formatR = useFormatR();
   const t = useT();
   const isOffPlan = offPlan(trade);
   const r = realizedR(trade);
+  const pnl = pnlAmount(trade);
   const planned = plannedR(trade);
 
   return (
@@ -456,19 +490,33 @@ function DesktopTradeRow({ trade, model }: { trade: Trade; model: TradeModel | n
       <span className="text-13 font-medium text-muted">{t(SESSION_LABELS[trade.session])}</span>
       <span className="text-13 font-medium text-muted">{t(SWEEP_SIDE_LABELS[trade.sweepSide])}</span>
       <span className="text-13 font-medium text-muted">{planned === null ? em : `${planned.toFixed(1)}R`}</span>
-      <span className={cn("text-right text-17 font-extrabold", r === null ? "text-ink" : r >= 0 ? "text-gain" : "text-loss")}>
-        {r === null ? em : formatR(r)}
-      </span>
+      <div className="text-right">
+        <div className={cn("text-17 font-extrabold", r === null ? "text-ink" : r >= 0 ? "text-gain" : "text-loss")}>
+          {r === null ? em : formatR(r)}
+        </div>
+        <NetPnlLine pnl={pnl} currency={currency} />
+      </div>
       <ChevronRight aria-hidden size={16} className="justify-self-end text-disabled transition-colors duration-150 ease-out group-hover:text-muted" />
     </Link>
   );
 }
 
-function MobileTradeRow({ trade, model, bordered }: { trade: Trade; model: TradeModel | null; bordered: boolean }) {
+function MobileTradeRow({
+  trade,
+  model,
+  bordered,
+  currency,
+}: {
+  trade: Trade;
+  model: TradeModel | null;
+  bordered: boolean;
+  currency: string;
+}) {
   const formatR = useFormatR();
   const t = useT();
   const isOffPlan = offPlan(trade);
   const r = realizedR(trade);
+  const pnl = pnlAmount(trade);
 
   return (
     <Link
@@ -484,10 +532,26 @@ function MobileTradeRow({ trade, model, bordered }: { trade: Trade; model: Trade
           {t(SESSION_LABELS[trade.session])} · {formatCompactDate(trade.date)}
         </div>
       </div>
-      <span className={cn("shrink-0 text-17 font-extrabold", r === null ? "text-ink" : r >= 0 ? "text-gain" : "text-loss")}>
-        {r === null ? em : formatR(r)}
-      </span>
+      <div className="shrink-0 text-right">
+        <div className={cn("text-17 font-extrabold", r === null ? "text-ink" : r >= 0 ? "text-gain" : "text-loss")}>
+          {r === null ? em : formatR(r)}
+        </div>
+        <NetPnlLine pnl={pnl} currency={currency} />
+      </div>
     </Link>
+  );
+}
+
+/**
+ * The row's net P&L under its price R — price + swap − commission, i.e. what
+ * the trade did to the balance. Nothing while the trade is open.
+ */
+function NetPnlLine({ pnl, currency }: { pnl: number | null; currency: string }) {
+  if (pnl === null) return null;
+  return (
+    <div className={cn("mt-2 text-12 font-semibold", pnl > 0 ? "text-gain" : pnl < 0 ? "text-loss" : "text-muted")}>
+      {formatSignedCurrency(pnl, currency)}
+    </div>
   );
 }
 

@@ -157,14 +157,22 @@ export function DesktopCapital({ data, summary, onRecordCash }: CapitalScreenPro
             // number disagree with the broker in the first place
             // (docs/decisions.md § Swap). With no swap recorded the caption is
             // byte-identical to before.
-            sub={
-              summary.tradingSwap === 0
-                ? t({ en: `${formatR(summary.lifetimeR)} lifetime`, ko: `누적 ${formatR(summary.lifetimeR)}` })
-                : t({
-                    en: `${formatR(summary.lifetimeR)} lifetime · incl. ${formatSignedCurrency(summary.tradingSwap, currency)} swap`,
-                    ko: `누적 ${formatR(summary.lifetimeR)} · 스왑 ${formatSignedCurrency(summary.tradingSwap, currency)} 포함`,
-                  })
-            }
+            // Commission gets the same treatment (docs/decisions.md § Commission).
+            sub={[
+              t({ en: `${formatR(summary.lifetimeR)} lifetime`, ko: `누적 ${formatR(summary.lifetimeR)}` }),
+              summary.tradingSwap !== 0 &&
+                t({
+                  en: `incl. ${formatSignedCurrency(summary.tradingSwap, currency)} swap`,
+                  ko: `스왑 ${formatSignedCurrency(summary.tradingSwap, currency)} 포함`,
+                }),
+              summary.tradingCommission !== 0 &&
+                t({
+                  en: `incl. ${formatSignedCurrency(-summary.tradingCommission, currency, 2)} commission`,
+                  ko: `커미션 ${formatSignedCurrency(-summary.tradingCommission, currency, 2)} 포함`,
+                }),
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           />
           <StatCard
             label={t({ en: "Return on capital", ko: "자본 수익률" })}

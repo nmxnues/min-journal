@@ -83,6 +83,8 @@ export function toTrade(row: Row<"trades">): Trade {
     holdMinutes: row.hold_minutes,
     rValueAtEntry: Number(row.r_value_at_entry),
     swap: row.swap === null ? null : Number(row.swap),
+    entryCommission: Number(row.entry_commission),
+    exitCommission: Number(row.exit_commission),
     tags: row.tags ?? [],
     notes: row.notes,
     createdAt: row.created_at,
@@ -272,6 +274,7 @@ export function toSettings(row: Row<"settings">): Settings {
     defaultSession: row.default_session as Session,
     rPrecision: row.r_precision,
     tagPresets: row.tag_presets,
+    commissionPerLotPerSide: Number(row.commission_per_lot_per_side),
   };
 }
 

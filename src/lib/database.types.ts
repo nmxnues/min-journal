@@ -267,6 +267,7 @@ export type Database = {
       }
       settings: {
         Row: {
+          commission_per_lot_per_side: number
           created_at: string
           default_instrument: string
           default_session: string
@@ -277,6 +278,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          commission_per_lot_per_side?: number
           created_at?: string
           default_instrument?: string
           default_session?: string
@@ -287,6 +289,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          commission_per_lot_per_side?: number
           created_at?: string
           default_instrument?: string
           default_session?: string
@@ -306,7 +309,9 @@ export type Database = {
           date: string
           direction: string
           entry: number
+          entry_commission: number
           exit: number | null
+          exit_commission: number
           exit_reason: string | null
           hold_minutes: number | null
           htf_pairing: string
@@ -335,7 +340,9 @@ export type Database = {
           date: string
           direction: string
           entry: number
+          entry_commission?: number
           exit?: number | null
+          exit_commission?: number
           exit_reason?: string | null
           hold_minutes?: number | null
           htf_pairing?: string
@@ -364,7 +371,9 @@ export type Database = {
           date?: string
           direction?: string
           entry?: number
+          entry_commission?: number
           exit?: number | null
+          exit_commission?: number
           exit_reason?: string | null
           hold_minutes?: number | null
           htf_pairing?: string

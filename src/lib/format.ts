@@ -93,11 +93,13 @@ export function formatPips(value: number, instrument: string): string {
   return (value / pipSize(instrument)).toFixed(1);
 }
 
-export function formatCurrency(value: number, currency = "USD"): string {
+/** Whole units by default; pass `decimals` for figures where cents matter (a $3.50 commission). */
+export function formatCurrency(value: number, currency = "USD", decimals = 0): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
   }).format(value);
 }
 
@@ -154,10 +156,10 @@ export function formatLoggedAt(date: Date, locale: Locale): string {
 }
 
 /** "+$901" / "−$322" — the ledger's signed amounts, with the mocks' real minus sign. */
-export function formatSignedCurrency(value: number, currency = "USD"): string {
-  const rounded = Math.round(value);
+export function formatSignedCurrency(value: number, currency = "USD", decimals = 0): string {
+  const rounded = Math.round(value * 10 ** decimals);
   const sign = rounded > 0 ? "+" : rounded < 0 ? "−" : "";
-  return `${sign}${formatCurrency(Math.abs(value), currency)}`;
+  return `${sign}${formatCurrency(Math.abs(value), currency, decimals)}`;
 }
 
 /** "+43.0%" — a signed ratio, e.g. Capital's time-weighted return. */

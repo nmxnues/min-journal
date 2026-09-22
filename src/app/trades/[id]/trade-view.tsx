@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 import {
   formatHoldMinutes,
   formatLoggedAt,
+  formatCurrency,
   formatPips,
   formatPrice,
   formatSignedCurrency,
@@ -20,9 +21,12 @@ import {
 } from "@/lib/labels";
 import {
   captureRate,
+  commissionAmount,
+  commissionR,
   offPlan,
   plannedR,
   pnlAmount,
+  pricePnlAmount,
   swapAmount,
   swapR,
   rangePosition,
@@ -69,6 +73,11 @@ export function TradeView({ trade, attachments, currency }: TradeViewProps) {
   // closed the same day and genuinely paid nothing.
   const swap = trade.swap === null ? null : swapAmount(trade);
   const swapInR = swapR(trade);
+  // Always a number (0 on pre-commission trades), so only captioned when > 0.
+  const commission = commissionAmount(trade);
+  const commissionInR = commissionR(trade);
+  const pricePnl = pricePnlAmount(trade);
+  const hasCosts = swap !== null || commission > 0;
   const planned = plannedR(trade);
   const capture = captureRate(trade);
   const size = rangeSize(trade);
@@ -107,7 +116,15 @@ export function TradeView({ trade, attachments, currency }: TradeViewProps) {
             {realized === null ? em : formatR(realized)}
           </div>
           {pnl !== null && (
-            <div className="mt-4 text-15 font-bold text-muted">{formatSignedCurrency(pnl, currency)}</div>
+            <div className="mt-4 text-15 font-bold text-muted">
+              {formatSignedCurrency(pnl, currency)}
+              {hasCosts && ` ${t({ en: "net", ko: "순손익" })}`}
+            </div>
+          )}
+          {pnl !== null && hasCosts && pricePnl !== null && (
+            <div className="mt-4 text-12_5 font-medium text-faint">
+              {t({ en: "Price", ko: "가격 손익" })} {formatSignedCurrency(pricePnl, currency)}
+            </div>
           )}
           {/*
             The R headline above is price R and the amount beside it is net of
@@ -119,6 +136,19 @@ export function TradeView({ trade, attachments, currency }: TradeViewProps) {
             <div className="mt-4 text-12_5 font-medium text-faint">
               {t({ en: "Swap", ko: "스왑" })} {formatSignedCurrency(swap, currency)}
               {swapInR !== null && ` · ${formatR(swapInR)}`}
+              {trade.exit === null &&
+                ` · ${t({
+                  en: "not in the balance until this trade is closed",
+                  ko: "청산 전에는 잔고에 반영되지 않습니다",
+                })}`}
+            </div>
+          )}
+          {/* Same reconciling role as the swap line, for the commission term (docs/decisions.md § Commission). */}
+          {commission > 0 && (
+            <div className="mt-4 text-12_5 font-medium text-faint">
+              {t({ en: "Commission", ko: "커미션" })} {formatSignedCurrency(-commission, currency, 2)}
+              {` (${t({ en: "entry", ko: "진입" })} ${formatCurrency(trade.entryCommission, currency, 2)} · ${t({ en: "exit", ko: "청산" })} ${formatCurrency(trade.exitCommission, currency, 2)})`}
+              {commissionInR !== null && ` · ${formatR(-commissionInR)}`}
               {trade.exit === null &&
                 ` · ${t({
                   en: "not in the balance until this trade is closed",

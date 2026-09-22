@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { DrawdownAlert, type DrawdownAlertInfo } from "@/components/drawdown-alert";
+import { NetPnlStats } from "@/components/net-pnl-stats";
 import { Sparkline } from "@/components/charts/equity-curve";
 import { BottomTabBar } from "@/components/nav/bottom-tab-bar";
 import { toTabItems } from "@/components/nav/routes";
@@ -12,7 +13,7 @@ import { cn } from "@/lib/cn";
 import { tradingPnL, tradingSwap } from "@/lib/domain/capital";
 import type { ResolvedDashboardPeriod } from "@/lib/domain/dashboard-period";
 import { todayIso } from "@/lib/domain/dates";
-import { byModel, equityCurve, periodStats } from "@/lib/domain/stats";
+import { byModel, equityCurve, moneyStats, periodStats } from "@/lib/domain/stats";
 import { offPlan, realizedR } from "@/lib/domain/trade";
 import { buildTradeLogSearchParams, EMPTY_TRADE_LOG_FILTERS } from "@/lib/domain/trade-log";
 import type { Trade, TradeModel } from "@/lib/domain/types";
@@ -53,6 +54,7 @@ export function MobileHome({ period, trades, models, hasAccount, drawdownAlert, 
   const equity = useMemo(() => equityCurve(trades), [trades]);
   const periodPnl = useMemo(() => tradingPnL(trades), [trades]);
   const periodSwap = useMemo(() => tradingSwap(trades), [trades]);
+  const money = useMemo(() => moneyStats(trades), [trades]);
   const modelRows = useMemo(
     () => topAndBottomModels(byModel(trades, models).filter((r) => r.tradeCount > 0)),
     [trades, models],
@@ -146,6 +148,12 @@ export function MobileHome({ period, trades, models, hasAccount, drawdownAlert, 
               {formatSignedCurrency(periodSwap, currency)}
             </div>
           )}
+          {money.totalCommission !== 0 && (
+            <div className="mt-2 text-12 font-medium text-faint">
+              {t({ en: "incl. commission", ko: "커미션 포함" })}{" "}
+              {formatSignedCurrency(-money.totalCommission, currency, 2)}
+            </div>
+          )}
           <div className="mt-14 flex gap-6">
             <span className="rounded-8 bg-divider px-10 py-6 text-12 font-semibold text-secondary">
               {t(tradeCountLabel(stats.tradeCount))}
@@ -159,6 +167,8 @@ export function MobileHome({ period, trades, models, hasAccount, drawdownAlert, 
             <Sparkline values={equity.points.map((p) => p.cumulativeR)} className="mt-18" />
           )}
         </Card>
+
+        <NetPnlStats stats={money} currency={currency} compact />
 
         {modelRows.length > 0 && (
           <Card className="px-22 py-20">

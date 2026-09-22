@@ -13,6 +13,7 @@ export interface SettingsInput {
   defaultSession: Session;
   rPrecision: string;
   tagPresets: string[];
+  commissionPerLotPerSide: string;
 }
 
 const VALID_PNL_CONVENTIONS: readonly PnlConvention[] = ["kr", "west"];
@@ -53,6 +54,14 @@ export async function updateSettings(input: SettingsInput): Promise<SettingsActi
   const tagPresets = [...new Set(input.tagPresets.map((tag) => tag.trim()).filter((tag) => tag !== ""))];
   if (tagPresets.length === 0) return { ok: false, error: "Add at least one tag." };
 
+  // Blank reads as 0 (no commission to prefill); a negative is refused here
+  // as well as by the column's CHECK, since a commission is always a cost.
+  const commission =
+    input.commissionPerLotPerSide.trim() === "" ? 0 : parseNumberInput(input.commissionPerLotPerSide);
+  if (commission === null || commission < 0) {
+    return { ok: false, error: "Commission per lot must be a number of 0 or more." };
+  }
+
   // upsert, not update: settings.user_id is the PK, always seeded by
   // handle_new_user (docs/decisions.md § Phase 1) — but if that row is
   // somehow missing, an update would silently match zero rows rather than
@@ -64,6 +73,7 @@ export async function updateSettings(input: SettingsInput): Promise<SettingsActi
     default_session: input.defaultSession,
     r_precision: rPrecision,
     tag_presets: tagPresets,
+    commission_per_lot_per_side: commission,
   });
 
   if (error) return { ok: false, error: error.message };

@@ -58,6 +58,9 @@ export function describeLedgerEntry(
     if (formatAmount !== undefined && entry.swap !== null && entry.swap !== 0) {
       parts.push(`${t({ en: "swap", ko: "스왑" })} ${formatAmount(entry.swap)}`);
     }
+    if (formatAmount !== undefined && entry.commission !== null && entry.commission !== 0) {
+      parts.push(`${t({ en: "commission", ko: "커미션" })} ${formatAmount(-entry.commission)}`);
+    }
     return parts.join(" · ");
   }
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { DrawdownAlert, type DrawdownAlertInfo } from "@/components/drawdown-alert";
+import { NetPnlStats } from "@/components/net-pnl-stats";
 import { EquityCurve } from "@/components/charts/equity-curve";
 import { toNavItems } from "@/components/nav/routes";
 import { SignOutButton } from "@/components/nav/sign-out-button";
@@ -12,7 +13,7 @@ import { BarRow, Button, Card, CardHeader, Chip, EmptyState, Panel, StatCard } f
 import { cn } from "@/lib/cn";
 import { tradingPnL, tradingSwap } from "@/lib/domain/capital";
 import type { ResolvedDashboardPeriod } from "@/lib/domain/dashboard-period";
-import { byModel, bySession, equityCurve, periodStats, sweepAlignment } from "@/lib/domain/stats";
+import { byModel, bySession, equityCurve, moneyStats, periodStats, sweepAlignment } from "@/lib/domain/stats";
 import { buildTradeLogSearchParams, EMPTY_TRADE_LOG_FILTERS } from "@/lib/domain/trade-log";
 import { offPlan, plannedR, realizedR } from "@/lib/domain/trade";
 import type { Trade, TradeModel } from "@/lib/domain/types";
@@ -62,6 +63,7 @@ export function DesktopDashboard({
   // caption rather than displacing it.
   const periodPnl = useMemo(() => tradingPnL(trades), [trades]);
   const periodSwap = useMemo(() => tradingSwap(trades), [trades]);
+  const money = useMemo(() => moneyStats(trades), [trades]);
   const modelRows = useMemo(
     () => byModel(trades, models).filter((r) => r.tradeCount > 0),
     [trades, models],
@@ -158,6 +160,13 @@ export function DesktopDashboard({
                 {formatSignedCurrency(periodSwap, currency)}
               </div>
             )}
+            {/* Same reconciling caption for commission (docs/decisions.md § Commission). */}
+            {money.totalCommission !== 0 && (
+              <div className="mt-4 text-12_5 font-medium text-faint">
+                {t({ en: "incl. commission", ko: "커미션 포함" })}{" "}
+                {formatSignedCurrency(-money.totalCommission, currency, 2)}
+              </div>
+            )}
             <div className="mt-14 flex gap-8">
               <Chip shape="stat">{t(tradeCountLabel(stats.tradeCount))}</Chip>
               <Chip shape="stat">
@@ -209,6 +218,9 @@ export function DesktopDashboard({
             value={stats.ruleAdherence === null ? em : formatPercent(stats.ruleAdherence)}
           />
         </div>
+
+        {/* Net P&L row — currency, after swap and commission */}
+        <NetPnlStats stats={money} currency={currency} />
 
         {/* Two-up analysis row */}
         <div className="grid grid-cols-1 gap-16 min-[1200px]:grid-cols-2">
