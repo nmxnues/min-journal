@@ -1117,3 +1117,43 @@ metadata-only. `supabase gen types` output was installed as
 
 `npx tsc --noEmit`, `pnpm lint`, `pnpm test` (305 passed: the 282
 pre-existing tests unmodified, 23 new) and `pnpm build` are clean.
+
+## Missed trades
+
+Setups the system called valid but that weren't taken (fear, a prior loss,
+low conviction, away from the desk, other), logged so the cost of *not*
+entering shows up as a number. Screen: `/missed`, desktop top bar only (a
+sixth bottom tab would crowd the phone bar; the page itself works on phones).
+Same language rule as every screen — English on desktop, Korean on phones.
+
+**Kept apart.** Own table, `missed_trades`, with no `account_id` and no
+`r_value_at_entry`. Nothing that reads `trades` — balance, ledger, drawdown,
+1R, R statistics, CSV export — can see a missed trade. The migration only
+creates; no existing table or row is touched.
+
+**Required:** date, pair, direction, reason, hypothetical result. Prices are
+optional; without entry/stop (or target, for a win) the R is *unknown* —
+counted in the tallies, left out of the R total, the same way an open trade's
+R is unknown rather than 0.
+
+**Hypothetical R.** Win = planned R to the target, loss = −1, break-even = 0,
+then minus commission in R. The user sizes every trade so the stop costs
+exactly 1R, so lots follow from the stop distance and the balance cancels out:
+
+    commissionR = 2 × ratePerLotPerSide / (stopDistance × USD per 1.0 price move per lot)
+
+Exact for XXXUSD and USDXXX (the trade's own price converts); crosses use the
+approximate rates in `APPROX_USD_PER_UNIT` — accepted by the user. Checked
+against the 2026-09-22 EURAUD trade: that trade was sized under 1R, so its real
+commission R was lower; the user chose to keep the formula. The Settings rate is
+frozen onto each row at log time so a later change never rewrites history,
+the same promise `trades.entry_commission` keeps.
+
+**Comparison.** The screen sets the missed total beside real trades' R *after*
+their own recorded commission (`netRAfterCommission`). Screen-only: the
+Dashboard and every other R statistic stay price-only (§ Commission).
+
+**Keyboard entry.** Each choice row is one Tab stop driven by arrow keys;
+Ctrl/⌘+Enter saves; plain Enter is a newline in the memo boxes and inert in
+one-line fields. Time is a 4-digit 24-hour field, because the native time
+input in a Korean browser opens on an 오전/오후 segment.

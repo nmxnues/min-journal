@@ -83,12 +83,28 @@ export function MobileHome({ period, trades, models, hasAccount, drawdownAlert, 
     </>
   );
 
+  // Weekly review and Missed trades are desk-side screens with no bottom tab
+  // (a sixth tab would crowd the bar), so the phone reaches them from here.
+  const linkClass =
+    "rounded-6 text-12_5 font-semibold text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2";
+  const reviewLinks = (
+    <div className="flex gap-16 self-start">
+      <Link href="/weekly-review" className={linkClass}>
+        {t({ en: "Weekly review", ko: "주간 리뷰" })} →
+      </Link>
+      <Link href="/missed" className={linkClass}>
+        {t({ en: "Missed trades", ko: "놓친 거래" })} →
+      </Link>
+    </div>
+  );
+
   if (!hasAccount || trades.length === 0) {
     return (
       <div className="flex min-h-full flex-col bg-page">
         {header}
         <div className="flex flex-1 flex-col justify-center gap-14 px-20 py-20">
           {drawdownAlert != null && <DrawdownAlert {...drawdownAlert} compact />}
+          {hasAccount && reviewLinks}
           <EmptyState
             title={
               hasAccount
@@ -119,9 +135,7 @@ export function MobileHome({ period, trades, models, hasAccount, drawdownAlert, 
 
       <div className="flex flex-1 flex-col gap-14 px-20 py-12">
         {drawdownAlert != null && <DrawdownAlert {...drawdownAlert} compact />}
-        <Link href="/weekly-review" className="self-start rounded-6 text-12_5 font-semibold text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">
-          {t({ en: "Weekly review", ko: "주간 리뷰" })} →
-        </Link>
+        {reviewLinks}
 
         <Card className="p-24">
           <div className="text-13 font-semibold text-muted">{t(DASHBOARD_HERO_LABELS[period.kind])}</div>

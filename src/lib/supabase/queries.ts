@@ -4,6 +4,7 @@ import { cache } from "react";
 import { createClient } from "./server";
 import { CURRENT_ACCOUNT_COOKIE } from "@/lib/current-account";
 import type { Database } from "@/lib/database.types";
+import type { MissedTrade, MissReason } from "@/lib/domain/missed-trade";
 import type {
   Account,
   Attachment,
@@ -86,6 +87,29 @@ export function toTrade(row: Row<"trades">): Trade {
     entryCommission: Number(row.entry_commission),
     exitCommission: Number(row.exit_commission),
     tags: row.tags ?? [],
+    notes: row.notes,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+/** `time` comes back as `HH:MM:SS`; the form and list only ever show minutes. */
+export function toMissedTrade(row: Row<"missed_trades">): MissedTrade {
+  return {
+    id: row.id,
+    date: row.date,
+    time: row.time === null ? null : row.time.slice(0, 5),
+    session: row.session === null ? null : (row.session as Session),
+    instrument: row.instrument,
+    direction: row.direction as Direction,
+    entry: row.entry === null ? null : Number(row.entry),
+    stop: row.stop === null ? null : Number(row.stop),
+    target: row.target === null ? null : Number(row.target),
+    setupNote: row.setup_note,
+    missReason: row.miss_reason as MissReason,
+    missReasonNote: row.miss_reason_note,
+    result: row.result as TradeResult,
+    commissionPerLotPerSide: Number(row.commission_per_lot_per_side),
     notes: row.notes,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -362,4 +386,24 @@ export async function getWeeklyReview(isoWeek: string): Promise<WeeklyReview | n
 
   if (error) throw error;
   return data === null ? null : toWeeklyReview(data);
+}
+
+/**
+ * Missed trades within an inclusive date range, latest first. Not scoped to an
+ * account — a missed trade never touched one (docs/decisions.md § Missed
+ * trades). Only the Missed trades screen calls this.
+ */
+export async function getMissedTradesInRange(from: string, to: string): Promise<MissedTrade[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("missed_trades")
+    .select("*")
+    .gte("date", from)
+    .lte("date", to)
+    .order("date", { ascending: false })
+    .order("time", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map(toMissedTrade);
 }

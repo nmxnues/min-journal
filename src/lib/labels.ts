@@ -1,3 +1,4 @@
+import type { MissReason } from "@/lib/domain/missed-trade";
 import type { Direction, HtfPairing, Session, SweepSide, TradeResult } from "@/lib/domain/types";
 import type { LocaleStrings } from "@/lib/i18n/locale";
 
@@ -44,6 +45,15 @@ export const RESULT_LABELS: Record<TradeResult, LocaleStrings> = {
 };
 
 export const RESULT_ORDER: readonly TradeResult[] = ["win", "loss", "be"];
+
+/** Why a valid setup wasn't taken — the Missed trades form's fixed choice. */
+export const MISS_REASON_LABELS: Record<MissReason, LocaleStrings> = {
+  fear: { en: "Fear", ko: "공포" },
+  prior_loss: { en: "After a loss", ko: "직전 손실" },
+  low_conviction: { en: "Low conviction", ko: "확신 부족" },
+  away: { en: "Away from desk", ko: "자리 비움" },
+  other: { en: "Other", ko: "기타" },
+};
 
 /** "1 trade" / "2 trades" / "3건" — every trade-count caption on the Dashboard and Calendar goes through this, so English singular isn't a one-off fix. */
 export function tradeCountLabel(n: number): LocaleStrings {

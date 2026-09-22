@@ -226,6 +226,69 @@ export type Database = {
         }
         Relationships: []
       }
+      missed_trades: {
+        Row: {
+          commission_per_lot_per_side: number
+          created_at: string
+          date: string
+          direction: string
+          entry: number | null
+          id: string
+          instrument: string
+          miss_reason: string
+          miss_reason_note: string | null
+          notes: string | null
+          result: string
+          session: string | null
+          setup_note: string | null
+          stop: number | null
+          target: number | null
+          time: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          commission_per_lot_per_side?: number
+          created_at?: string
+          date: string
+          direction: string
+          entry?: number | null
+          id?: string
+          instrument: string
+          miss_reason: string
+          miss_reason_note?: string | null
+          notes?: string | null
+          result: string
+          session?: string | null
+          setup_note?: string | null
+          stop?: number | null
+          target?: number | null
+          time?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          commission_per_lot_per_side?: number
+          created_at?: string
+          date?: string
+          direction?: string
+          entry?: number | null
+          id?: string
+          instrument?: string
+          miss_reason?: string
+          miss_reason_note?: string | null
+          notes?: string | null
+          result?: string
+          session?: string | null
+          setup_note?: string | null
+          stop?: number | null
+          target?: number | null
+          time?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       models: {
         Row: {
           created_at: string
