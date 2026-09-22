@@ -7,13 +7,9 @@ import { Chip } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import type { Account } from "@/lib/domain/types";
 import { useT } from "@/lib/i18n/locale-context";
+import { ACCOUNT_KIND_LABELS } from "@/lib/labels";
 import { AccountSetup } from "../trades/new/account-setup";
 import { setCurrentAccount } from "./actions";
-
-const KIND_LABELS = {
-  live: { en: "Live", ko: "실거래" },
-  backtest: { en: "Backtest", ko: "백테스트" },
-} as const;
 
 /**
  * Capital's account creation + switching (docs/decisions.md § Phase 9
@@ -76,7 +72,7 @@ export function AccountSwitcher({
       >
         <span className="max-w-[160px] truncate">{current.name}</span>
         <Chip tone={current.kind === "backtest" ? "accent" : "neutral"} shape="stat">
-          {t(KIND_LABELS[current.kind])}
+          {t(ACCOUNT_KIND_LABELS[current.kind])}
         </Chip>
         <ChevronDown aria-hidden size={14} className="text-faint" />
       </button>
@@ -108,7 +104,7 @@ export function AccountSwitcher({
                 </span>
                 <span className="min-w-0 flex-1 truncate">{account.name}</span>
                 <Chip tone={account.kind === "backtest" ? "accent" : "neutral"} shape="stat" className="shrink-0">
-                  {t(KIND_LABELS[account.kind])}
+                  {t(ACCOUNT_KIND_LABELS[account.kind])}
                 </Chip>
               </button>
             </li>

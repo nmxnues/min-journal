@@ -244,7 +244,7 @@ export function ComponentGallery() {
           <div className="grid grid-cols-4 gap-16">
             <StatCard label="Avg win" value="2.3R" />
             <StatCard label="Avg loss" value="−0.9R" />
-            <StatCard label="Win streak" value="4 trades" />
+            <StatCard label="Win streak" value={4} />
             <StatCard label="Rule adherence" value="87%" />
           </div>
           <div className="mt-16 grid grid-cols-4 gap-16">

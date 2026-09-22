@@ -172,7 +172,12 @@ function MissedScreen(props: MissedViewProps & { isMobile: boolean }) {
       <div
         className={cn(
           "flex-1",
-          isMobile ? "flex flex-col gap-16 px-16 pb-100" : "grid grid-cols-[minmax(400px,460px)_1fr] items-start gap-24 p-32",
+          isMobile
+            ? "flex flex-col gap-16 px-16 pb-100"
+            // Two columns only once the form (400px) and the log beside it
+            // both fit; below that the desktop layout used to run off the
+            // right edge, so it stacks like the phone's does.
+            : "grid grid-cols-1 items-start gap-24 p-32 min-[1180px]:grid-cols-[minmax(400px,460px)_1fr]",
         )}
       >
         <div className={cn(!isMobile && "sticky top-24")}>{form}</div>
@@ -333,7 +338,7 @@ function MissedList({
               key={m.id}
               className={cn(
                 "grid items-center gap-x-16 gap-y-4 border-b border-divider py-14 last:border-b-0",
-                isMobile ? "grid-cols-[1fr_auto]" : "grid-cols-[112px_1fr_130px_80px_auto]",
+                isMobile ? "grid-cols-[1fr_auto]" : "grid-cols-[100px_minmax(0,1fr)_120px_76px_auto]",
                 editingId === m.id && "bg-accent-tint/40",
               )}
             >

@@ -1199,3 +1199,31 @@ languages, so they were left out of the Auto comparison and fixed after it):
   instead of shrinking to ~11px in a half-width card.
 - English singular/plural: "1 trade" (Weekly review), "1 entry" (phone
   Capital ledger), "1 data row" (CSV import). Korean text is unchanged.
+
+## Top bar shows the current account
+
+The wordmark slot now shows the account every screen is reading, with the
+account switcher's own Live/Backtest chip beside it. RootLayout reads
+`getCurrentAccount()` (now `cache()`'d, since pages read it too) and hands it
+down through `CurrentAccountProvider`; switching accounts already calls
+`router.refresh()`, so the name follows immediately. It stays the link to the
+Dashboard — top-left to home is the convention, and switching accounts lives
+on Capital.
+
+**The slot is a fixed width** (240px, 280px at ≥1440), so the nav starts in
+the same place whatever the account is called; a longer name truncates inside
+it and the full name is the link's `title`.
+
+**Below 1440px the nav takes its own second line.** The bar could not hold
+name + nav + buttons in one row: with the old wordmark the English nav plus
+the dashboard's buttons already overflowed at 900-1024px (verified against
+the deployed build), and a readable name needs ~240px more. Squeezing the
+name instead left it as a single letter, which defeats the point. Checked
+across 512 combinations (8 widths × 2 languages × 4 accounts, including
+48-character names, × 8 screens): no overflow, no wrapped nav, and the nav
+starts at the same x for every account at a given width.
+
+Missed trades' desktop layout goes single-column below 1180px, and its log
+columns are narrower; the two-column layout used to run off the right edge at
+900-1024px. Win streak shows the bare number ("1", not "1 trade"): the label
+already says what is counted.

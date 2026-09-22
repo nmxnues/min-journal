@@ -213,8 +213,11 @@ export async function getAllAccounts(): Promise<Account[]> {
  * cookie names a different one that still exists and is this user's (RLS
  * makes a foreign or since-deleted id simply read back null, not an error —
  * so a stale cookie just falls through to the default rather than breaking).
+ *
+ * `cache()`'d: RootLayout reads it for the top bar's account name, and
+ * the page itself reads it again in the same request.
  */
-export async function getCurrentAccount(): Promise<Account | null> {
+export const getCurrentAccount = cache(async (): Promise<Account | null> => {
   const cookieStore = await cookies();
   const selectedId = cookieStore.get(CURRENT_ACCOUNT_COOKIE)?.value;
 
@@ -226,7 +229,7 @@ export async function getCurrentAccount(): Promise<Account | null> {
   }
 
   return getPrimaryAccount();
-}
+});
 
 /** RLS scopes this to the signed-in user, so a wrong or someone-else's id just reads back null. */
 export async function getTrade(id: string): Promise<Trade | null> {

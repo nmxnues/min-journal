@@ -209,10 +209,8 @@ export function DesktopDashboard({
           />
           <StatCard
             label={t({ en: "Win streak", ko: "연승" })}
-            value={t({
-              en: `${stats.winStreaks.current} ${stats.winStreaks.current === 1 ? "trade" : "trades"}`,
-              ko: `${stats.winStreaks.current}트레이드`,
-            })}
+            // The number alone — the label already says what is counted.
+            value={stats.winStreaks.current}
           />
           <StatCard
             label={t({ en: "Rule adherence", ko: "규칙 준수율" })}

@@ -1,5 +1,5 @@
 import type { MissReason } from "@/lib/domain/missed-trade";
-import type { Direction, HtfPairing, Session, SweepSide, TradeResult } from "@/lib/domain/types";
+import type { AccountKind, Direction, HtfPairing, Session, SweepSide, TradeResult } from "@/lib/domain/types";
 import type { LocaleStrings } from "@/lib/i18n/locale";
 
 /**
@@ -45,6 +45,12 @@ export const RESULT_LABELS: Record<TradeResult, LocaleStrings> = {
 };
 
 export const RESULT_ORDER: readonly TradeResult[] = ["win", "loss", "be"];
+
+/** accounts.kind, as the account switcher and the top bar's account name tag it. */
+export const ACCOUNT_KIND_LABELS: Record<AccountKind, LocaleStrings> = {
+  live: { en: "Live", ko: "실거래" },
+  backtest: { en: "Backtest", ko: "백테스트" },
+};
 
 /** Why a valid setup wasn't taken — the Missed trades form's fixed choice. */
 export const MISS_REASON_LABELS: Record<MissReason, LocaleStrings> = {

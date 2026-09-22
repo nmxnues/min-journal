@@ -9,7 +9,8 @@ import {
   VIEWPORT_LOCALE_COOKIE,
 } from "@/lib/i18n/locale";
 import { SettingsProvider } from "@/lib/settings/context";
-import { getSettings } from "@/lib/supabase/queries";
+import { CurrentAccountProvider } from "@/lib/current-account-context";
+import { getCurrentAccount, getSettings } from "@/lib/supabase/queries";
 import "./globals.css";
 
 // The manifest (app/manifest.ts) is a Next file convention and auto-linked
@@ -71,7 +72,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   // SettingsProvider — a Settings screen save calls `router.refresh()`,
   // which re-runs this layout and hands the provider the new value, the same
   // round trip every other write in this app already uses.
-  const settings = await getSettings();
+  // The desktop top bar shows the account every screen is reading. Null on
+  // /login and before the first account exists (the bar falls back to the
+  // wordmark). cache()'d, so pages that read it too don't query twice.
+  const [settings, account] = await Promise.all([getSettings(), getCurrentAccount()]);
   const pnlConvention = settings?.pnl_convention === "west" ? "west" : undefined;
   const rPrecision = settings?.r_precision ?? 1;
 
@@ -79,7 +83,11 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html lang={resolveLocale(initialPreference, initialLocale)} data-pnl={pnlConvention} className="h-full antialiased">
       <body className="min-h-full flex flex-col">
         <LocaleProvider initialLocale={initialLocale} initialPreference={initialPreference}>
-          <SettingsProvider value={{ rPrecision }}>{children}</SettingsProvider>
+          <SettingsProvider value={{ rPrecision }}>
+            <CurrentAccountProvider value={account === null ? null : { name: account.name, kind: account.kind }}>
+              {children}
+            </CurrentAccountProvider>
+          </SettingsProvider>
         </LocaleProvider>
       </body>
     </html>
