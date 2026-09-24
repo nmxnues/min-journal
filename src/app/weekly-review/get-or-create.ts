@@ -13,8 +13,10 @@ import { createClient } from "@/lib/supabase/server";
 export async function getOrCreateWeeklyReview(
   isoWeek: IsoWeek,
 ): Promise<{ review: WeeklyReview; previous: WeeklyReview | null }> {
-  const previous = await getWeeklyReview(shiftIsoWeek(isoWeek, -1));
-  const existing = await getWeeklyReview(isoWeek);
+  const [previous, existing] = await Promise.all([
+    getWeeklyReview(shiftIsoWeek(isoWeek, -1)),
+    getWeeklyReview(isoWeek),
+  ]);
   if (existing !== null) return { review: existing, previous };
 
   const supabase = await createClient();

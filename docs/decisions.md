@@ -1227,3 +1227,58 @@ Missed trades' desktop layout goes single-column below 1180px, and its log
 columns are narrower; the two-column layout used to run off the right edge at
 900-1024px. Win streak shows the bare number ("1", not "1 trade"): the label
 already says what is counted.
+
+## 페이지 로딩 2차 개선 — 모든 페이지에서 왕복 한 번 줄이고, 2MB 폰트 교체
+
+위의 리전 수정(Deployed-app performance) 뒤에도 페이지마다 기다릴 필요 없는
+왕복이 남아 있었고, 첫 방문마다 폰트 파일 하나를 통째로 받고 있었다.
+Supabase 대신 쓰는 로컬 가짜 서버(Auth + PostgREST, 요청마다 50ms 지연 후 기록)와
+거래 400건짜리 live 계좌로 측정했다. "순차"는 앞 요청이 끝나길 기다려야 했던
+요청이 몇 단계였는지를 뜻한다.
+
+| 페이지 | 수정 전 | 수정 후 |
+| --- | --- | --- |
+| `/`, `/trades`, `/calendar`, `/playbook`, `/capital`, `/missed` | 순차 3번, 약 170ms | 2번, 약 118ms |
+| `/weekly-review` | 순차 5번, 268ms | 2번, 114ms |
+| `/trades/new` | 순차 4번, 219ms | 2번, 118ms |
+| `/trades/[id]` | 순차 4번, 219ms | 2번, 116ms |
+| `/settings` | 순차 2번, 110ms | 1번, 59ms |
+
+- **미들웨어: `getUser()` 대신 `getClaims()`.** `getUser()`는 Auth 서버에 보내는
+  요청이고, 미들웨어는 모든 페이지 렌더와 `<Link>` 미리 불러오기 앞에서 돌기
+  때문에 모든 페이지가 왕복 한 번만큼 늦게 시작했다. `getClaims()`는 JWT 서명을
+  프로젝트 공개키(한 번 받아 10분 캐시)로 그 자리에서 검사하고, 만료된 세션은
+  예전과 똑같이 갱신한다. 확인한 것: 세션 없음, 페이로드를 고친 토큰, 서명이 틀린
+  토큰은 모두 `/login`으로 보내고, 만료된 세션은 갱신한 뒤 새 쿠키를 쓴다. 대신
+  다른 곳에서 폐기한 세션을 JWT가 만료되기 전(기본 1시간)에는 알아채지 못하는데,
+  이건 PostgREST도 원래 확인하지 않던 부분이다. **로컬 검사는 프로젝트가 비대칭
+  JWT Signing Keys로 서명할 때만 된다.** 예전 방식의 공유 JWT 시크릿이면 같은
+  `getUser()` 호출로 돌아가므로 이전보다 느려지지는 않는다(Supabase 대시보드 →
+  Project Settings → JWT Keys에서 확인·전환).
+- **대시보드가 거래 전체를 두 번 불러왔다.** 기본값인 전체 기간에서
+  `getAllTrades()`를 부르고, 낙폭 경고용 `getAccountLedgerInputs()`에서도 거래
+  전체를 또 읽었다. 이제 기간에 맞는 거래는 원장 조회 결과에서 Trade log의
+  `filterTrades`/`sortTrades`로 잘라 쓴다. 클라이언트에 넘기는 배열은 순서까지
+  그대로다(전체 기간·이번 달 모두 예전 쿼리 순서와 id 단위로 대조).
+- **서로 상관없는데 줄 서 있던 조회.** 주간 리뷰는 리뷰를 받은 뒤에야 거래를
+  조회했고, `getOrCreateWeeklyReview`는 지난주와 이번 주 리뷰를 차례로 읽었다.
+  거래 상세는 계좌를 받은 뒤에야 원장을 읽었는데, 둘 다 `trade.accountId`만 있으면
+  된다. 각각 `Promise.all` 하나로 묶었다.
+- **`getDraft()`가 먼저 `getUser()`를 부르지 않는다.** RLS가 이미 `drafts`를
+  본인 행으로 제한하고 사용자당 한 행뿐이라, `getSettings()`가 자기 행을 읽는
+  방식과 같다.
+- **폰트: `pretendardvariable-dynamic-subset.css`.** 기존
+  `pretendardvariable.css`는 2,009KB짜리 woff2 파일 하나다. subset 버전은 같은
+  폰트를 `unicode-range` 92조각으로 나눈 것이라, 브라우저가 화면에 나온 글자의
+  조각만 받는다. `/login`은 86KB(영어) / 128KB(한국어, 실제 브라우저에서 129KB)를
+  받고, 화면 10개를 전부 돌아도 205KB / 384KB다.
+
+모든 페이지의 렌더된 텍스트가 수정 전후 바이트 단위로 같다.
+`npx tsc --noEmit`, `pnpm lint`, `pnpm test`(324개 통과), `pnpm build` 모두 통과.
+
+**하지 않은 것**: `loading.tsx`는 넣지 않았다. 탭을 누르자마자 스켈레톤이 떠서
+서버를 기다리는 동안에도 반응이 보이겠지만, 네비 바가 각 페이지 안에 있어서
+스켈레톤이 네비까지 가리고, 페이지 안에서 쿼리스트링만 바뀔 때(캘린더 `‹`/`›`,
+Trade log 필터)도 매번 깜빡인다. UX 판단이 필요해서 남겨 둔다. 대시보드와 자산
+화면은 전체 기간에서 여전히 거래 전체를 클라이언트로 보낸다(거래 400건에 HTML
+약 370KB). 줄이려면 통계를 서버에서 계산해야 한다.

@@ -21,18 +21,16 @@ export interface DraftRecord {
   updatedAt: string;
 }
 
+/**
+ * No `auth.getUser()` first: that's a round trip to the Auth server before
+ * the query can even start, on every New trade page load. RLS already scopes
+ * `drafts` to the signed-in user, and the table holds one row per user, so
+ * this reads back that row — or null with no draft or no session — the same
+ * way `getSettings()` reads its one row.
+ */
 export async function getDraft(): Promise<DraftRecord | null> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (user === null) return null;
-
-  const { data, error } = await supabase
-    .from("drafts")
-    .select("payload, updated_at")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const { data, error } = await supabase.from("drafts").select("payload, updated_at").maybeSingle();
 
   if (error) throw error;
   if (data === null) return null;

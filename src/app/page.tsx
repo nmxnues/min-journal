@@ -1,13 +1,8 @@
 import { drawdownState } from "@/lib/domain/capital";
 import { currentIsoMonth } from "@/lib/domain/dates";
 import { parseDashboardPeriod, resolveDashboardPeriod } from "@/lib/domain/dashboard-period";
-import {
-  getAccountLedgerInputs,
-  getAllTrades,
-  getModels,
-  getCurrentAccount,
-  getTradesInRange,
-} from "@/lib/supabase/queries";
+import { EMPTY_TRADE_LOG_FILTERS, filterTrades, sortTrades } from "@/lib/domain/trade-log";
+import { getAccountLedgerInputs, getModels, getCurrentAccount } from "@/lib/supabase/queries";
 import { Dashboard } from "./dashboard";
 import { localizedTitle } from "@/lib/i18n/server-locale";
 
@@ -32,11 +27,20 @@ export default async function Home({
   const period = parseDashboardPeriod(params);
   const resolved = resolveDashboardPeriod(period, currentIsoMonth());
 
-  const [trades, models, ledgerInputs] = await Promise.all([
-    resolved.kind === "all" ? getAllTrades(account.id) : getTradesInRange(account.id, resolved.from, resolved.to),
-    getModels(),
-    getAccountLedgerInputs(account.id),
-  ]);
+  const [ledgerInputs, models] = await Promise.all([getAccountLedgerInputs(account.id), getModels()]);
+
+  // The drawdown guard below already needs every trade on the account, so the
+  // period's trades are cut from that same fetch rather than queried a second
+  // time — on the default All time that second query was the whole table
+  // again. Same order the query gave: latest date first, then latest entered.
+  const trades = sortTrades(
+    resolved.kind === "all"
+      ? ledgerInputs.trades
+      : filterTrades(ledgerInputs.trades, { ...EMPTY_TRADE_LOG_FILTERS, from: resolved.from, to: resolved.to }),
+    "date",
+    "desc",
+    models,
+  );
 
   // docs/README.md § Capital: crossing the drawdown limit "should surface a
   // warning on the dashboard" (the trade form already warns from 2 points out).
