@@ -1,5 +1,11 @@
 @import "tailwindcss";
-@import "pretendard/dist/web/variable/pretendardvariable.css";
+/*
+ * The dynamic-subset build, not `pretendardvariable.css`: that one is a
+ * single 2MB woff2 every first visit had to download. This one is the same
+ * 'Pretendard Variable' face split into 92 `unicode-range` slices, and the
+ * browser only fetches the slices whose characters are actually on screen.
+ */
+@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 
 /*
  * Design tokens — source: docs/README.md § "Design Tokens".

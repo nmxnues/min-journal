@@ -27,14 +27,16 @@ export default async function WeeklyReviewPage({
     return <WeeklyReviewView week={week} hasAccount={false} />;
   }
 
-  const [{ review, previous }, models] = await Promise.all([getOrCreateWeeklyReview(week), getModels()]);
-
   const { from, to } = isoWeekRange(week);
   const priorWeeks = [4, 3, 2, 1].map((n) => shiftIsoWeek(week, -n));
   const priorFrom = isoWeekRange(priorWeeks[0]).from;
   const priorTo = isoWeekRange(priorWeeks[priorWeeks.length - 1]).to;
 
-  const [trades, priorTrades] = await Promise.all([
+  // One batch: the trade queries only need the account and the week, not the
+  // review, so nothing here waits on anything else.
+  const [{ review, previous }, models, trades, priorTrades] = await Promise.all([
+    getOrCreateWeeklyReview(week),
+    getModels(),
     getTradesInRange(account.id, from, to),
     getTradesInRange(account.id, priorFrom, priorTo),
   ]);

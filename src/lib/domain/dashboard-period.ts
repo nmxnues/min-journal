@@ -113,8 +113,8 @@ export function resolveDashboardPeriod(
     return { kind, from: `${today.slice(0, 4)}-01-01`, to: today, stepMonth: null };
   }
   if (kind === "all") {
-    // No real lower bound needed — the caller fetches with getAllTrades()
-    // for "all" rather than this range; `from` here is only ever used for
+    // No real lower bound needed — the caller takes every trade for "all"
+    // rather than filtering by this range; `from` here is only ever used for
     // display, so an arbitrarily early sentinel is fine.
     return { kind, from: "1970-01-01", to: today, stepMonth: null };
   }

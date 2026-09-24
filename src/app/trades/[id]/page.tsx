@@ -24,12 +24,14 @@ export default async function TradeDetailPage({ params }: { params: Promise<{ id
   // one is currently selected elsewhere in the app (docs/decisions.md § Phase
   // 9 multi-account follow-up) — a trade detail page has to reflect the
   // account it actually belongs to even when you're browsing it from a
-  // different account's trade log or a shared link.
-  const [models, attachments, account, settings] = await Promise.all([
+  // different account's trade log or a shared link. The ledger only needs
+  // that id too, so it's fetched alongside the account, not after it.
+  const [models, attachments, account, settings, ledger] = await Promise.all([
     getModels(),
     getTradeAttachments(trade.id),
     getAccount(trade.accountId),
     getSettings(),
+    getAccountLedgerInputs(trade.accountId),
   ]);
 
   // The account trades come from always exists by the time a trade does
@@ -38,10 +40,7 @@ export default async function TradeDetailPage({ params }: { params: Promise<{ id
   const drawdown =
     account === null
       ? { isNearLimit: false, drawdownPercent: 0, limitPercent: 0 }
-      : await (async () => {
-          const ledger = await getAccountLedgerInputs(account.id);
-          return drawdownState(account, ledger.cashMovements, ledger.trades);
-        })();
+      : drawdownState(account, ledger.cashMovements, ledger.trades);
 
   return (
     <TradeDetail

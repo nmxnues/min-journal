@@ -37,11 +37,17 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // Do not run any logic between createServerClient and getUser() — it
-  // revalidates the session token and must not be skipped or delayed.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Do not run any logic between createServerClient and getClaims() — it
+  // refreshes an expired session token and must not be skipped or delayed.
+  //
+  // getClaims(), not getUser(): getUser() is a round trip to the Auth server
+  // on every request (every navigation and every <Link> prefetch), made
+  // before any page could start its own queries. getClaims() verifies the
+  // JWT's signature locally against the project's cached public keys
+  // instead. On a project still on the legacy symmetric JWT secret it falls
+  // back to that same getUser() call, so it is never slower than before.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims ?? null;
 
   if (!user && !isPublicPath(request.nextUrl.pathname)) {
     const loginUrl = request.nextUrl.clone();
